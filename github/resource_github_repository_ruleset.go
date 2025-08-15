@@ -63,8 +63,8 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 						"actor_type": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin"}, false),
-							Description:  "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`.",
+							ValidateFunc: validation.StringInSlice([]string{"RepositoryRole", "Team", "Integration", "OrganizationAdmin", "DeployKey"}, false),
+							Description:  "The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`.",
 						},
 						"bypass_mode": {
 							Type:         schema.TypeString,
@@ -212,6 +212,30 @@ func resourceGithubRepositoryRuleset() *schema.Resource {
 										Optional:    true,
 										Default:     false,
 										Description: "All conversations on code must be resolved before a pull request can be merged. Defaults to `false`.",
+									},
+									"allow_merge_commit": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     true,
+										Description: "Whether users can use the web UI to merge pull requests with a merge commit. Defaults to `true`.",
+									},
+									"allow_squash_merge": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     true,
+										Description: "Whether users can use the web UI to squash merge pull requests. Defaults to `true`.",
+									},
+									"allow_rebase_merge": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     true,
+										Description: "Whether users can use the web UI to rebase merge pull requests. Defaults to `true`.",
+									},
+									"automatic_copilot_code_review_enabled": {
+										Type:        schema.TypeBool,
+										Optional:    true,
+										Default:     false,
+										Description: "Enable GitHub Copilot code review automation. Defaults to `false`.",
 									},
 								},
 							},

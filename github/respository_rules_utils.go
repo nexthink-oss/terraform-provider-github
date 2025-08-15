@@ -11,20 +11,21 @@ import (
 func resourceGithubRulesetObject(d *schema.ResourceData, org string) *github.RepositoryRuleset {
 	isOrgLevel := len(org) > 0
 
-	var source, sourceType string
+	var source string
+	var sourceType *github.RulesetSourceType
 	if isOrgLevel {
 		source = org
-		sourceType = "Organization"
+		sourceType = github.Ptr(github.RulesetSourceTypeOrganization)
 	} else {
 		source = d.Get("repository").(string)
-		sourceType = "Repository"
+		sourceType = github.Ptr(github.RulesetSourceTypeRepository)
 	}
 
 	return &github.RepositoryRuleset{
 		Name:         d.Get("name").(string),
 		Target:       (*github.RulesetTarget)(github.Ptr(d.Get("target").(string))),
 		Source:       source,
-		SourceType:   (*github.RulesetSourceType)(&sourceType),
+		SourceType:   sourceType,
 		Enforcement:  github.RulesetEnforcement(d.Get("enforcement").(string)),
 		BypassActors: expandBypassActors(d.Get("bypass_actors").([]any)),
 		Conditions:   expandConditions(d.Get("conditions").([]any), isOrgLevel),
@@ -288,12 +289,33 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	// Pull request rule
 	if v, ok := rulesMap["pull_request"].([]any); ok && len(v) != 0 {
 		pullRequestMap := v[0].(map[string]any)
+
+		// Build AllowedMergeMethods array from boolean fields
+		allowedMergeMethods := make([]github.PullRequestMergeMethod, 0)
+
+		if allowMerge, exists := pullRequestMap["allow_merge_commit"]; !exists || allowMerge.(bool) {
+			allowedMergeMethods = append(allowedMergeMethods, github.PullRequestMergeMethodMerge)
+		}
+		if allowSquash, exists := pullRequestMap["allow_squash_merge"]; !exists || allowSquash.(bool) {
+			allowedMergeMethods = append(allowedMergeMethods, github.PullRequestMergeMethodSquash)
+		}
+		if allowRebase, exists := pullRequestMap["allow_rebase_merge"]; !exists || allowRebase.(bool) {
+			allowedMergeMethods = append(allowedMergeMethods, github.PullRequestMergeMethodRebase)
+		}
+
 		rules.PullRequest = &github.PullRequestRuleParameters{
+			AllowedMergeMethods:            allowedMergeMethods,
 			DismissStaleReviewsOnPush:      pullRequestMap["dismiss_stale_reviews_on_push"].(bool),
 			RequireCodeOwnerReview:         pullRequestMap["require_code_owner_review"].(bool),
 			RequireLastPushApproval:        pullRequestMap["require_last_push_approval"].(bool),
 			RequiredApprovingReviewCount:   pullRequestMap["required_approving_review_count"].(int),
 			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
+		}
+
+		// Handle optional automatic_copilot_code_review_enabled
+		if copilotReview, exists := pullRequestMap["automatic_copilot_code_review_enabled"]; exists {
+			copilotEnabled := copilotReview.(bool)
+			rules.PullRequest.AutomaticCopilotCodeReviewEnabled = &copilotEnabled
 		}
 	}
 
@@ -466,6 +488,26 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 		rule["require_last_push_approval"] = rules.PullRequest.RequireLastPushApproval
 		rule["required_approving_review_count"] = rules.PullRequest.RequiredApprovingReviewCount
 		rule["required_review_thread_resolution"] = rules.PullRequest.RequiredReviewThreadResolution
+
+		// Parse AllowedMergeMethods back to boolean fields
+		rule["allow_merge_commit"] = false
+		rule["allow_squash_merge"] = false
+		rule["allow_rebase_merge"] = false
+
+		for _, method := range rules.PullRequest.AllowedMergeMethods {
+			switch method {
+			case github.PullRequestMergeMethodMerge:
+				rule["allow_merge_commit"] = true
+			case github.PullRequestMergeMethodSquash:
+				rule["allow_squash_merge"] = true
+			case github.PullRequestMergeMethodRebase:
+				rule["allow_rebase_merge"] = true
+			}
+		}
+
+		// Handle optional automatic_copilot_code_review_enabled
+		rule["automatic_copilot_code_review_enabled"] = rules.PullRequest.GetAutomaticCopilotCodeReviewEnabled()
+
 		rulesMap["pull_request"] = []map[string]any{rule}
 	}
 
