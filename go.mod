@@ -1,4 +1,4 @@
-module github.com/integrations/terraform-provider-github/v6
+module github.com/isometry/terraform-provider-github/v7
 
 go 1.24.0
 
