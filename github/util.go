@@ -230,14 +230,10 @@ func getTeamSlug(teamIDString string, meta any) (string, error) {
 	}
 
 	// The given id is an integer, assume it is a team id
-	team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
-	if teamIdErr != nil {
-		// There isn't a team with the given ID, assume it is a teamslug
-		team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
-		if slugErr != nil {
-			return "", errors.New(teamIdErr.Error() + slugErr.Error())
-		}
-		return team.GetSlug(), nil
+	//nolint:staticcheck // SA1019: Using deprecated GetTeamByID for efficiency - more efficient than iterating through all teams
+	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
+	if err != nil {
+		return "", err
 	}
 	return team.GetSlug(), nil
 }

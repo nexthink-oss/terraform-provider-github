@@ -401,7 +401,6 @@ func matchUserCollaboratorsAndInvites(repoName string, want []any, hasUsers []us
 
 func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator, meta any) error {
 	client := meta.(*Owner).v3client
-	orgID := meta.(*Owner).id
 	owner := meta.(*Owner).name
 	ctx := context.Background()
 
@@ -424,8 +423,8 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 			remove = append(remove, hasTeam)
 		} else if wantPerm != hasTeam.permission { // permission should be updated
 			log.Printf("[DEBUG] Updating team %d permission from %s to %s for repo: %s.", hasTeam.teamID, hasTeam.permission, wantPerm, repoName)
-			_, err := client.Teams.AddTeamRepoByID(
-				ctx, orgID, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+			_, err := client.Teams.AddTeamRepoBySlug(
+				ctx, owner, hasTeam.teamSlug, owner, repoName, &github.TeamAddTeamRepoOptions{
 					Permission: wantPerm,
 				},
 			)
@@ -442,6 +441,10 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 		if err != nil {
 			return err
 		}
+		teamSlug, err := getTeamSlug(teamIDString, meta)
+		if err != nil {
+			return err
+		}
 		var found bool
 		for _, c := range has {
 			if teamID == c.teamID {
@@ -455,8 +458,8 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 		permission := teamData["permission"].(string)
 		// team needs to be added
 		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamIDString, permission, repoName)
-		_, err = client.Teams.AddTeamRepoByID(
-			ctx, orgID, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+		_, err = client.Teams.AddTeamRepoBySlug(
+			ctx, owner, teamSlug, owner, repoName, &github.TeamAddTeamRepoOptions{
 				Permission: permission,
 			},
 		)
@@ -467,7 +470,7 @@ func matchTeamCollaborators(repoName string, want []any, has []teamCollaborator,
 
 	for _, team := range remove {
 		log.Printf("[DEBUG] Removing team %d from repo: %s.", team.teamID, repoName)
-		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, team.teamID, owner, repoName)
+		_, err := client.Teams.RemoveTeamRepoBySlug(ctx, owner, team.teamSlug, owner, repoName)
 		if err != nil {
 			return err
 		}

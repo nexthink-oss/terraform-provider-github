@@ -67,11 +67,10 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 
 	// The given team id could be an id or a slug
 	givenTeamId := d.Get("team_id").(string)
-	teamId, err := getTeamID(givenTeamId, meta)
+	teamSlug, err := getTeamSlug(givenTeamId, meta)
 	if err != nil {
 		return err
 	}
@@ -81,9 +80,9 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 	permission := d.Get("permission").(string)
 	ctx := context.Background()
 
-	_, err = client.Teams.AddTeamRepoByID(ctx,
-		orgId,
-		teamId,
+	_, err = client.Teams.AddTeamRepoBySlug(ctx,
+		orgName,
+		teamSlug,
 		orgName,
 		repoName,
 		&github.TeamAddTeamRepoOptions{
@@ -95,6 +94,10 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta any) error 
 		return err
 	}
 
+	teamId, err := getTeamID(givenTeamId, meta)
+	if err != nil {
+		return err
+	}
 	d.SetId(buildTwoPartID(strconv.FormatInt(teamId, 10), repoName))
 
 	return resourceGithubTeamRepositoryRead(d, meta)
@@ -107,13 +110,12 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
-	teamId, err := getTeamID(teamIdString, meta)
+	teamSlug, err := getTeamSlug(teamIdString, meta)
 	if err != nil {
 		return err
 	}
@@ -123,7 +125,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta any) error {
 		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
 	}
 
-	repo, resp, repoErr := client.Teams.IsTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	repo, resp, repoErr := client.Teams.IsTeamRepoBySlug(ctx, orgName, teamSlug, orgName, repoName)
 	if repoErr != nil {
 		if ghErr, ok := repoErr.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -166,24 +168,23 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamSlug, err := getTeamSlug(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	orgName := meta.(*Owner).name
 	permission := d.Get("permission").(string)
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from GitHub API
-	_, err = client.Teams.AddTeamRepoByID(ctx,
-		orgId,
-		teamId,
+	_, err = client.Teams.AddTeamRepoBySlug(ctx,
+		orgName,
+		teamSlug,
 		orgName,
 		repoName,
 		&github.TeamAddTeamRepoOptions{
@@ -206,20 +207,19 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 	}
 
 	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
 
 	teamIdString, repoName, err := parseTwoPartID(d.Id(), "team_id", "repository")
 	if err != nil {
 		return err
 	}
-	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+	teamSlug, err := getTeamSlug(teamIdString, meta)
 	if err != nil {
-		return unconvertibleIdErr(teamIdString, err)
+		return err
 	}
 	orgName := meta.(*Owner).name
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	resp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
+	resp, err := client.Teams.RemoveTeamRepoBySlug(ctx, orgName, teamSlug, orgName, repoName)
 
 	if resp.StatusCode == 404 {
 		log.Printf("[DEBUG] Failed to find team %s to delete for repo: %s.", teamIdString, repoName)
@@ -232,7 +232,7 @@ func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta any) error 
 			log.Printf("[INFO] Repo name has changed %s -> %s. "+
 				"Try deleting team repository again.",
 				repoName, newRepoName)
-			_, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
+			_, err := client.Teams.RemoveTeamRepoBySlug(ctx, orgName, teamSlug, orgName, newRepoName)
 			return err
 		}
 	}

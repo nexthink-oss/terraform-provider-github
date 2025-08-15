@@ -140,20 +140,12 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 		return err
 	}
 
-	orgId := meta.(*Owner).id
 	orgName := meta.(*Owner).name
-	teamId, err := strconv.ParseInt(d.Id(), 10, 64)
-	if err != nil {
-		return err
-	}
 
 	client := meta.(*Owner).v3client
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
-	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
-	if err != nil {
-		return err
-	}
+	teamSlug := d.Get("team_slug").(string)
 
 	smRole, err := getSecurityManagerRole(client, ctx, orgName)
 	if err != nil {
@@ -161,7 +153,7 @@ func resourceGithubOrganizationSecurityManagerUpdate(d *schema.ResourceData, met
 	}
 
 	// Adding the same team is a no-op.
-	_, err = client.Organizations.AssignOrgRoleToTeam(ctx, orgName, team.GetSlug(), smRole.GetID())
+	_, err = client.Organizations.AssignOrgRoleToTeam(ctx, orgName, teamSlug, smRole.GetID())
 	if err != nil {
 		return err
 	}
