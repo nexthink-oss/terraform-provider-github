@@ -14,9 +14,10 @@ import (
 
 func resourceGithubActionsEnvironmentSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsEnvironmentSecretCreateOrUpdate,
-		Read:   resourceGithubActionsEnvironmentSecretRead,
-		Delete: resourceGithubActionsEnvironmentSecretDelete,
+		Description: "Creates and manages an Action Secret within a GitHub repository environment",
+		Create:      resourceGithubActionsEnvironmentSecretCreateOrUpdate,
+		Read:        resourceGithubActionsEnvironmentSecretRead,
+		Delete:      resourceGithubActionsEnvironmentSecretDelete,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

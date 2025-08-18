@@ -14,10 +14,11 @@ import (
 
 func resourceGithubRepositoryEnvironmentDeploymentPolicy() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryEnvironmentDeploymentPolicyCreate,
-		Read:   resourceGithubRepositoryEnvironmentDeploymentPolicyRead,
-		Update: resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate,
-		Delete: resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
+		Description: "Creates and manages environment deployment branch policies for GitHub repositories",
+		Create:      resourceGithubRepositoryEnvironmentDeploymentPolicyCreate,
+		Read:        resourceGithubRepositoryEnvironmentDeploymentPolicyRead,
+		Update:      resourceGithubRepositoryEnvironmentDeploymentPolicyUpdate,
+		Delete:      resourceGithubRepositoryEnvironmentDeploymentPolicyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

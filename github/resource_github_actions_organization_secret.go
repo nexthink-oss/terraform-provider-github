@@ -14,10 +14,11 @@ import (
 
 func resourceGithubActionsOrganizationSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationSecretCreateOrUpdate,
-		Read:   resourceGithubActionsOrganizationSecretRead,
-		Update: resourceGithubActionsOrganizationSecretCreateOrUpdate,
-		Delete: resourceGithubActionsOrganizationSecretDelete,
+		Description: "Creates and manages an Action Secret within a GitHub organization",
+		Create:      resourceGithubActionsOrganizationSecretCreateOrUpdate,
+		Read:        resourceGithubActionsOrganizationSecretRead,
+		Update:      resourceGithubActionsOrganizationSecretCreateOrUpdate,
+		Delete:      resourceGithubActionsOrganizationSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("secret_name", d.Id()); err != nil {

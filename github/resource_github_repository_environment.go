@@ -13,10 +13,11 @@ import (
 
 func resourceGithubRepositoryEnvironment() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryEnvironmentCreate,
-		Read:   resourceGithubRepositoryEnvironmentRead,
-		Update: resourceGithubRepositoryEnvironmentUpdate,
-		Delete: resourceGithubRepositoryEnvironmentDelete,
+		Description: "Creates and manages environments for GitHub repositories",
+		Create:      resourceGithubRepositoryEnvironmentCreate,
+		Read:        resourceGithubRepositoryEnvironmentRead,
+		Update:      resourceGithubRepositoryEnvironmentUpdate,
+		Delete:      resourceGithubRepositoryEnvironmentDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

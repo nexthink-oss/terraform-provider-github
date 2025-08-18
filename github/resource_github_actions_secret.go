@@ -15,9 +15,10 @@ import (
 
 func resourceGithubActionsSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsSecretCreateOrUpdate,
-		Read:   resourceGithubActionsSecretRead,
-		Delete: resourceGithubActionsSecretDelete,
+		Description: "Creates and manages an Action Secret within a GitHub repository",
+		Create:      resourceGithubActionsSecretCreateOrUpdate,
+		Read:        resourceGithubActionsSecretRead,
+		Delete:      resourceGithubActionsSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubActionsSecretImport,
 		},

@@ -14,10 +14,11 @@ import (
 
 func resourceGithubRepositoryWebhook() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryWebhookCreate,
-		Read:   resourceGithubRepositoryWebhookRead,
-		Update: resourceGithubRepositoryWebhookUpdate,
-		Delete: resourceGithubRepositoryWebhookDelete,
+		Description: "Creates and manages repository webhooks within GitHub organizations or personal accounts",
+		Create:      resourceGithubRepositoryWebhookCreate,
+		Read:        resourceGithubRepositoryWebhookRead,
+		Update:      resourceGithubRepositoryWebhookUpdate,
+		Delete:      resourceGithubRepositoryWebhookDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")

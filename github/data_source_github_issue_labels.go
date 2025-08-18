@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubIssueLabels() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubIssueLabelsRead,
+		Description: "Get the labels for a given repository.",
+		Read:        dataSourceGithubIssueLabelsRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

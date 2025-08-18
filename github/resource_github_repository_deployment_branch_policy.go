@@ -12,10 +12,11 @@ import (
 
 func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryDeploymentBranchPolicyCreate,
-		Read:   resourceGithubRepositoryDeploymentBranchPolicyRead,
-		Update: resourceGithubRepositoryDeploymentBranchPolicyUpdate,
-		Delete: resourceGithubRepositoryDeploymentBranchPolicyDelete,
+		Description: "Creates and manages deployment branch policies",
+		Create:      resourceGithubRepositoryDeploymentBranchPolicyCreate,
+		Read:        resourceGithubRepositoryDeploymentBranchPolicyRead,
+		Update:      resourceGithubRepositoryDeploymentBranchPolicyUpdate,
+		Delete:      resourceGithubRepositoryDeploymentBranchPolicyDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubRepositoryDeploymentBranchPolicyImport,
 		},

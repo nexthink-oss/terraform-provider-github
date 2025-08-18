@@ -8,7 +8,8 @@ import (
 
 func dataSourceGithubTree() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTreeRead,
+		Description: "Returns a single tree using the SHA1 value for that tree.",
+		Read:        dataSourceGithubTreeRead,
 		Schema: map[string]*schema.Schema{
 			"recursive": {
 				Type:     schema.TypeBool,

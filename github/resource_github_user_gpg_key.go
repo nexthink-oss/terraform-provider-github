@@ -12,9 +12,10 @@ import (
 
 func resourceGithubUserGpgKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubUserGpgKeyCreate,
-		Read:   resourceGithubUserGpgKeyRead,
-		Delete: resourceGithubUserGpgKeyDelete,
+		Description: "Provides a GitHub user's GPG key resource.",
+		Create:      resourceGithubUserGpgKeyCreate,
+		Read:        resourceGithubUserGpgKeyRead,
+		Delete:      resourceGithubUserGpgKeyDelete,
 
 		Schema: map[string]*schema.Schema{
 			"armored_public_key": {

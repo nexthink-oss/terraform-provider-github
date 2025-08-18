@@ -13,7 +13,8 @@ import (
 
 func dataSourceGithubRepository() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryRead,
+		Description: "Get details about GitHub repository",
+		Read:        dataSourceGithubRepositoryRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {

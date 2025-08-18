@@ -14,10 +14,11 @@ import (
 
 func resourceGithubActionsRunnerGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRunnerGroupCreate,
-		Read:   resourceGithubActionsRunnerGroupRead,
-		Update: resourceGithubActionsRunnerGroupUpdate,
-		Delete: resourceGithubActionsRunnerGroupDelete,
+		Description: "Creates and manages an Actions Runner Group within a GitHub organization",
+		Create:      resourceGithubActionsRunnerGroupCreate,
+		Read:        resourceGithubActionsRunnerGroupRead,
+		Update:      resourceGithubActionsRunnerGroupUpdate,
+		Delete:      resourceGithubActionsRunnerGroupDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

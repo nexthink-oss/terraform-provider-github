@@ -16,9 +16,10 @@ import (
 
 func resourceGithubRepositoryAutolinkReference() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryAutolinkReferenceCreate,
-		Read:   resourceGithubRepositoryAutolinkReferenceRead,
-		Delete: resourceGithubRepositoryAutolinkReferenceDelete,
+		Description: "Creates and manages autolink references for a single repository",
+		Create:      resourceGithubRepositoryAutolinkReferenceCreate,
+		Read:        resourceGithubRepositoryAutolinkReferenceRead,
+		Delete:      resourceGithubRepositoryAutolinkReferenceDelete,
 
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {

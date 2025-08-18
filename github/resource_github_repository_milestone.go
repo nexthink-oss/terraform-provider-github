@@ -16,10 +16,11 @@ import (
 
 func resourceGithubRepositoryMilestone() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryMilestoneCreate,
-		Read:   resourceGithubRepositoryMilestoneRead,
-		Update: resourceGithubRepositoryMilestoneUpdate,
-		Delete: resourceGithubRepositoryMilestoneDelete,
+		Description: "Provides a GitHub repository milestone resource.",
+		Create:      resourceGithubRepositoryMilestoneCreate,
+		Read:        resourceGithubRepositoryMilestoneRead,
+		Update:      resourceGithubRepositoryMilestoneUpdate,
+		Delete:      resourceGithubRepositoryMilestoneDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")

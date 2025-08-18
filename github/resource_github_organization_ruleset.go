@@ -14,10 +14,11 @@ import (
 
 func resourceGithubOrganizationRuleset() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationRulesetCreate,
-		Read:   resourceGithubOrganizationRulesetRead,
-		Update: resourceGithubOrganizationRulesetUpdate,
-		Delete: resourceGithubOrganizationRulesetDelete,
+		Description: "Creates a GitHub organization ruleset.",
+		Create:      resourceGithubOrganizationRulesetCreate,
+		Read:        resourceGithubOrganizationRulesetRead,
+		Update:      resourceGithubOrganizationRulesetUpdate,
+		Delete:      resourceGithubOrganizationRulesetDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubOrganizationRulesetImport,
 		},

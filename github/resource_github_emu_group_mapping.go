@@ -11,10 +11,11 @@ import (
 
 func resourceGithubEMUGroupMapping() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubEMUGroupMappingCreate,
-		Read:   resourceGithubEMUGroupMappingRead,
-		Update: resourceGithubEMUGroupMappingUpdate,
-		Delete: resourceGithubEMUGroupMappingDelete,
+		Description: "Manages mappings between external groups for enterprise managed users.",
+		Create:      resourceGithubEMUGroupMappingCreate,
+		Read:        resourceGithubEMUGroupMappingRead,
+		Update:      resourceGithubEMUGroupMappingUpdate,
+		Delete:      resourceGithubEMUGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				id, err := strconv.Atoi(d.Id())

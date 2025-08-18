@@ -11,10 +11,11 @@ import (
 
 func resourceGithubActionsVariable() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsVariableCreate,
-		Read:   resourceGithubActionsVariableRead,
-		Update: resourceGithubActionsVariableUpdate,
-		Delete: resourceGithubActionsVariableDelete,
+		Description: "Creates and manages an Action variable within a GitHub repository",
+		Create:      resourceGithubActionsVariableCreate,
+		Read:        resourceGithubActionsVariableRead,
+		Update:      resourceGithubActionsVariableUpdate,
+		Delete:      resourceGithubActionsVariableDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

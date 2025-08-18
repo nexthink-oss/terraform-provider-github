@@ -1,0 +1,31 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Provides a GitHub repository deploy key resource.
+
+A deploy key is an SSH key that is stored on your server and grants access to a single GitHub repository. This key is attached directly to the repository instead of to a personal user account.
+
+This resource allows you to add/remove repository deploy keys.
+
+Further documentation on GitHub repository deploy keys:
+- [About deploy keys](https://developer.github.com/guides/managing-deploy-keys/#deploy-keys)
+
+## Example Usage
+
+{{tffile "examples/resources/github_repository_deploy_key/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Repository deploy keys can be imported using a colon-separated pair of repository name and GitHub's key id. The latter can be obtained by GitHub's SDKs and API.
+
+```shell
+terraform import github_repository_deploy_key.foo test-repo:23824728
+```

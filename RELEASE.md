@@ -16,7 +16,7 @@ The release flow is as follows:
 [viewed here](https://github.com/integrations/terraform-provider-github/actions?query=workflow%3Arelease).
 After the workflow executes successfully, the GitHub release created in the prior step will
 have the relevant assets available for consumption.
-1. The new release will show up in https://registry.terraform.io/providers/integrations/github/latest for consumption
+1. The new release will show up in https://registry.terraform.io/providers/isometry/github/latest for consumption
 by Terraform users.
 1. For terraform `0.12.X` users, the new release is available for consumption once it is present in
 https://releases.hashicorp.com/terraform-provider-github/.

@@ -13,10 +13,11 @@ import (
 func resourceGithubOrganizationWebhook() *schema.Resource {
 
 	return &schema.Resource{
-		Create: resourceGithubOrganizationWebhookCreate,
-		Read:   resourceGithubOrganizationWebhookRead,
-		Update: resourceGithubOrganizationWebhookUpdate,
-		Delete: resourceGithubOrganizationWebhookDelete,
+		Description: "Creates and manages webhooks for GitHub organizations",
+		Create:      resourceGithubOrganizationWebhookCreate,
+		Read:        resourceGithubOrganizationWebhookRead,
+		Update:      resourceGithubOrganizationWebhookUpdate,
+		Delete:      resourceGithubOrganizationWebhookDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

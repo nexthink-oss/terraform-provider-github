@@ -5,7 +5,7 @@ Terraform Provider GitHub
 
 <img src="https://raw.githubusercontent.com/hashicorp/terraform-website/d841a1e5fca574416b5ca24306f85a0f4f41b36d/content/source/assets/images/logo-terraform-main.svg" width="300px">
 
-This project is used to manipulate GitHub resources (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/integrations/github/).
+This project is used to manipulate GitHub resources (repositories, teams, files, etc.) using Terraform. Its Terraform Registry page can be found [here](https://registry.terraform.io/providers/isometry/github/).
 
 ## Requirements
 
@@ -14,7 +14,7 @@ This project is used to manipulate GitHub resources (repositories, teams, files,
 
 ## Usage
 
-Detailed documentation for the GitHub provider can be found [here](https://registry.terraform.io/providers/integrations/github).
+Detailed documentation for the GitHub provider can be found [here](https://registry.terraform.io/providers/isometry/github).
 
 ## Contributing
 

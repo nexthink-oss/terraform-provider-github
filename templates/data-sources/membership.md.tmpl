@@ -1,0 +1,16 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to find out if a user is a member of your organization, as well as what role they have within it. If the user's membership in the organization is pending their acceptance of an invite, the role they would have once they accept will be returned.
+
+## Example Usage
+
+{{tffile "examples/data-sources/github_membership/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}

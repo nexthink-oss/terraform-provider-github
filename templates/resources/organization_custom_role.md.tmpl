@@ -1,0 +1,26 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage custom roles in a GitHub Organization for use in repositories.
+
+~> Note: Custom roles are currently only available in GitHub Enterprise Cloud.
+
+## Example Usage
+
+{{tffile "examples/resources/github_organization_custom_role/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Custom roles can be imported using the `id` of the role. The `id` of the custom role can be found using the [list custom roles in an organization](https://docs.github.com/en/enterprise-cloud@latest/rest/orgs/custom-roles#list-custom-repository-roles-in-an-organization) API.
+
+```shell
+terraform import github_organization_custom_role.example 1234
+```

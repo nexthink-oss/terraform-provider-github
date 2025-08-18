@@ -14,7 +14,8 @@ import (
 
 func dataSourceGithubTeam() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTeamRead,
+		Description: "Get information on a GitHub team.",
+		Read:        dataSourceGithubTeamRead,
 
 		Schema: map[string]*schema.Schema{
 			"slug": {

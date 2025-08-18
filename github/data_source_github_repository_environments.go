@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubRepositoryEnvironments() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryEnvironmentsRead,
+		Description: "Get information on a GitHub repository's environments.",
+		Read:        dataSourceGithubRepositoryEnvironmentsRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

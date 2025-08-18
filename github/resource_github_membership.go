@@ -11,10 +11,11 @@ import (
 
 func resourceGithubMembership() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubMembershipCreateOrUpdate,
-		Read:   resourceGithubMembershipRead,
-		Update: resourceGithubMembershipCreateOrUpdate,
-		Delete: resourceGithubMembershipDelete,
+		Description: "Provides a GitHub membership resource.",
+		Create:      resourceGithubMembershipCreateOrUpdate,
+		Read:        resourceGithubMembershipRead,
+		Update:      resourceGithubMembershipCreateOrUpdate,
+		Delete:      resourceGithubMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

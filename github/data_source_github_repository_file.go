@@ -15,6 +15,7 @@ import (
 
 func dataSourceGithubRepositoryFile() *schema.Resource {
 	return &schema.Resource{
+		Description: "Reads files within a GitHub repository",
 		ReadContext: dataSourceGithubRepositoryFileRead,
 		Schema: map[string]*schema.Schema{
 			"repository": {

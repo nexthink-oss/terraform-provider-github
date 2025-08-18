@@ -14,7 +14,8 @@ import (
 
 func dataSourceGithubRelease() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubReleaseRead,
+		Description: "Get information on a GitHub release.",
+		Read:        dataSourceGithubReleaseRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

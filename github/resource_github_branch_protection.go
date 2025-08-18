@@ -13,6 +13,7 @@ import (
 
 func resourceGithubBranchProtection() *schema.Resource {
 	return &schema.Resource{
+		Description:   "Protects a GitHub branch.",
 		SchemaVersion: 2,
 
 		Schema: map[string]*schema.Schema{

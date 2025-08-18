@@ -14,9 +14,10 @@ import (
 
 func resourceGithubCodespacesSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubCodespacesSecretCreateOrUpdate,
-		Read:   resourceGithubCodespacesSecretRead,
-		Delete: resourceGithubCodespacesSecretDelete,
+		Description: "Creates and manages an Codespaces Secret within a GitHub repository",
+		Create:      resourceGithubCodespacesSecretCreateOrUpdate,
+		Read:        resourceGithubCodespacesSecretRead,
+		Delete:      resourceGithubCodespacesSecretDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubCodespacesSecretImport,
 		},

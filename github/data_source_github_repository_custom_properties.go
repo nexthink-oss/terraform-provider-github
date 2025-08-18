@@ -10,7 +10,8 @@ import (
 
 func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrgaRepositoryCustomProperties,
+		Description: "Get all custom properties of a repository",
+		Read:        dataSourceGithubOrgaRepositoryCustomProperties,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

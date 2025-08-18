@@ -14,10 +14,11 @@ import (
 
 func resourceGithubRepositoryRuleset() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryRulesetCreate,
-		Read:   resourceGithubRepositoryRulesetRead,
-		Update: resourceGithubRepositoryRulesetUpdate,
-		Delete: resourceGithubRepositoryRulesetDelete,
+		Description: "Creates a GitHub repository ruleset.",
+		Create:      resourceGithubRepositoryRulesetCreate,
+		Read:        resourceGithubRepositoryRulesetRead,
+		Update:      resourceGithubRepositoryRulesetUpdate,
+		Delete:      resourceGithubRepositoryRulesetDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubRepositoryRulesetImport,
 		},

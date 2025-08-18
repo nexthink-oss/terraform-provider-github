@@ -1,0 +1,18 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve webhooks for a given repository.
+
+## Example Usage
+
+To retrieve webhooks of a repository:
+
+{{tffile "examples/data-sources/github_repository_webhooks/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}

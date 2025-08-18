@@ -1,0 +1,24 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage GitHub Actions permissions within your GitHub enterprise. You must have admin access to an enterprise to use this resource.
+
+## Example Usage
+
+{{tffile "examples/resources/github_enterprise_actions_permissions/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+This resource can be imported using the name of the GitHub enterprise:
+
+```shell
+terraform import github_enterprise_actions_permissions.test github_enterprise_name
+```

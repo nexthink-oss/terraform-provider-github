@@ -1,0 +1,26 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to manage dependabot automated security fixes for a single repository. See the [documentation](https://docs.github.com/en/code-security/dependabot/dependabot-security-updates/about-dependabot-security-updates) for details of usage and how this will impact your repository
+
+## Example Usage
+
+{{tffile "examples/resources/github_repository_dependabot_security_updates/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Automated security references can be imported using the `name` of the repository
+
+### Import by name
+
+```shell
+terraform import github_repository_dependabot_security_updates.example my-repo
+```

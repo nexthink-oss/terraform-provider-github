@@ -14,10 +14,11 @@ import (
 
 func resourceGithubTeam() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamCreate,
-		Read:   resourceGithubTeamRead,
-		Update: resourceGithubTeamUpdate,
-		Delete: resourceGithubTeamDelete,
+		Description: "Provides a GitHub team resource.",
+		Create:      resourceGithubTeamCreate,
+		Read:        resourceGithubTeamRead,
+		Update:      resourceGithubTeamUpdate,
+		Delete:      resourceGithubTeamDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubTeamImport,
 		},

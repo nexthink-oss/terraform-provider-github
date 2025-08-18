@@ -1,0 +1,36 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage files within a GitHub repository.
+
+## Example Usage
+
+### Existing Branch
+
+{{tffile "examples/resources/github_repository_file/example_1.tf"}}
+
+### Auto Created Branch
+
+{{tffile "examples/resources/github_repository_file/example_2.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Repository files can be imported using a combination of the `repo` and `file`, e.g.
+
+```shell
+terraform import github_repository_file.gitignore example/.gitignore
+```
+
+To import a file from a branch other than the default branch, append `:` and the branch name, e.g.
+
+```shell
+terraform import github_repository_file.gitignore example/.gitignore:dev
+```

@@ -12,7 +12,8 @@ import (
 
 func dataSourceGithubActionsEnvironmentVariables() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubActionsEnvironmentVariablesRead,
+		Description: "Get Actions variables of the repository environment",
+		Read:        dataSourceGithubActionsEnvironmentVariablesRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {

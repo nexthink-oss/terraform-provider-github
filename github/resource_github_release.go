@@ -13,10 +13,11 @@ import (
 
 func resourceGithubRelease() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubReleaseCreateUpdate,
-		Update: resourceGithubReleaseCreateUpdate,
-		Read:   resourceGithubReleaseRead,
-		Delete: resourceGithubReleaseDelete,
+		Description: "Creates and manages releases within a single GitHub repository",
+		Create:      resourceGithubReleaseCreateUpdate,
+		Update:      resourceGithubReleaseCreateUpdate,
+		Read:        resourceGithubReleaseRead,
+		Delete:      resourceGithubReleaseDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubReleaseImport,
 		},

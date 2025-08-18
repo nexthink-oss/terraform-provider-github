@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubRepositoryPullRequest() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryPullRequestRead,
+		Description: "Get information on a single GitHub Pull Request.",
+		Read:        dataSourceGithubRepositoryPullRequestRead,
 		Schema: map[string]*schema.Schema{
 			"owner": {
 				Type:     schema.TypeString,

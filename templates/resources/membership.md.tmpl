@@ -1,0 +1,26 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Provides a GitHub membership resource.
+
+This resource allows you to add/remove users from your organization. When applied, an invitation will be sent to the user to become part of the organization. When destroyed, either the invitation will be cancelled or the user will be removed.
+
+## Example Usage
+
+{{tffile "examples/resources/github_membership/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+GitHub Membership can be imported using an ID made up of `organization:username`, e.g.
+
+```shell
+terraform import github_membership.member hashicorp:someuser
+```

@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubUserExternalIdentity() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubUserExternalIdentityRead,
+		Description: "Get a specific organization member's SAML/SCIM linked external identity",
+		Read:        dataSourceGithubUserExternalIdentityRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {

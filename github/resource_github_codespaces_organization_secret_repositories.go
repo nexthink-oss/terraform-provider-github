@@ -9,10 +9,11 @@ import (
 
 func resourceGithubCodespacesOrganizationSecretRepositories() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate,
-		Read:   resourceGithubCodespaceOrganizationSecretRepositoriesRead,
-		Update: resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate,
-		Delete: resourceGithubCodespaceOrganizationSecretRepositoriesDelete,
+		Description: "Manages repository allow list for a Codespaces Secret within a GitHub organization",
+		Create:      resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate,
+		Read:        resourceGithubCodespaceOrganizationSecretRepositoriesRead,
+		Update:      resourceGithubCodespaceOrganizationSecretRepositoriesCreateOrUpdate,
+		Delete:      resourceGithubCodespaceOrganizationSecretRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

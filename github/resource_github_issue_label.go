@@ -11,10 +11,11 @@ import (
 
 func resourceGithubIssueLabel() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubIssueLabelCreateOrUpdate,
-		Read:   resourceGithubIssueLabelRead,
-		Update: resourceGithubIssueLabelCreateOrUpdate,
-		Delete: resourceGithubIssueLabelDelete,
+		Description: "Provides a GitHub issue label resource.",
+		Create:      resourceGithubIssueLabelCreateOrUpdate,
+		Read:        resourceGithubIssueLabelRead,
+		Update:      resourceGithubIssueLabelCreateOrUpdate,
+		Delete:      resourceGithubIssueLabelDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

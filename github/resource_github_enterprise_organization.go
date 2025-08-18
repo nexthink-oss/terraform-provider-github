@@ -13,10 +13,11 @@ import (
 
 func resourceGithubEnterpriseOrganization() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubEnterpriseOrganizationCreate,
-		Read:   resourceGithubEnterpriseOrganizationRead,
-		Delete: resourceGithubEnterpriseOrganizationDelete,
-		Update: resourceGithubEnterpriseOrganizationUpdate,
+		Description: "Create and manages a GitHub enterprise organization.",
+		Create:      resourceGithubEnterpriseOrganizationCreate,
+		Read:        resourceGithubEnterpriseOrganizationRead,
+		Delete:      resourceGithubEnterpriseOrganizationDelete,
+		Update:      resourceGithubEnterpriseOrganizationUpdate,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubEnterpriseOrganizationImport,
 		},

@@ -8,7 +8,8 @@ import (
 
 func dataSourceGithubAppToken() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubAppTokenRead,
+		Description: "Generate a GitHub APP JWT.",
+		Read:        dataSourceGithubAppTokenRead,
 
 		Schema: map[string]*schema.Schema{
 			"app_id": {

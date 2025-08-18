@@ -12,10 +12,11 @@ import (
 
 func resourceGithubOrganizationSecurityManager() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationSecurityManagerCreate,
-		Read:   resourceGithubOrganizationSecurityManagerRead,
-		Update: resourceGithubOrganizationSecurityManagerUpdate,
-		Delete: resourceGithubOrganizationSecurityManagerDelete,
+		Description: "Manages the Security manager teams for a GitHub Organization.",
+		Create:      resourceGithubOrganizationSecurityManagerCreate,
+		Read:        resourceGithubOrganizationSecurityManagerRead,
+		Update:      resourceGithubOrganizationSecurityManagerUpdate,
+		Delete:      resourceGithubOrganizationSecurityManagerDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

@@ -13,10 +13,11 @@ import (
 
 func resourceGithubRepositoryTopics() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryTopicsCreateOrUpdate,
-		Read:   resourceGithubRepositoryTopicsRead,
-		Update: resourceGithubRepositoryTopicsCreateOrUpdate,
-		Delete: resourceGithubRepositoryTopicsDelete,
+		Description: "Creates and manages the topics on a repository",
+		Create:      resourceGithubRepositoryTopicsCreateOrUpdate,
+		Read:        resourceGithubRepositoryTopicsRead,
+		Update:      resourceGithubRepositoryTopicsCreateOrUpdate,
+		Delete:      resourceGithubRepositoryTopicsDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				_ = d.Set("repository", d.Id())

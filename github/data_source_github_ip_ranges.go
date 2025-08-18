@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubIpRanges() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubIpRangesRead,
+		Description: "Get information on GitHub's IP addresses.",
+		Read:        dataSourceGithubIpRangesRead,
 
 		Schema: map[string]*schema.Schema{
 			"hooks": {

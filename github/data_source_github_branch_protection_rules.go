@@ -7,7 +7,8 @@ import (
 
 func dataSourceGithubBranchProtectionRules() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubBranchProtectionRulesRead,
+		Description: "Get information about a repository branch protection rules.",
+		Read:        dataSourceGithubBranchProtectionRulesRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {

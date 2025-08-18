@@ -1,0 +1,30 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Protects a GitHub branch.
+
+The `github_branch_protection` resource has moved to the GraphQL API, while this resource will continue to leverage the REST API.
+
+This resource allows you to configure branch protection for repositories in your organization. When applied, the branch will be protected from forced pushes and deletion. Additional constraints, such as required status checks or restrictions on users, teams, and apps, can also be configured.
+
+## Example Usage
+
+{{tffile "examples/resources/github_branch_protection_v3/example_1.tf"}}
+
+{{tffile "examples/resources/github_branch_protection_v3/example_2.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+GitHub Branch Protection can be imported using an ID made up of `repository:branch`, e.g.
+
+```shell
+terraform import github_branch_protection_v3.terraform terraform:main
+```

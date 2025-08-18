@@ -1,0 +1,26 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Creates a GitHub repository ruleset.
+
+This resource allows you to create and manage rulesets on the repository level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.
+
+## Example Usage
+
+{{tffile "examples/resources/github_repository_ruleset/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+GitHub Repository Rulesets can be imported using the GitHub repository name and ruleset ID e.g.
+
+```shell
+terraform import github_repository_ruleset.example example:12345
+```

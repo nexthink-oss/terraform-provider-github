@@ -15,10 +15,11 @@ import (
 
 func resourceGithubRepositoryCollaborators() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCollaboratorsCreate,
-		Read:   resourceGithubRepositoryCollaboratorsRead,
-		Update: resourceGithubRepositoryCollaboratorsUpdate,
-		Delete: resourceGithubRepositoryCollaboratorsDelete,
+		Description: "Provides a GitHub repository collaborators resource.",
+		Create:      resourceGithubRepositoryCollaboratorsCreate,
+		Read:        resourceGithubRepositoryCollaboratorsRead,
+		Update:      resourceGithubRepositoryCollaboratorsUpdate,
+		Delete:      resourceGithubRepositoryCollaboratorsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

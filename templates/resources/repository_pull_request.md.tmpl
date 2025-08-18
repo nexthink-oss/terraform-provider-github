@@ -1,0 +1,16 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage PullRequests for repositories within your GitHub organization or personal account.
+
+## Example Usage
+
+{{tffile "examples/resources/github_repository_pull_request/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}

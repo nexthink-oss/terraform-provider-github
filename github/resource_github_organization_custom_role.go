@@ -12,10 +12,11 @@ import (
 
 func resourceGithubOrganizationCustomRole() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationCustomRoleCreate,
-		Read:   resourceGithubOrganizationCustomRoleRead,
-		Update: resourceGithubOrganizationCustomRoleUpdate,
-		Delete: resourceGithubOrganizationCustomRoleDelete,
+		Description: "Creates and manages a custom role in a GitHub Organization for use in repositories.",
+		Create:      resourceGithubOrganizationCustomRoleCreate,
+		Read:        resourceGithubOrganizationCustomRoleRead,
+		Update:      resourceGithubOrganizationCustomRoleUpdate,
+		Delete:      resourceGithubOrganizationCustomRoleDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

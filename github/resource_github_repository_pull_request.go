@@ -14,10 +14,11 @@ import (
 
 func resourceGithubRepositoryPullRequest() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryPullRequestCreate,
-		Read:   resourceGithubRepositoryPullRequestRead,
-		Update: resourceGithubRepositoryPullRequestUpdate,
-		Delete: resourceGithubRepositoryPullRequestDelete,
+		Description: "Get information on a single GitHub Pull Request.",
+		Create:      resourceGithubRepositoryPullRequestCreate,
+		Read:        resourceGithubRepositoryPullRequestRead,
+		Update:      resourceGithubRepositoryPullRequestUpdate,
+		Delete:      resourceGithubRepositoryPullRequestDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
 				_, baseRepository, _, err := parsePullRequestID(d)

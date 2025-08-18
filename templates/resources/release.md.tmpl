@@ -1,0 +1,28 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage a release in a specific GitHub repository.
+
+## Example Usage
+
+{{tffile "examples/resources/github_release/example_1.tf"}}
+
+## Example Usage on Non-Default Branch
+
+{{tffile "examples/resources/github_release/example_2.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+This resource can be imported using the `name` of the repository, combined with the `id` of the release, and a `:` character for separating components, e.g.
+
+```shell
+terraform import github_release.example repo:12345678
+```

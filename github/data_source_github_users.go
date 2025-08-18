@@ -12,7 +12,8 @@ import (
 
 func dataSourceGithubUsers() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubUsersRead,
+		Description: "Get information about multiple GitHub users.",
+		Read:        dataSourceGithubUsersRead,
 
 		Schema: map[string]*schema.Schema{
 			"usernames": {

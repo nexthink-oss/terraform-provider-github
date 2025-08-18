@@ -12,10 +12,11 @@ import (
 
 func resourceGithubOrganizationSettings() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubOrganizationSettingsCreateOrUpdate,
-		Read:   resourceGithubOrganizationSettingsRead,
-		Update: resourceGithubOrganizationSettingsCreateOrUpdate,
-		Delete: resourceGithubOrganizationSettingsDelete,
+		Description: "Creates and manages settings for a GitHub Organization.",
+		Create:      resourceGithubOrganizationSettingsCreateOrUpdate,
+		Read:        resourceGithubOrganizationSettingsRead,
+		Update:      resourceGithubOrganizationSettingsCreateOrUpdate,
+		Delete:      resourceGithubOrganizationSettingsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

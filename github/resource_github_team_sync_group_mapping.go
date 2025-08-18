@@ -12,10 +12,11 @@ import (
 
 func resourceGithubTeamSyncGroupMapping() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubTeamSyncGroupMappingCreate,
-		Read:   resourceGithubTeamSyncGroupMappingRead,
-		Update: resourceGithubTeamSyncGroupMappingUpdate,
-		Delete: resourceGithubTeamSyncGroupMappingDelete,
+		Description: "Creates and manages the connections between a team and its IdP group(s).",
+		Create:      resourceGithubTeamSyncGroupMappingCreate,
+		Read:        resourceGithubTeamSyncGroupMappingRead,
+		Update:      resourceGithubTeamSyncGroupMappingUpdate,
+		Delete:      resourceGithubTeamSyncGroupMappingDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("team_slug", d.Id()); err != nil {

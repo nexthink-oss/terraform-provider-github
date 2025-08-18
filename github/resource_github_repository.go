@@ -16,10 +16,11 @@ import (
 
 func resourceGithubRepository() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCreate,
-		Read:   resourceGithubRepositoryRead,
-		Update: resourceGithubRepositoryUpdate,
-		Delete: resourceGithubRepositoryDelete,
+		Description: "Creates and manages repositories within GitHub organizations or personal accounts",
+		Create:      resourceGithubRepositoryCreate,
+		Read:        resourceGithubRepositoryRead,
+		Update:      resourceGithubRepositoryUpdate,
+		Delete:      resourceGithubRepositoryDelete,
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
 				if err := d.Set("auto_init", false); err != nil {

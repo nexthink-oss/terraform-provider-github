@@ -18,9 +18,10 @@ const (
 
 func resourceGithubRepositoryCustomProperty() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubRepositoryCustomPropertyCreate,
-		Read:   resourceGithubRepositoryCustomPropertyRead,
-		Delete: resourceGithubRepositoryCustomPropertyDelete,
+		Description: "Creates and a specific custom property for a GitHub repository",
+		Create:      resourceGithubRepositoryCustomPropertyCreate,
+		Read:        resourceGithubRepositoryCustomPropertyRead,
+		Delete:      resourceGithubRepositoryCustomPropertyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

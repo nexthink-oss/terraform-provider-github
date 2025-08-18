@@ -13,9 +13,10 @@ import (
 
 func resourceGithubUserSshKey() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubUserSshKeyCreate,
-		Read:   resourceGithubUserSshKeyRead,
-		Delete: resourceGithubUserSshKeyDelete,
+		Description: "Provides a GitHub user's SSH key resource.",
+		Create:      resourceGithubUserSshKeyCreate,
+		Read:        resourceGithubUserSshKeyRead,
+		Delete:      resourceGithubUserSshKeyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

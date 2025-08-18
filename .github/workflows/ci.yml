@@ -18,6 +18,6 @@ jobs:
           cache: true
       - run: make tools
       - run: make lint
-      - run: make website-lint
+      - run: make docs-validate
       - run: make build
       - run: make test

@@ -13,10 +13,11 @@ import (
 
 func resourceGithubBranchProtectionV3() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchProtectionV3Create,
-		Read:   resourceGithubBranchProtectionV3Read,
-		Update: resourceGithubBranchProtectionV3Update,
-		Delete: resourceGithubBranchProtectionV3Delete,
+		Description: "Protects a GitHub branch using the v3 / REST implementation.  The `github_branch_protection` resource has moved to the GraphQL API, while this resource will continue to leverage the REST API",
+		Create:      resourceGithubBranchProtectionV3Create,
+		Read:        resourceGithubBranchProtectionV3Read,
+		Update:      resourceGithubBranchProtectionV3Update,
+		Delete:      resourceGithubBranchProtectionV3Delete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

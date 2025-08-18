@@ -1,0 +1,22 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Use this data source to retrieve information about all GitHub teams in an organization.
+
+## Example Usage
+
+To retrieve *all* teams of the organization:
+
+{{tffile "examples/data-sources/github_organization_teams/example_1.tf"}}
+
+To retrieve only the team's at the root of the organization:
+
+{{tffile "examples/data-sources/github_organization_teams/example_2.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}

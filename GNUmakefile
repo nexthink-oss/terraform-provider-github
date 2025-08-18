@@ -65,4 +65,16 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck lint tools test-compile website website-lint website-test
+docs-generate:
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name github
+
+docs-validate:
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate
+
+docs-migrate:
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs migrate --provider-name github \
+		--rendered-dir website/docs \
+		--templates-dir templates \
+		--examples-dir examples
+
+.PHONY: build test testacc vet fmt fmtcheck lint tools test-compile website website-lint website-test docs-generate docs-validate docs-migrate

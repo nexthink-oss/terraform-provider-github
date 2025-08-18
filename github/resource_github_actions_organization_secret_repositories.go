@@ -9,10 +9,11 @@ import (
 
 func resourceGithubActionsOrganizationSecretRepositories() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
-		Read:   resourceGithubActionsOrganizationSecretRepositoriesRead,
-		Update: resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
-		Delete: resourceGithubActionsOrganizationSecretRepositoriesDelete,
+		Description: "Manages repository allow list for an Action Secret within a GitHub organization",
+		Create:      resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
+		Read:        resourceGithubActionsOrganizationSecretRepositoriesRead,
+		Update:      resourceGithubActionsOrganizationSecretRepositoriesCreateOrUpdate,
+		Delete:      resourceGithubActionsOrganizationSecretRepositoriesDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

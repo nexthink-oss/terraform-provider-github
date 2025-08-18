@@ -11,7 +11,8 @@ import (
 
 func dataSourceGithubRef() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRefRead,
+		Description: "Get information about a repository ref.",
+		Read:        dataSourceGithubRefRead,
 
 		Schema: map[string]*schema.Schema{
 			"ref": {

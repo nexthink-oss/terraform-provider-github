@@ -1,0 +1,27 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Provides a GitHub team resource.
+
+This resource allows you to add/remove teams from your organization. When applied, a new team will be created. When destroyed, that team will be removed.
+
+## Example Usage
+
+{{tffile "examples/resources/github_team/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+GitHub Teams can be imported using the GitHub team ID or name e.g.
+
+```shell
+terraform import github_team.core 1234567
+terraform import github_team.core Administrators
+```

@@ -13,9 +13,10 @@ import (
 
 func resourceGithubBranch() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubBranchCreate,
-		Read:   resourceGithubBranchRead,
-		Delete: resourceGithubBranchDelete,
+		Description: "Creates and manages branches within GitHub repositories.",
+		Create:      resourceGithubBranchCreate,
+		Read:        resourceGithubBranchRead,
+		Delete:      resourceGithubBranchDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceGithubBranchImport,
 		},

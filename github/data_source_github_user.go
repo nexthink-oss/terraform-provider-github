@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubUser() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubUserRead,
+		Description: "Get information on a GitHub user.",
+		Read:        dataSourceGithubUserRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {

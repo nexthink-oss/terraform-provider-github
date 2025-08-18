@@ -1,0 +1,30 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage repositories within your GitHub organization or personal account.
+
+~> **Note** When used with GitHub App authentication, even GET requests must have the `contents:write` permission. Without it, the following arguments will be ignored, leading to unexpected behavior and confusing diffs: `allow_merge_commit`, `allow_squash_merge`, `allow_rebase_merge`, `merge_commit_title`, `merge_commit_message`, `squash_merge_commit_title` and `squash_merge_commit_message`.
+
+## Example Usage
+
+{{tffile "examples/resources/github_repository/example_1.tf"}}
+
+## Example Usage with GitHub Pages Enabled
+
+{{tffile "examples/resources/github_repository/example_2.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Repositories can be imported using the `name`, e.g.
+
+```shell
+terraform import github_repository.terraform terraform
+```

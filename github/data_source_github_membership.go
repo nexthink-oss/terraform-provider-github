@@ -8,7 +8,8 @@ import (
 
 func dataSourceGithubMembership() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubMembershipRead,
+		Description: "Get information on user membership in an organization.",
+		Read:        dataSourceGithubMembershipRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {

@@ -1,0 +1,26 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+Creates a GitHub organization ruleset.
+
+This resource allows you to create and manage rulesets on the organization level. When applied, a new ruleset will be created. When destroyed, that ruleset will be removed.
+
+## Example Usage
+
+{{tffile "examples/resources/github_organization_ruleset/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+GitHub Organization Rulesets can be imported using the GitHub ruleset ID e.g.
+
+```shell
+terraform import github_organization_ruleset.example 12345
+```

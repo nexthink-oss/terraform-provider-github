@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationIpAllowListRead,
+		Description: "Get the IP allow list of an organization.",
+		Read:        dataSourceGithubOrganizationIpAllowListRead,
 
 		Schema: map[string]*schema.Schema{
 			"ip_allow_list": {

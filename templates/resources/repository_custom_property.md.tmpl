@@ -1,0 +1,26 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage a specific custom property for a GitHub repository.
+
+## Example Usage
+
+> Note that this assumes there already is a custom property defined on the org level called `my-cool-property` of type `string`
+
+{{tffile "examples/resources/github_repository_custom_property/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+GitHub Repository Custom Property can be imported using an ID made up of a comibnation of the names of the organization, repository, custom property separated by a `:` character, e.g.
+
+```shell
+terraform import github_repository_custom_property.example <organization-name>:<repo-name>:<custom-property-name>
+```

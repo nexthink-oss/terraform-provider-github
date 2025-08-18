@@ -10,10 +10,11 @@ import (
 
 func resourceGithubActionsRepositoryAccessLevel() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubActionsRepositoryAccessLevelCreateOrUpdate,
-		Read:   resourceGithubActionsRepositoryAccessLevelRead,
-		Update: resourceGithubActionsRepositoryAccessLevelCreateOrUpdate,
-		Delete: resourceGithubActionsRepositoryAccessLevelDelete,
+		Description: "Manages Actions and Reusable Workflow access for a GitHub repository",
+		Create:      resourceGithubActionsRepositoryAccessLevelCreateOrUpdate,
+		Read:        resourceGithubActionsRepositoryAccessLevelRead,
+		Update:      resourceGithubActionsRepositoryAccessLevelCreateOrUpdate,
+		Delete:      resourceGithubActionsRepositoryAccessLevelDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

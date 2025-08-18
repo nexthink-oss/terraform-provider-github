@@ -1,0 +1,36 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource manages the team settings (in particular the request review delegation settings) within the organization
+
+Creating this resource will alter the team Code Review settings.
+
+The team must both belong to the same organization configured in the provider on GitHub.
+
+~> **Note**: This resource relies on the v4 GraphQl GitHub API. If this API is not available, or the Stone Crop schema preview is not available, then this resource will not work as intended.
+
+## Example Usage
+
+{{tffile "examples/resources/github_team_settings/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+GitHub Teams can be imported using the GitHub team ID, or the team slug e.g.
+
+```shell
+terraform import github_team.code_review_settings 1234567
+```
+
+or,
+
+```shell
+terraform import github_team_settings.code_review_settings SomeTeam
+```

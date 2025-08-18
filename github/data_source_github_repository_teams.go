@@ -11,7 +11,8 @@ import (
 
 func dataSourceGithubRepositoryTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubTeamsRead,
+		Description: "Get teams which have permission on the given repo.",
+		Read:        dataSourceGithubTeamsRead,
 
 		Schema: map[string]*schema.Schema{
 			"full_name": {

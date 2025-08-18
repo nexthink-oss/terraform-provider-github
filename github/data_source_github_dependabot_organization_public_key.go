@@ -8,7 +8,8 @@ import (
 
 func dataSourceGithubDependabotOrganizationPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubDependabotOrganizationPublicKeyRead,
+		Description: "Get information on a GitHub Dependabot Organization Public Key.",
+		Read:        dataSourceGithubDependabotOrganizationPublicKeyRead,
 
 		Schema: map[string]*schema.Schema{
 			"key_id": {

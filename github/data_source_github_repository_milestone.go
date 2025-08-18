@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubRepositoryMilestone() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryMilestoneRead,
+		Description: "Get information on a GitHub Repository Milestone.",
+		Read:        dataSourceGithubRepositoryMilestoneRead,
 
 		Schema: map[string]*schema.Schema{
 			"owner": {

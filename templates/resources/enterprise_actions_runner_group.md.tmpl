@@ -1,0 +1,24 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+This resource allows you to create and manage GitHub Actions runner groups within your GitHub enterprise. You must have admin access to an enterprise to use this resource.
+
+## Example Usage
+
+{{tffile "examples/resources/github_enterprise_actions_runner_group/example_1.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+This resource can be imported using the enterprise slug and the ID of the runner group:
+
+```shell
+terraform import github_enterprise_actions_runner_group.test enterprise-slug/42
+```

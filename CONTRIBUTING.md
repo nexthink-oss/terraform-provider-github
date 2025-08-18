@@ -11,10 +11,10 @@ Before submitting an issue or a pull request, please search the repository for e
 ## Submitting a pull request
 
 0. Fork and clone the repository.
-0. Create a new branch: `git switch -c my-branch-name`.
-0. Make your change, add tests, and make sure the tests still pass.
-0. Push to your fork and submit a pull request.
-0. Pat yourself on the back and wait for your pull request to be reviewed and merged.
+1. Create a new branch: `git switch -c my-branch-name`.
+2. Make your change, add tests, and make sure the tests still pass.
+3. Push to your fork and submit a pull request.
+4. Pat yourself on the back and wait for your pull request to be reviewed and merged.
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
 
@@ -23,6 +23,7 @@ Here are a few things you can do that will increase the likelihood of your pull 
 - Write tests.
 - Keep your change as focused as possible. If there are multiple changes you would like to make that are not dependent upon each other, please submit them as separate pull requests.
 - Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+- Update documentation if your changes affect user-facing functionality.
 
 ## Quick End-To-End Example
 
@@ -49,17 +50,20 @@ Once you have the repository cloned, there's a couple of additional steps you'll
 
 1. Write a test describing what you will fix. See [`github_label`](./github/resource_github_issue_label_test.go) for an example format.
 1. Run your test and observe it fail. Enabling debug output allows for observing the underlying requests and responses made as well as viewing state (search `STATE:`) generated during the acceptance test run.
+
 ```sh
 TF_LOG=DEBUG TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
 ```
+
 1. Align the resource's implementation to your test case and observe it pass:
+
 ```sh
 TF_ACC=1 go test -v ./... -run ^TestAccGithubIssueLabel
 ```
 
 Note that some resources still use a previous format that is incompatible with automated test runs, which depend on using the `skipUnlessMode` helper. When encountering these resources, tests should be rewritten to the latest format.
 
-Also note that there is no build / `terraform init` / `terraform plan` sequence here.  It is uncommon to run into a bug or feature that requires iteration without using tests. When these cases arise, the `examples/` directory is used to approach the problem, which is detailed in the next section.
+Also note that there is no build / `terraform init` / `terraform plan` sequence here. It is uncommon to run into a bug or feature that requires iteration without using tests. When these cases arise, the `examples/` directory is used to approach the problem, which is detailed in the next section.
 
 ### Debugging the terraform provider
 
@@ -68,27 +72,28 @@ Println debugging can easily be used to obtain information about how code change
 If a full debugger is desired, VSCode may be used. In order to do so,
 
 0. Create a launch.json file with this configuration:
+
 ```json
 {
-	"name": "Attach to Process",
-	"type": "go",
-	"request": "attach",
-	"mode": "local",
-	"processId": 0,
+  "name": "Attach to Process",
+  "type": "go",
+  "request": "attach",
+  "mode": "local",
+  "processId": 0
 }
 ```
+
 Setting a `processId` of 0 allows a dropdown to select the process of the provider.
 
 0. Add a sleep call (e.g. `time.Sleep(10 * time.Second)`) in the [`func providerConfigure(p *schema.Provider) schema.ConfigureFunc`](https://github.com/integrations/terraform-provider-github/blob/cec7e175c50bb091feecdc96ba117067c35ee351/github/provider.go#L274C1-L274C64) before the immediate `return` call. This will allow time to connect the debugger while the provider is initializing, before any critical logic happens.
 
-0. Build the terraform provider with debug flags enabled and copy it to the appropriate bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin/`.
+1. Build the terraform provider with debug flags enabled and copy it to the appropriate bin folder with a command like `go build -gcflags="all=-N -l" -o ~/go/bin/`.
 
-0. Create or edit a `dev.tfrc` that points toward the newly-built binary, and export the `TF_CLI_CONFIG_FILE` variable to point to it. Further instructions on this process may be found in the [Building the provider](#using-a-local-version-of-the-provider) section.
+2. Create or edit a `dev.tfrc` that points toward the newly-built binary, and export the `TF_CLI_CONFIG_FILE` variable to point to it. Further instructions on this process may be found in the [Building the provider](#using-a-local-version-of-the-provider) section.
 
-0. Run a terraform command (e.g. `terraform apply`). While the provider pauses on initialization, go to VSCode and click "Attach to Process". In the search box that appears, type `terraform-provi` and select the terraform provider process.
+3. Run a terraform command (e.g. `terraform apply`). While the provider pauses on initialization, go to VSCode and click "Attach to Process". In the search box that appears, type `terraform-provi` and select the terraform provider process.
 
-0. The debugger is now connected! During a typical terraform command, the plugin will be invoked multiple times. If the debugger disconnects and the plugin is invoked again later in the run, the developer will have to re-attach each time as the process ID changes.
-
+4. The debugger is now connected! During a typical terraform command, the plugin will be invoked multiple times. If the debugger disconnects and the plugin is invoked again later in the run, the developer will have to re-attach each time as the process ID changes.
 
 ## Manual Testing
 
@@ -114,7 +119,7 @@ An example file is available in our `examples` directory and resembles:
 ```hcl
 provider_installation {
   dev_overrides {
-    "integrations/github" = "~/go/bin/"
+    "isometry/github" = "~/go/bin/"
   }
 
   direct {}
@@ -129,7 +134,7 @@ When running examples, you should spot the following warning to confirm you are 
 Warning: Provider development overrides are in effect
 
 The following provider development overrides are set in the CLI configuration:
- - integrations/github in /Users/jcudit/go/bin
+ - isometry/github in /Users/jcudit/go/bin
 ```
 
 ### Environment variable reference
@@ -176,45 +181,76 @@ This may come in handy when debugging both acceptance and manual testing.
 
 ```json
 {
-	// for information on how to debug the provider, see the CONTRIBUTING.md file
-	"version": "0.2.0",
-	"configurations": [
-		{
-			"name": "Launch test function",
-			"type": "go",
-			"request": "launch",
-			"mode": "test",
-			// note that the program file must be in the same package as the test to run,
-			// though it does not necessarily have to be the file that contains the test.
-			"program": "/home/kfcampbell/github/dev/terraform-provider-github/github/resource_github_team_members_test.go",
-			"args": [
-				"-test.v",
-				"-test.run",
-				"^TestAccGithubRepositoryTopics$" // ^ExactMatch$
-			],
-			"env": {
-				"GITHUB_TEST_COLLABORATOR": "kfcampbell-terraform-test-user",
-				"GITHUB_TEST_COLLABORATOR_TOKEN": "ghp_xxx",
-				"GITHUB_TEST_USER": "kfcampbell",
-				"GITHUB_TOKEN": "ghp_xxx",
-				"GITHUB_TEMPLATE_REPOSITORY": "terraform-template-module",
-				"GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID": "12345678",
-				// "GITHUB_OWNER": "kfcampbell-terraform-provider",
-				// "GITHUB_OWNER": "kfcampbell",
-				"GITHUB_ORGANIZATION": "kfcampbell-terraform-provider", // GITHUB_ORGANIZATION is required for organization integration tests
-				"TF_CLI_CONFIG_FILE": "/home/kfcampbell/github/dev/terraform-provider-github/examples/dev.tfrc",
-				"TF_ACC": "1",
-				"TF_LOG": "DEBUG",
-				"APP_INSTALLATION_ID": "12345678"
-			}
-		},
-		{
-			"name": "Attach to Process",
-			"type": "go",
-			"request": "attach",
-			"mode": "local",
-			"processId": 0
-		}
-	]
+  // for information on how to debug the provider, see the CONTRIBUTING.md file
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch test function",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      // note that the program file must be in the same package as the test to run,
+      // though it does not necessarily have to be the file that contains the test.
+      "program": "/home/kfcampbell/github/dev/terraform-provider-github/github/resource_github_team_members_test.go",
+      "args": [
+        "-test.v",
+        "-test.run",
+        "^TestAccGithubRepositoryTopics$" // ^ExactMatch$
+      ],
+      "env": {
+        "GITHUB_TEST_COLLABORATOR": "kfcampbell-terraform-test-user",
+        "GITHUB_TEST_COLLABORATOR_TOKEN": "ghp_xxx",
+        "GITHUB_TEST_USER": "kfcampbell",
+        "GITHUB_TOKEN": "ghp_xxx",
+        "GITHUB_TEMPLATE_REPOSITORY": "terraform-template-module",
+        "GITHUB_TEMPLATE_REPOSITORY_RELEASE_ID": "12345678",
+        // "GITHUB_OWNER": "kfcampbell-terraform-provider",
+        // "GITHUB_OWNER": "kfcampbell",
+        "GITHUB_ORGANIZATION": "kfcampbell-terraform-provider", // GITHUB_ORGANIZATION is required for organization integration tests
+        "TF_CLI_CONFIG_FILE": "/home/kfcampbell/github/dev/terraform-provider-github/examples/dev.tfrc",
+        "TF_ACC": "1",
+        "TF_LOG": "DEBUG",
+        "APP_INSTALLATION_ID": "12345678"
+      }
+    },
+    {
+      "name": "Attach to Process",
+      "type": "go",
+      "request": "attach",
+      "mode": "local",
+      "processId": 0
+    }
+  ]
 }
 ```
+
+## Documentation
+
+This provider uses [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-docs) for documentation generation. Documentation is automatically generated from:
+
+- **Schema descriptions** in Go resource files (`github/resource_*.go` and `github/data_source_*.go`)
+- **Templates** in `templates/` directory for custom content
+- **Examples** in `examples/` directory
+
+### Updating Documentation
+
+When making changes that affect user-facing functionality:
+
+1. **Update schema descriptions** in the Go resource files
+2. **Update examples** in the `examples/` directory
+3. **Run documentation generation**:
+   ```bash
+   make docs-generate
+   ```
+4. **Validate documentation**:
+   ```bash
+   make docs-validate
+   ```
+
+### Documentation Guidelines
+
+- Use clear, concise descriptions in schema fields
+- Include practical examples that users can copy and modify
+- Document all required and optional arguments
+- Include import examples for existing resources
+- Reference GitHub API documentation where relevant

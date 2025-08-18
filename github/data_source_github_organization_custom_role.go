@@ -12,7 +12,8 @@ import (
 
 func dataSourceGithubOrganizationCustomRole() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubOrganizationCustomRoleRead,
+		Description: "Get a custom role from a GitHub Organization for use in repositories.",
+		Read:        dataSourceGithubOrganizationCustomRoleRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": {

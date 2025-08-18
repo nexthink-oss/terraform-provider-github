@@ -9,7 +9,8 @@ import (
 
 func dataSourceGithubRepositoryDeploymentBranchPolicies() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGithubRepositoryDeploymentBranchPoliciesRead,
+		Description: "Get the list of deployment branch policies for a given repo / env.",
+		Read:        dataSourceGithubRepositoryDeploymentBranchPoliciesRead,
 
 		Schema: map[string]*schema.Schema{
 			"repository": {
