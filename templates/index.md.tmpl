@@ -20,10 +20,6 @@ Terraform 0.13 and later:
 
 - You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `isometry/github` in a submodule, your terraform run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
 
-Terraform 0.12 and earlier:
-
-{{tffile "examples/example_2.tf"}}
-
 ~> **Note:** When upgrading from `hashicorp/github` to `isometry/github`, use `terraform state replace-provider`. Otherwise, Terraform will still require the old provider to interact with the state file.
 
 ## Authentication
