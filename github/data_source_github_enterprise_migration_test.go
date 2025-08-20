@@ -14,7 +14,7 @@ func TestAccGithubEnterpriseDataSource_Migration(t *testing.T) {
 			data "github_enterprise" "test" {
 				slug = "%s"
 			}
-		`, testEnterprise())
+		`, testEnterprise)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -22,10 +22,10 @@ func TestAccGithubEnterpriseDataSource_Migration(t *testing.T) {
 				Steps: []resource.TestStep{
 					// Step 1: Use the muxed provider (includes both SDKv2 and Framework)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check: resource.ComposeTestCheckFunc(
-							resource.TestCheckResourceAttr("data.github_enterprise.test", "slug", testEnterprise()),
+							resource.TestCheckResourceAttr("data.github_enterprise.test", "slug", testEnterprise),
 							resource.TestCheckResourceAttrSet("data.github_enterprise.test", "id"),
 							resource.TestCheckResourceAttrSet("data.github_enterprise.test", "database_id"),
 							resource.TestCheckResourceAttrSet("data.github_enterprise.test", "name"),

@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -299,7 +298,7 @@ func (r *githubTeamSyncGroupMappingResource) ImportState(ctx context.Context, re
 
 	// Set the team_slug attribute
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_slug"), teamSlug)...)
-	
+
 	// Set the ID
 	id := fmt.Sprintf("teams/%s/team-sync/group-mappings", teamSlug)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)

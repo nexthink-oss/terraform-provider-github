@@ -37,7 +37,7 @@ func TestAccGithubTeamSettingsResource_basicIDAndSlug(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -126,7 +126,7 @@ func TestAccGithubTeamSettingsResource_reviewSettings(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -192,7 +192,7 @@ func TestAccGithubTeamSettingsResource_validationErrors(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
@@ -236,7 +236,7 @@ func TestAccGithubTeamSettingsResource_validationErrors(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
@@ -295,7 +295,7 @@ func TestAccGithubTeamSettingsResource_disableReviewDelegation(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: configWithDelegation,
@@ -357,7 +357,7 @@ func TestAccGithubTeamSettingsResource_import(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,

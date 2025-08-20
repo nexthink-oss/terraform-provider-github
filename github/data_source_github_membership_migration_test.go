@@ -15,7 +15,7 @@ func TestAccGithubMembershipDataSource_Migration(t *testing.T) {
 				username = "%s"
 				organization = "%s"
 			}
-		`, testOwnerFunc(), testOrganization())
+		`, testOwnerFunc(), testOrganization)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -23,7 +23,7 @@ func TestAccGithubMembershipDataSource_Migration(t *testing.T) {
 				Steps: []resource.TestStep{
 					// Step 1: Use the muxed provider (includes both SDKv2 and Framework)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("data.github_membership.test", "username", testOwnerFunc()),

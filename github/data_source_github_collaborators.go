@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -235,7 +234,7 @@ func (d *githubCollaboratorsDataSource) Read(ctx context.Context, req datasource
 		Affiliation: affiliation,
 		Permission:  permission,
 		ListOptions: github.ListOptions{
-			PerPage: 100, // Use max per page for efficiency
+			PerPage: maxPerPage, // Use max per page for efficiency
 		},
 	}
 

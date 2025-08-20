@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
 )
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
@@ -28,6 +27,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 	if testOwner == "" {
 		testOwner = os.Getenv("GITHUB_TEST_OWNER")
 	}
+	_ = testOwner // Variable is used for potential future reference
 
 	// Use the same pattern as the main test suites
 	config := Config{BaseURL: "https://api.github.com/", Owner: testOrganization, Token: testToken}
@@ -686,16 +686,4 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			},
 		})
 	})
-}
-
-// Helper function for permission mapping
-func getPermission(permission string) string {
-	switch permission {
-	case "read":
-		return "pull"
-	case "write":
-		return "push"
-	default:
-		return permission
-	}
 }

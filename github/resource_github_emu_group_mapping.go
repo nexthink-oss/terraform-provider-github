@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 )
 
 var (
@@ -276,7 +275,7 @@ func (r *githubEmuGroupMappingResource) readEmuGroupMapping(ctx context.Context,
 
 	// Update computed attributes
 	data.Etag = types.StringValue(resp.Header.Get("ETag"))
-	data.GroupID = types.Int64Value(int64(group.GetGroupID()))
+	data.GroupID = types.Int64Value(group.GetGroupID())
 
 	// Ensure ID is set correctly
 	if data.ID.IsNull() || data.ID.ValueString() == "" {

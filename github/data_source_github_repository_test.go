@@ -35,7 +35,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -81,7 +81,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -151,7 +151,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -196,7 +196,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -252,7 +252,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -300,7 +300,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -354,7 +354,7 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						// Not doing any checks since the language doesnt have time to be updated on the first apply
@@ -422,7 +422,7 @@ EOT
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -515,7 +515,7 @@ EOT
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { testAccPreCheckIndividual(t) },
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -556,7 +556,7 @@ func TestAccGithubRepositoryDataSource_FullNameOnly(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { skipUnlessMode(t, anonymous) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -584,7 +584,7 @@ func TestAccGithubRepositoryDataSource_NameOnly(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheckIndividual(t) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

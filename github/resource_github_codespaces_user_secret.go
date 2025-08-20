@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"golang.org/x/crypto/nacl/box"
 
+	"github.com/isometry/terraform-provider-github/v7/github/internal/common"
 )
 
 var (
@@ -63,7 +63,7 @@ func (r *githubCodespacesUserSecretResource) Schema(ctx context.Context, req res
 				Description: "Name of the secret.",
 				Required:    true,
 				Validators: []validator.String{
-					&codespacesSecretNameValidator{},
+					common.NewSecretNameValidator(),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -74,7 +74,7 @@ func (r *githubCodespacesUserSecretResource) Schema(ctx context.Context, req res
 				Optional:    true,
 				Sensitive:   true,
 				Validators: []validator.String{
-					&conflictingWithValidator{conflictsWith: []string{"plaintext_value"}},
+					common.NewConflictingWithValidator([]string{"plaintext_value"}),
 					&base64Validator{},
 				},
 				PlanModifiers: []planmodifier.String{
@@ -86,7 +86,7 @@ func (r *githubCodespacesUserSecretResource) Schema(ctx context.Context, req res
 				Optional:    true,
 				Sensitive:   true,
 				Validators: []validator.String{
-					&conflictingWithValidator{conflictsWith: []string{"encrypted_value"}},
+					common.NewConflictingWithValidator([]string{"encrypted_value"}),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -171,7 +171,7 @@ func (r *githubCodespacesUserSecretResource) Create(ctx context.Context, req res
 		encryptedValue = data.EncryptedValue.ValueString()
 	} else if !data.PlaintextValue.IsNull() && !data.PlaintextValue.IsUnknown() {
 		plaintextValue := data.PlaintextValue.ValueString()
-		encryptedBytes, err := r.encryptPlaintext(plaintextValue, publicKey)
+		encryptedBytes, err := common.EncryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Unable to Encrypt Secret",
@@ -279,7 +279,7 @@ func (r *githubCodespacesUserSecretResource) Update(ctx context.Context, req res
 		encryptedValue = data.EncryptedValue.ValueString()
 	} else if !data.PlaintextValue.IsNull() && !data.PlaintextValue.IsUnknown() {
 		plaintextValue := data.PlaintextValue.ValueString()
-		encryptedBytes, err := r.encryptPlaintext(plaintextValue, publicKey)
+		encryptedBytes, err := common.EncryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Unable to Encrypt Secret",
@@ -434,29 +434,6 @@ func (r *githubCodespacesUserSecretResource) getCodespacesUserPublicKeyDetails(c
 	}
 
 	return publicKey.GetKeyID(), publicKey.GetKey(), err
-}
-
-func (r *githubCodespacesUserSecretResource) encryptPlaintext(plaintext, publicKeyB64 string) ([]byte, error) {
-	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyB64)
-	if err != nil {
-		return nil, err
-	}
-
-	var publicKeyBytes32 [32]byte
-	copiedLen := copy(publicKeyBytes32[:], publicKeyBytes)
-	if copiedLen == 0 {
-		return nil, fmt.Errorf("could not convert publicKey to bytes")
-	}
-
-	plaintextBytes := []byte(plaintext)
-	var encryptedBytes []byte
-
-	cipherText, err := box.SealAnonymous(encryptedBytes, plaintextBytes, &publicKeyBytes32, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return cipherText, nil
 }
 
 func (r *githubCodespacesUserSecretResource) readGithubCodespacesUserSecret(ctx context.Context, data *githubCodespacesUserSecretResourceModel, diags *diag.Diagnostics) {

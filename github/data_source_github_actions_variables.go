@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -173,7 +172,7 @@ func (d *githubActionsVariablesDataSource) Read(ctx context.Context, req datasou
 	})
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: maxPerPage,
 	}
 
 	var allVariables []githubActionsVariableModel

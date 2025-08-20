@@ -57,7 +57,7 @@ func TestAccGithubActionsOrganizationVariableResource_basic(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -129,7 +129,7 @@ func TestAccGithubActionsOrganizationVariableResource_selected(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -189,7 +189,7 @@ func TestAccGithubActionsOrganizationVariableResource_all(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -250,7 +250,7 @@ func TestAccGithubActionsOrganizationVariableResource_import(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -283,7 +283,7 @@ func TestAccGithubActionsOrganizationVariableResource_validation(t *testing.T) {
 	t.Run("validates variable name requirements", func(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { testAccPreCheck(t, individual) },
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: `
@@ -312,7 +312,7 @@ func TestAccGithubActionsOrganizationVariableResource_validation(t *testing.T) {
 	t.Run("validates visibility requirements", func(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { testAccPreCheck(t, individual) },
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: `
@@ -322,7 +322,7 @@ func TestAccGithubActionsOrganizationVariableResource_validation(t *testing.T) {
 							visibility    = "invalid"
 						}
 					`,
-					ExpectError: regexp.MustCompile("Value must be one of: \\[all private selected\\]"),
+					ExpectError: regexp.MustCompile(`Value must be one of: \[all private selected\]`),
 				},
 			},
 		})
@@ -333,7 +333,7 @@ func TestAccGithubActionsOrganizationVariableResource_validation(t *testing.T) {
 
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { testAccPreCheck(t, individual) },
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: fmt.Sprintf(`

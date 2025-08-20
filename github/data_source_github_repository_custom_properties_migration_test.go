@@ -77,7 +77,7 @@ func TestAccGithubRepositoryCustomPropertiesDataSource_Mux(t *testing.T) {
 	`, randomID)
 
 	resource.Test(t, resource.TestCase{
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

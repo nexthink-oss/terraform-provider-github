@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 )
 
 var (
@@ -425,31 +424,31 @@ func (r *githubOrganizationSettingsResource) updateOrganizationSettings(ctx cont
 
 	// Build organization settings object
 	settings := &github.Organization{
-		BillingEmail:                       github.String(plan.BillingEmail.ValueString()),
-		Company:                            github.String(plan.Company.ValueString()),
-		Email:                              github.String(plan.Email.ValueString()),
-		TwitterUsername:                    github.String(plan.TwitterUsername.ValueString()),
-		Location:                           github.String(plan.Location.ValueString()),
-		Name:                               github.String(plan.Name.ValueString()),
-		Description:                        github.String(plan.Description.ValueString()),
-		Blog:                               github.String(plan.Blog.ValueString()),
-		HasOrganizationProjects:            github.Bool(plan.HasOrganizationProjects.ValueBool()),
-		HasRepositoryProjects:              github.Bool(plan.HasRepositoryProjects.ValueBool()),
-		DefaultRepoPermission:              github.String(plan.DefaultRepositoryPermission.ValueString()),
-		MembersCanCreateRepos:              github.Bool(plan.MembersCanCreateRepositories.ValueBool()),
-		MembersCanCreatePrivateRepos:       github.Bool(plan.MembersCanCreatePrivateRepositories.ValueBool()),
-		MembersCanCreatePublicRepos:        github.Bool(plan.MembersCanCreatePublicRepositories.ValueBool()),
-		MembersCanCreatePages:              github.Bool(plan.MembersCanCreatePages.ValueBool()),
-		MembersCanCreatePublicPages:        github.Bool(plan.MembersCanCreatePublicPages.ValueBool()),
-		MembersCanCreatePrivatePages:       github.Bool(plan.MembersCanCreatePrivatePages.ValueBool()),
-		MembersCanForkPrivateRepos:         github.Bool(plan.MembersCanForkPrivateRepositories.ValueBool()),
-		WebCommitSignoffRequired:           github.Bool(plan.WebCommitSignoffRequired.ValueBool()),
-		AdvancedSecurityEnabledForNewRepos: github.Bool(plan.AdvancedSecurityEnabledForNewRepositories.ValueBool()),
-		DependabotAlertsEnabledForNewRepos: github.Bool(plan.DependabotAlertsEnabledForNewRepositories.ValueBool()),
-		DependabotSecurityUpdatesEnabledForNewRepos:    github.Bool(plan.DependabotSecurityUpdatesEnabledForNewRepositories.ValueBool()),
-		DependencyGraphEnabledForNewRepos:              github.Bool(plan.DependencyGraphEnabledForNewRepositories.ValueBool()),
-		SecretScanningEnabledForNewRepos:               github.Bool(plan.SecretScanningEnabledForNewRepositories.ValueBool()),
-		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(plan.SecretScanningPushProtectionEnabledForNewRepositories.ValueBool()),
+		BillingEmail:                       github.Ptr(plan.BillingEmail.ValueString()),
+		Company:                            github.Ptr(plan.Company.ValueString()),
+		Email:                              github.Ptr(plan.Email.ValueString()),
+		TwitterUsername:                    github.Ptr(plan.TwitterUsername.ValueString()),
+		Location:                           github.Ptr(plan.Location.ValueString()),
+		Name:                               github.Ptr(plan.Name.ValueString()),
+		Description:                        github.Ptr(plan.Description.ValueString()),
+		Blog:                               github.Ptr(plan.Blog.ValueString()),
+		HasOrganizationProjects:            github.Ptr(plan.HasOrganizationProjects.ValueBool()),
+		HasRepositoryProjects:              github.Ptr(plan.HasRepositoryProjects.ValueBool()),
+		DefaultRepoPermission:              github.Ptr(plan.DefaultRepositoryPermission.ValueString()),
+		MembersCanCreateRepos:              github.Ptr(plan.MembersCanCreateRepositories.ValueBool()),
+		MembersCanCreatePrivateRepos:       github.Ptr(plan.MembersCanCreatePrivateRepositories.ValueBool()),
+		MembersCanCreatePublicRepos:        github.Ptr(plan.MembersCanCreatePublicRepositories.ValueBool()),
+		MembersCanCreatePages:              github.Ptr(plan.MembersCanCreatePages.ValueBool()),
+		MembersCanCreatePublicPages:        github.Ptr(plan.MembersCanCreatePublicPages.ValueBool()),
+		MembersCanCreatePrivatePages:       github.Ptr(plan.MembersCanCreatePrivatePages.ValueBool()),
+		MembersCanForkPrivateRepos:         github.Ptr(plan.MembersCanForkPrivateRepositories.ValueBool()),
+		WebCommitSignoffRequired:           github.Ptr(plan.WebCommitSignoffRequired.ValueBool()),
+		AdvancedSecurityEnabledForNewRepos: github.Ptr(plan.AdvancedSecurityEnabledForNewRepositories.ValueBool()),
+		DependabotAlertsEnabledForNewRepos: github.Ptr(plan.DependabotAlertsEnabledForNewRepositories.ValueBool()),
+		DependabotSecurityUpdatesEnabledForNewRepos:    github.Ptr(plan.DependabotSecurityUpdatesEnabledForNewRepositories.ValueBool()),
+		DependencyGraphEnabledForNewRepos:              github.Ptr(plan.DependencyGraphEnabledForNewRepositories.ValueBool()),
+		SecretScanningEnabledForNewRepos:               github.Ptr(plan.SecretScanningEnabledForNewRepositories.ValueBool()),
+		SecretScanningPushProtectionEnabledForNewRepos: github.Ptr(plan.SecretScanningPushProtectionEnabledForNewRepositories.ValueBool()),
 	}
 
 	// Check organization plan to determine if enterprise features are available
@@ -462,7 +461,7 @@ func (r *githubOrganizationSettingsResource) updateOrganizationSettings(ctx cont
 	if orgPlan.GetPlan().GetName() == "enterprise" {
 		// Only set internal repositories if the value is specified in plan
 		if !plan.MembersCanCreateInternalRepositories.IsNull() {
-			settings.MembersCanCreateInternalRepos = github.Bool(plan.MembersCanCreateInternalRepositories.ValueBool())
+			settings.MembersCanCreateInternalRepos = github.Ptr(plan.MembersCanCreateInternalRepositories.ValueBool())
 		}
 	}
 
@@ -517,31 +516,31 @@ func (r *githubOrganizationSettingsResource) updateOrganizationSettings(ctx cont
 func (r *githubOrganizationSettingsResource) resetOrganizationSettingsToDefaults(ctx context.Context, client *github.Client, org string, state githubOrganizationSettingsResourceModel) error {
 	// Default settings
 	settings := &github.Organization{
-		BillingEmail:                       github.String("email@example.com"),
-		Company:                            github.String(""),
-		Email:                              github.String(""),
-		TwitterUsername:                    github.String(""),
-		Location:                           github.String(""),
-		Name:                               github.String(""),
-		Description:                        github.String(""),
-		Blog:                               github.String(""),
-		HasOrganizationProjects:            github.Bool(true),
-		HasRepositoryProjects:              github.Bool(true),
-		DefaultRepoPermission:              github.String("read"),
-		MembersCanCreateRepos:              github.Bool(true),
-		MembersCanCreatePrivateRepos:       github.Bool(true),
-		MembersCanCreatePublicRepos:        github.Bool(true),
-		MembersCanCreatePages:              github.Bool(false),
-		MembersCanCreatePublicPages:        github.Bool(true),
-		MembersCanCreatePrivatePages:       github.Bool(true),
-		MembersCanForkPrivateRepos:         github.Bool(false),
-		WebCommitSignoffRequired:           github.Bool(false),
-		AdvancedSecurityEnabledForNewRepos: github.Bool(false),
-		DependabotAlertsEnabledForNewRepos: github.Bool(false),
-		DependabotSecurityUpdatesEnabledForNewRepos:    github.Bool(false),
-		DependencyGraphEnabledForNewRepos:              github.Bool(false),
-		SecretScanningEnabledForNewRepos:               github.Bool(false),
-		SecretScanningPushProtectionEnabledForNewRepos: github.Bool(false),
+		BillingEmail:                       github.Ptr("email@example.com"),
+		Company:                            github.Ptr(""),
+		Email:                              github.Ptr(""),
+		TwitterUsername:                    github.Ptr(""),
+		Location:                           github.Ptr(""),
+		Name:                               github.Ptr(""),
+		Description:                        github.Ptr(""),
+		Blog:                               github.Ptr(""),
+		HasOrganizationProjects:            github.Ptr(true),
+		HasRepositoryProjects:              github.Ptr(true),
+		DefaultRepoPermission:              github.Ptr("read"),
+		MembersCanCreateRepos:              github.Ptr(true),
+		MembersCanCreatePrivateRepos:       github.Ptr(true),
+		MembersCanCreatePublicRepos:        github.Ptr(true),
+		MembersCanCreatePages:              github.Ptr(false),
+		MembersCanCreatePublicPages:        github.Ptr(true),
+		MembersCanCreatePrivatePages:       github.Ptr(true),
+		MembersCanForkPrivateRepos:         github.Ptr(false),
+		WebCommitSignoffRequired:           github.Ptr(false),
+		AdvancedSecurityEnabledForNewRepos: github.Ptr(false),
+		DependabotAlertsEnabledForNewRepos: github.Ptr(false),
+		DependabotSecurityUpdatesEnabledForNewRepos:    github.Ptr(false),
+		DependencyGraphEnabledForNewRepos:              github.Ptr(false),
+		SecretScanningEnabledForNewRepos:               github.Ptr(false),
+		SecretScanningPushProtectionEnabledForNewRepos: github.Ptr(false),
 	}
 
 	// Check organization plan
@@ -553,7 +552,7 @@ func (r *githubOrganizationSettingsResource) resetOrganizationSettingsToDefaults
 	// For enterprise organizations, include internal repositories
 	if orgPlan.GetPlan().GetName() == "enterprise" {
 		if !state.MembersCanForkPrivateRepositories.IsNull() {
-			settings.MembersCanCreateInternalRepos = github.Bool(true)
+			settings.MembersCanCreateInternalRepos = github.Ptr(true)
 		}
 	}
 

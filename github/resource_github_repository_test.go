@@ -13,7 +13,7 @@ func TestAccGithubRepositoryResource_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryConfig_basic(randomID),
@@ -48,7 +48,7 @@ func TestAccGithubRepositoryResource_update(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryConfig_withDescription(randomID, initialDescription),
@@ -73,7 +73,7 @@ func TestAccGithubRepositoryResource_topics(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryConfig_withTopics(randomID),
@@ -93,7 +93,7 @@ func TestAccGithubRepositoryResource_mergeOptions(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryConfig_withMergeOptions(randomID),
@@ -116,7 +116,7 @@ func TestAccGithubRepositoryResource_import(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryConfig_basic(randomID),
@@ -141,7 +141,7 @@ func TestAccGithubRepositoryResource_pages(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryConfig_withPages(randomID),

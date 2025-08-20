@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -168,7 +167,7 @@ func (d *githubActionsSecretsDataSource) Read(ctx context.Context, req datasourc
 	})
 
 	options := github.ListOptions{
-		PerPage: 100,
+		PerPage: maxPerPage,
 	}
 
 	var allSecrets []githubActionsSecretModel

@@ -1,14 +1,11 @@
 package github
 
 import (
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
-
-var isEnterprise = os.Getenv("ENTERPRISE_ACCOUNT")
 
 func TestAccGithubOrganizationTeamSyncGroupsDataSource(t *testing.T) {
 	if isEnterprise != "true" {
@@ -97,7 +94,7 @@ func TestAccGithubOrganizationTeamSyncGroupsDataSource_Migration(t *testing.T) {
 				Steps: []resource.TestStep{
 					// Step 1: Use the muxed provider (includes both SDKv2 and Framework)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttrSet("data.github_organization_team_sync_groups.test", "id"),
@@ -143,7 +140,7 @@ func TestAccGithubOrganizationTeamSyncGroupsDataSource_Migration(t *testing.T) {
 					},
 					// Step 2: Muxed provider - ensure identical behavior
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						ConfigPlanChecks: resource.ConfigPlanChecks{
 							PreApply: []plancheck.PlanCheck{

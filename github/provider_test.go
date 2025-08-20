@@ -1,16 +1,17 @@
 package github
 
 import (
-	"context"
-	"log"
 	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+const anonymous = "anonymous"
+const individual = "individual"
+const organization = "organization"
+const enterprise = "enterprise"
 
 // testAccProtoV6ProviderFactories returns a pure Framework provider server for testing
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
@@ -21,9 +22,7 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 
 // testAccMuxedProtoV6ProviderFactories is now an alias for testAccProtoV6ProviderFactories
 // since we're Framework-only now (kept for backward compatibility with existing tests)
-func testAccMuxedProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {
-	return testAccProtoV6ProviderFactories
-}
+var testAccMuxedProtoV6ProviderFactories = testAccProtoV6ProviderFactories
 
 func testAccPreCheck(t *testing.T, mode string) {
 	switch mode {
@@ -81,6 +80,27 @@ func testAccPreCheckAnonymous(t *testing.T) {
 	}
 }
 
+func testAccPreCheckEnterprise(t *testing.T) {
+	if err := os.Getenv("GITHUB_TOKEN"); err == "" {
+		t.Skip("GITHUB_TOKEN must be set for acceptance tests")
+	}
+	if err := os.Getenv("ENTERPRISE_SLUG"); err == "" {
+		t.Skip("ENTERPRISE_SLUG must be set for enterprise acceptance tests")
+	}
+	if err := os.Getenv("ENTERPRISE_ACCOUNT"); err != "true" {
+		t.Skip("ENTERPRISE_ACCOUNT must be set to 'true' for enterprise acceptance tests")
+	}
+}
+
+func skipUnlessEnterpriseMode(t *testing.T, mode string) {
+	switch mode {
+	case enterprise:
+		testAccPreCheckEnterprise(t)
+	default:
+		t.Fatalf("Unknown test mode: %s", mode)
+	}
+}
+
 // TestProvider tests the framework provider creation
 func TestProvider(t *testing.T) {
 	// Just verify that the provider can be created without panicking
@@ -88,250 +108,4 @@ func TestProvider(t *testing.T) {
 	if provider == nil {
 		t.Error("Provider should not be nil")
 	}
-}
-
-
-func init() {
-	resource.AddTestSweepers("github_user_ssh_key", &resource.Sweeper{
-		Name: "github_user_ssh_key",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_user_ssh_key sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_user_gpg_key", &resource.Sweeper{
-		Name: "github_user_gpg_key",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_user_gpg_key sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_branch", &resource.Sweeper{
-		Name: "github_branch",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_branch sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_branch_default", &resource.Sweeper{
-		Name: "github_branch_default",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_branch_default sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_issue", &resource.Sweeper{
-		Name: "github_issue",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_issue sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_issue_labels", &resource.Sweeper{
-		Name: "github_issue_labels",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_issue_labels sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_repository_file", &resource.Sweeper{
-		Name: "github_repository_file",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_repository_file sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_actions_secret", &resource.Sweeper{
-		Name: "github_actions_secret",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_actions_secret sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_actions_organization_secret", &resource.Sweeper{
-		Name: "github_actions_organization_secret",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_actions_organization_secret sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_actions_variable", &resource.Sweeper{
-		Name: "github_actions_variable",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_actions_variable sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_repository_deploy_key", &resource.Sweeper{
-		Name: "github_repository_deploy_key",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_repository_deploy_key sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_repository_milestone", &resource.Sweeper{
-		Name: "github_repository_milestone",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_repository_milestone sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_codespaces_secret", &resource.Sweeper{
-		Name: "github_codespaces_secret",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_codespaces_secret sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_codespaces_user_secret", &resource.Sweeper{
-		Name: "github_codespaces_user_secret",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_codespaces_user_secret sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_codespaces_organization_secret", &resource.Sweeper{
-		Name: "github_codespaces_organization_secret",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_codespaces_organization_secret sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_dependabot_secret", &resource.Sweeper{
-		Name: "github_dependabot_secret",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_dependabot_secret sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_dependabot_organization_secret", &resource.Sweeper{
-		Name: "github_dependabot_organization_secret",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_dependabot_organization_secret sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_release", &resource.Sweeper{
-		Name: "github_release",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_release sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_repository_environment", &resource.Sweeper{
-		Name: "github_repository_environment",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_repository_environment sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_actions_environment_variable", &resource.Sweeper{
-		Name: "github_actions_environment_variable",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_actions_environment_variable sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_repository_topics", &resource.Sweeper{
-		Name: "github_repository_topics",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_repository_topics sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_actions_repository_permissions", &resource.Sweeper{
-		Name: "github_actions_repository_permissions",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_actions_repository_permissions sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_repository_webhook", &resource.Sweeper{
-		Name: "github_repository_webhook",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_repository_webhook sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_repository_autolink_reference", &resource.Sweeper{
-		Name: "github_repository_autolink_reference",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_repository_autolink_reference sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_app_installation_repositories", &resource.Sweeper{
-		Name: "github_app_installation_repositories",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_app_installation_repositories sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_emu_group_mapping", &resource.Sweeper{
-		Name: "github_emu_group_mapping",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_emu_group_mapping sweeper")
-			return nil
-		},
-	})
-
-	resource.AddTestSweepers("github_team_repository", &resource.Sweeper{
-		Name: "github_team_repository",
-		F: func(region string) error {
-			// Add cleanup code if needed
-			log.Printf("[DEBUG] Running github_team_repository sweeper")
-			return nil
-		},
-	})
 }

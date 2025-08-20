@@ -17,7 +17,7 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 				username = "%s"
 				organization = "%s"
 			}
-		`, testOwnerFunc(), testOrganization())
+		`, testOwnerFunc(), testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_membership.test", "username", testOwnerFunc()),
@@ -30,7 +30,7 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -61,12 +61,12 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 				username = "%s"
 				organization = "%s"
 			}
-		`, "!"+testOwnerFunc(), testOrganization())
+		`, "!"+testOwnerFunc(), testOrganization)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config:      config,

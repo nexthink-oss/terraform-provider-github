@@ -6,62 +6,13 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"unicode"
 
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
 )
 
 // testCollaborator is defined in resource_github_user_invitation_accepter_test.go
-
-func testAccCheckOrganization() error {
-	baseURL := os.Getenv("GITHUB_BASE_URL")
-	token := os.Getenv("GITHUB_TOKEN")
-
-	owner := os.Getenv("GITHUB_OWNER")
-	if owner == "" {
-		organization := os.Getenv("GITHUB_ORGANIZATION")
-		if organization == "" {
-			return fmt.Errorf("neither `GITHUB_OWNER` or `GITHUB_ORGANIZATION` set in environment")
-		}
-		owner = organization
-	}
-
-	config := Config{
-		Token:   token,
-		Owner:   owner,
-		BaseURL: baseURL,
-	}
-
-	meta, err := config.Meta()
-	if err != nil {
-		return err
-	}
-
-	if !meta.(*Owner).IsOrganization {
-		return fmt.Errorf("configured owner %q is not a GitHub organization", owner)
-	}
-
-	return nil
-}
-
-func flipUsernameCase(username string) string {
-	oc := []rune(username)
-
-	for i, ch := range oc {
-		if unicode.IsLetter(ch) {
-			if unicode.IsUpper(ch) {
-				oc[i] = unicode.ToLower(ch)
-			} else {
-				oc[i] = unicode.ToUpper(ch)
-			}
-			break
-		}
-	}
-	return string(oc)
-}
 
 func TestAccGithubMembership_basic(t *testing.T) {
 	if testCollaborator == "" {
@@ -76,7 +27,7 @@ func TestAccGithubMembership_basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -108,7 +59,7 @@ func TestAccGithubMembership_downgrade(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -146,7 +97,7 @@ func TestAccGithubMembership_caseInsensitive(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
 			{

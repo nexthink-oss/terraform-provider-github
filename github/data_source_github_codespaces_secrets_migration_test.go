@@ -36,7 +36,7 @@ func TestAccGithubCodespacesSecretsDataSource_Migration(t *testing.T) {
 				Steps: []resource.TestStep{
 					// Step 1: Use muxed provider (SDKv2 + Framework)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),
@@ -95,7 +95,7 @@ func TestAccGithubCodespacesSecretsDataSource_Migration(t *testing.T) {
 				Steps: []resource.TestStep{
 					// Step 1: Use muxed provider (SDKv2 + Framework)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("data.github_codespaces_secrets.test", "name", fmt.Sprintf("tf-acc-test-%s", randomID)),

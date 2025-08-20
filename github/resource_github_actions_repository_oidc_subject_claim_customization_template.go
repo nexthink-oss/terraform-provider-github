@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -200,7 +199,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) R
 	data.UseDefault = types.BoolValue(*template.UseDefault)
 
 	// Convert include_claim_keys to framework list
-	if template.IncludeClaimKeys != nil && len(template.IncludeClaimKeys) > 0 {
+	if len(template.IncludeClaimKeys) > 0 {
 		includeClaimKeysList, diags := types.ListValueFrom(ctx, types.StringType, template.IncludeClaimKeys)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {

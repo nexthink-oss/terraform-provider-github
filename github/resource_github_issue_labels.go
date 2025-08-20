@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -237,7 +236,7 @@ func (r *githubIssueLabelsResource) readGithubIssueLabels(ctx context.Context, d
 	})
 
 	options := &github.ListOptions{
-		PerPage: 100, // maxPerPage constant from github package
+		PerPage: maxPerPage,
 	}
 
 	var labels []githubIssueLabelModel

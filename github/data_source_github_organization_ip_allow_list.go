@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
-
 )
 
 var (
@@ -25,15 +24,6 @@ type githubOrganizationIpAllowListDataSource struct {
 type githubOrganizationIpAllowListDataSourceModel struct {
 	ID          types.String `tfsdk:"id"`
 	IpAllowList types.List   `tfsdk:"ip_allow_list"`
-}
-
-type githubIpAllowListEntryModel struct {
-	ID             types.String `tfsdk:"id"`
-	Name           types.String `tfsdk:"name"`
-	AllowListValue types.String `tfsdk:"allow_list_value"`
-	IsActive       types.Bool   `tfsdk:"is_active"`
-	CreatedAt      types.String `tfsdk:"created_at"`
-	UpdatedAt      types.String `tfsdk:"updated_at"`
 }
 
 func NewGithubOrganizationIpAllowListDataSource() datasource.DataSource {

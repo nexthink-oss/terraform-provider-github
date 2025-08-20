@@ -33,7 +33,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 				visibility					= "all"
 				allows_public_repositories	= true
 			}
-		`, testEnterprise(), randomID)
+		`, testEnterprise, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -105,7 +105,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 				visibility					= "selected"
 				selected_organization_ids	= [data.github_organization.org.id]
 			}
-		`, testEnterprise(), testOrganization(), randomID)
+		`, testEnterprise, testOrganization, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
@@ -165,7 +165,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 				name       		= "tf-acc-test-%s"
 				visibility 		= "all"
 			}
-	`, testEnterprise(), randomID)
+	`, testEnterprise, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_enterprise_actions_runner_group.test", "name"),
@@ -189,7 +189,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 						ResourceName:        "github_enterprise_actions_runner_group.test",
 						ImportState:         true,
 						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf(`%s/`, testEnterprise()),
+						ImportStateIdPrefix: fmt.Sprintf(`%s/`, testEnterprise),
 					},
 				},
 			})
@@ -217,7 +217,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 				visibility					= "selected"
 				selected_organization_ids	= [data.github_organization.org.id]
 			}
-		`, testEnterprise(), testOrganization(), randomID)
+		`, testEnterprise, testOrganization, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_enterprise_actions_runner_group.test", "name"),
@@ -245,7 +245,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 						ResourceName:        "github_enterprise_actions_runner_group.test",
 						ImportState:         true,
 						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf(`%s/`, testEnterprise()),
+						ImportStateIdPrefix: fmt.Sprintf(`%s/`, testEnterprise),
 					},
 				},
 			})
@@ -269,7 +269,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 				restricted_to_workflows		= true
 				selected_workflows			= [".github/workflows/test.yml"]
 			}
-		`, testEnterprise(), randomID)
+		`, testEnterprise, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -316,7 +316,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 				visibility					= "all"
 				allows_public_repositories	= false
 			}
-		`, testEnterprise(), randomID)
+		`, testEnterprise, randomID)
 
 		configUpdate := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
@@ -331,7 +331,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup(t *testing.T) {
 				restricted_to_workflows		= true
 				selected_workflows			= [".github/workflows/ci.yml", ".github/workflows/test.yml"]
 			}
-		`, testEnterprise(), randomID)
+		`, testEnterprise, randomID)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -410,7 +410,7 @@ func TestAccGithubEnterpriseActionsRunnerGroup_Migration(t *testing.T) {
 			allows_public_repositories	= true
 			restricted_to_workflows		= false
 		}
-	`, testEnterprise(), randomID)
+	`, testEnterprise, randomID)
 
 	resource.Test(t, resource.TestCase{
 		Steps: []resource.TestStep{
@@ -440,7 +440,3 @@ func TestAccGithubEnterpriseActionsRunnerGroup_Migration(t *testing.T) {
 }
 
 // Enterprise helper functions are defined in resource_github_enterprise_actions_permissions_test.go
-
-func testOrganization() string {
-	return os.Getenv("GITHUB_ORGANIZATION")
-}

@@ -16,7 +16,7 @@ func TestAccGithubRepositoryFileResource_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryFileConfig_basic(randomID),
@@ -53,7 +53,7 @@ func TestAccGithubRepositoryFileResource_overwriteOnCreate(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccGithubRepositoryFileConfig_overwriteDisabled(randomID),
@@ -80,7 +80,7 @@ func TestAccGithubRepositoryFileResource_defaultBranch(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryFileConfig_defaultBranch(randomID),
@@ -103,7 +103,7 @@ func TestAccGithubRepositoryFileResource_autocreateBranch(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccGithubRepositoryFileConfig_autocreateBranchDisabled(randomID),
@@ -133,7 +133,7 @@ func TestAccGithubRepositoryFileResource_import(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryFileConfig_basic(randomID),
@@ -159,7 +159,7 @@ func TestAccGithubRepositoryFileResource_importWithBranch(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryFileConfig_basic(randomID),
@@ -199,7 +199,7 @@ func TestAccGithubRepositoryFileResource_migrationCompatibility(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Config:                   testAccGithubRepositoryFileConfig_basic(randomID),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -216,7 +216,7 @@ func TestAccGithubRepositoryFileResource_noPlan(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryFileConfig_basic(randomID),

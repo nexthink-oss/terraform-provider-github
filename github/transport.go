@@ -210,6 +210,16 @@ type RetryTransport struct {
 
 type RetryTransportOption func(*RetryTransport)
 
+// get the list of retriable errors
+func getDefaultRetriableErrors() map[int]bool {
+	return map[int]bool{
+		500: true,
+		502: true,
+		503: true,
+		504: true,
+	}
+}
+
 // NewRetryTransport takes in an http.RoundTripper and a variadic list of
 // optional functions that modify the RetryTransport struct itself. This
 // may be used to retry after response errors 5xx, for example.

@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -116,7 +115,7 @@ func (d *githubOrganizationWebhooksDataSource) Read(ctx context.Context, req dat
 	})
 
 	options := &github.ListOptions{
-		PerPage: 100,
+		PerPage: maxPerPage,
 	}
 
 	var allWebhooks []githubOrganizationWebhookModel

@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 )
 
 var (
@@ -420,8 +419,8 @@ func (r *githubActionsRunnerGroupResource) readResource(ctx context.Context, mod
 	// Create context with ETag if available for conditional requests
 	readCtx := ctx
 	if !model.Etag.IsNull() && !model.Etag.IsUnknown() {
-		// Note: The SDKv2 version uses custom context keys for ETag handling
-		// For now, we'll use the basic context and rely on standard GitHub API behavior
+		// Add ETag to context for conditional requests
+		readCtx = context.WithValue(ctx, CtxEtag, model.Etag.ValueString())
 	}
 
 	runnerGroup, resp, err := r.getOrganizationRunnerGroup(client, readCtx, orgName, runnerGroupID)
@@ -478,7 +477,7 @@ func (r *githubActionsRunnerGroupResource) readResource(ctx context.Context, mod
 	// Get selected repository IDs by listing repository access
 	selectedRepositoryIDs := []int64{}
 	options := github.ListOptions{
-		PerPage: 100, // maxPerPage equivalent
+		PerPage: maxPerPage, // maxPerPage equivalent
 	}
 
 	for {

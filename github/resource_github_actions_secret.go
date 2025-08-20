@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/google/go-github/v74/github"
@@ -17,8 +16,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"golang.org/x/crypto/nacl/box"
 
+	"github.com/isometry/terraform-provider-github/v7/github/internal/common"
 )
 
 var (
@@ -71,7 +70,7 @@ func (r *githubActionsSecretResource) Schema(ctx context.Context, req resource.S
 				Description: "Name of the secret.",
 				Required:    true,
 				Validators: []validator.String{
-					&secretNameValidator{},
+					common.NewSecretNameValidator(),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -82,7 +81,7 @@ func (r *githubActionsSecretResource) Schema(ctx context.Context, req resource.S
 				Optional:    true,
 				Sensitive:   true,
 				Validators: []validator.String{
-					&conflictingWithValidator{conflictsWith: []string{"plaintext_value"}},
+					common.NewConflictingWithValidator([]string{"plaintext_value"}),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -93,7 +92,7 @@ func (r *githubActionsSecretResource) Schema(ctx context.Context, req resource.S
 				Optional:    true,
 				Sensitive:   true,
 				Validators: []validator.String{
-					&conflictingWithValidator{conflictsWith: []string{"encrypted_value"}},
+					common.NewConflictingWithValidator([]string{"encrypted_value"}),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -159,7 +158,7 @@ func (r *githubActionsSecretResource) Create(ctx context.Context, req resource.C
 		encryptedValue = data.EncryptedValue.ValueString()
 	} else if !data.PlaintextValue.IsNull() && !data.PlaintextValue.IsUnknown() {
 		plaintextValue := data.PlaintextValue.ValueString()
-		encryptedBytes, err := r.encryptPlaintext(plaintextValue, publicKey)
+		encryptedBytes, err := common.EncryptPlaintext(plaintextValue, publicKey)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Unable to Encrypt Secret",
@@ -245,7 +244,7 @@ func (r *githubActionsSecretResource) Delete(ctx context.Context, req resource.D
 	client := r.client.V3Client()
 	owner := r.client.Name()
 
-	repoName, secretName, err := r.parseTwoPartID(data.ID.ValueString())
+	repoName, secretName, err := parseTwoPartID(data.ID.ValueString(), "repository", "secret_name")
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Parse ID",
@@ -328,43 +327,11 @@ func (r *githubActionsSecretResource) getPublicKeyDetails(ctx context.Context, o
 	return publicKey.GetKeyID(), publicKey.GetKey(), err
 }
 
-func (r *githubActionsSecretResource) encryptPlaintext(plaintext, publicKeyB64 string) ([]byte, error) {
-	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyB64)
-	if err != nil {
-		return nil, err
-	}
-
-	var publicKeyBytes32 [32]byte
-	copiedLen := copy(publicKeyBytes32[:], publicKeyBytes)
-	if copiedLen == 0 {
-		return nil, fmt.Errorf("could not convert publicKey to bytes")
-	}
-
-	plaintextBytes := []byte(plaintext)
-	var encryptedBytes []byte
-
-	cipherText, err := box.SealAnonymous(encryptedBytes, plaintextBytes, &publicKeyBytes32, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return cipherText, nil
-}
-
-func (r *githubActionsSecretResource) parseTwoPartID(id string) (string, string, error) {
-	parts := strings.SplitN(id, ":", 2)
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("unexpected ID format (%q); expected repository:secret_name", id)
-	}
-
-	return parts[0], parts[1], nil
-}
-
 func (r *githubActionsSecretResource) readGithubActionsSecret(ctx context.Context, data *githubActionsSecretResourceModel, diags *diag.Diagnostics) {
 	client := r.client.V3Client()
 	owner := r.client.Name()
 
-	repoName, secretName, err := r.parseTwoPartID(data.ID.ValueString())
+	repoName, secretName, err := parseTwoPartID(data.ID.ValueString(), "repository", "secret_name")
 	if err != nil {
 		diags.AddError(
 			"Unable to Parse ID",
@@ -431,81 +398,4 @@ func (r *githubActionsSecretResource) readGithubActionsSecret(ctx context.Contex
 		"repository":  repoName,
 		"secret_name": secretName,
 	})
-}
-
-// Custom Validators
-
-// secretNameValidator validates secret names according to GitHub requirements
-type secretNameValidator struct{}
-
-func (v *secretNameValidator) Description(ctx context.Context) string {
-	return "Secret names can only contain alphanumeric characters or underscores and must not start with a number or GITHUB_ prefix"
-}
-
-func (v *secretNameValidator) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-func (v *secretNameValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-
-	value := req.ConfigValue.ValueString()
-
-	// https://docs.github.com/en/actions/reference/encrypted-secrets#naming-your-secrets
-	secretNameRegexp := regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
-
-	if !secretNameRegexp.MatchString(value) {
-		resp.Diagnostics.AddAttributeError(
-			req.Path,
-			"Invalid Secret Name",
-			"Secret names can only contain alphanumeric characters or underscores and must not start with a number",
-		)
-	}
-
-	if strings.HasPrefix(strings.ToUpper(value), "GITHUB_") {
-		resp.Diagnostics.AddAttributeError(
-			req.Path,
-			"Invalid Secret Name",
-			"Secret names must not start with the GITHUB_ prefix",
-		)
-	}
-}
-
-// conflictingWithValidator implements validation for conflicting attributes
-type conflictingWithValidator struct {
-	conflictsWith []string
-}
-
-func (v *conflictingWithValidator) Description(ctx context.Context) string {
-	return fmt.Sprintf("Conflicts with: %v", v.conflictsWith)
-}
-
-func (v *conflictingWithValidator) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-func (v *conflictingWithValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-
-	// Check if any conflicting attributes are also set
-	for _, conflictingPath := range v.conflictsWith {
-		var conflictingValue types.String
-		diags := req.Config.GetAttribute(ctx, req.Path.ParentPath().AtName(conflictingPath), &conflictingValue)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		if !conflictingValue.IsNull() && !conflictingValue.IsUnknown() {
-			resp.Diagnostics.AddAttributeError(
-				req.Path,
-				"Conflicting Attribute Configuration",
-				fmt.Sprintf("Attribute %q cannot be specified when %q is specified.", req.Path.String(), conflictingPath),
-			)
-		}
-	}
 }

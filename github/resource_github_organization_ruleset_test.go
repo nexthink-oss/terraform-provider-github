@@ -92,7 +92,7 @@ func TestAccGithubOrganizationRulesetResource(t *testing.T) {
 		)
 
 		resource.Test(t, resource.TestCase{
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -184,7 +184,7 @@ func TestAccGithubOrganizationRulesetResource(t *testing.T) {
 		`, randomID, randomID)
 
 		resource.Test(t, resource.TestCase{
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config1,
@@ -248,7 +248,7 @@ func TestAccGithubOrganizationRulesetResource(t *testing.T) {
 		`, randomID)
 
 		resource.Test(t, resource.TestCase{
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -320,7 +320,7 @@ func TestAccGithubOrganizationRulesetResource(t *testing.T) {
 		`, randomID, randomID)
 
 		resource.Test(t, resource.TestCase{
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -377,7 +377,7 @@ func TestAccGithubOrganizationRulesetResource(t *testing.T) {
 		`, randomID, randomID)
 
 		resource.Test(t, resource.TestCase{
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -452,7 +452,7 @@ func TestAccGithubOrganizationRulesetResource(t *testing.T) {
 					),
 				},
 				{
-					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 					Config:                   config,
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{

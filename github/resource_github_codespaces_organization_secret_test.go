@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubCodespacesOrganizationSecret_Basic(t *testing.T) {
@@ -423,40 +422,4 @@ func TestAccGithubCodespacesOrganizationSecret_MissingSecretValue(t *testing.T) 
 // Helper function for account type checking
 func testCheckOrganizationAccount(t *testing.T) {
 	testAccPreCheckOrganization(t)
-}
-
-func testAccCheckCodespacesOrganizationSecretExists(resourceName string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("Resource not found: %s", resourceName)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No resource ID is set")
-		}
-
-		// In a real test, you would verify the secret exists in GitHub
-		// This is a placeholder for that check
-		return nil
-	}
-}
-
-func testAccCheckCodespacesOrganizationSecretDestroy(s *terraform.State) error {
-	// In a real test, you would verify the secret has been deleted from GitHub
-	// This is a placeholder for that check
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "github_codespaces_organization_secret" {
-			continue
-		}
-
-		if rs.Primary.ID == "" {
-			continue
-		}
-
-		// Check that the secret no longer exists
-		// This would involve making an API call to GitHub
-	}
-
-	return nil
 }

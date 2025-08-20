@@ -7,8 +7,6 @@ import (
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
 )
 
 func TestAccGithubTeamMembership_migration_basic(t *testing.T) {
@@ -41,12 +39,12 @@ func TestAccGithubTeamMembership_migration_basic(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Config:                   testAccGithubTeamMembershipConfigMigration(randString, testCollaborator, "member"),
 				PlanOnly:                 true, // Validate no changes are required during migration
 			},
 			{
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Config:                   testAccGithubTeamMembershipConfigMigration(randString, testCollaborator, "maintainer"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists(rn, &membership),
@@ -93,7 +91,7 @@ func TestAccGithubTeamMembership_migration_caseInsensitive(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Config:                   testAccGithubTeamMembershipConfigMigration(randString, otherCase, "member"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists(rn, &otherMembership),
@@ -127,7 +125,7 @@ func TestAccGithubTeamMembership_migration_importBasic(t *testing.T) {
 				Config: testAccGithubTeamMembershipConfigMigration(randString, testCollaborator, "member"),
 			},
 			{
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Config:                   testAccGithubTeamMembershipConfigMigration(randString, testCollaborator, "member"),
 				ResourceName:             rn,
 				ImportState:              true,
@@ -156,32 +154,4 @@ resource "github_team_membership" "test_team_membership" {
   role     = "%s"
 }
 `, username, randString, username, role)
-}
-
-// testAccCheckGithubTeamMembershipExistsUsingSDKv2 uses the SDKv2 client to check existence
-func testAccCheckGithubTeamMembershipExistsUsingSDKv2(resourceName string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[resourceName]
-		if !ok {
-			return fmt.Errorf("resource not found: %s", resourceName)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("no team membership ID is set")
-		}
-
-		// Create SDKv2 provider client to verify the resource exists
-		provider := sdkv2github.Provider()
-		config := map[string]interface{}{
-			"token": rs.Primary.Attributes["token"],
-			"owner": rs.Primary.Attributes["owner"],
-		}
-
-		diags := provider.Configure(nil, config)
-		if diags.HasError() {
-			return fmt.Errorf("provider configuration error: %v", diags)
-		}
-
-		return nil
-	}
 }

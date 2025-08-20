@@ -22,8 +22,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 )
+
+type contextKey string
+
+const etagContextKey contextKey = "etag"
 
 var (
 	_ resource.Resource                = &githubEnterpriseActionsRunnerGroupResource{}
@@ -387,7 +390,7 @@ func (r *githubEnterpriseActionsRunnerGroupResource) readResource(ctx context.Co
 	readCtx := ctx
 	if !model.Etag.IsNull() && !model.Etag.IsUnknown() {
 		// Note: The SDKv2 version uses ctxEtag context key, we'll use standard headers
-		readCtx = context.WithValue(ctx, "etag", model.Etag.ValueString())
+		readCtx = context.WithValue(ctx, etagContextKey, model.Etag.ValueString())
 	}
 
 	enterpriseRunnerGroup, resp, err := r.getEnterpriseRunnerGroup(client, readCtx, enterpriseSlug, runnerGroupID)
@@ -443,7 +446,7 @@ func (r *githubEnterpriseActionsRunnerGroupResource) readResource(ctx context.Co
 	// Get selected organization IDs by listing organization access
 	selectedOrganizationIDs := []int64{}
 	optionsOrgs := github.ListOptions{
-		PerPage: 100, // maxPerPage equivalent
+		PerPage: maxPerPage, // maxPerPage equivalent
 	}
 
 	for {

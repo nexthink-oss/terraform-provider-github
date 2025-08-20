@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 
@@ -28,7 +27,7 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -63,7 +62,7 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
@@ -86,13 +85,4 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		})
 
 	})
-}
-
-// testOwnerFunc returns the owner for testing, derived from environment variables
-func testOwnerFunc() string {
-	owner := os.Getenv("GITHUB_OWNER")
-	if owner == "" {
-		owner = os.Getenv("GITHUB_TEST_OWNER")
-	}
-	return owner
 }

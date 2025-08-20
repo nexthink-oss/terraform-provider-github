@@ -45,7 +45,7 @@ func TestAccGithubDependabotSecretsDataSource_Migration(t *testing.T) {
 				Steps: []resource.TestStep{
 					// Step 1: Use muxed provider (should use SDKv2 implementation)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check:                    check,
 					},
@@ -104,7 +104,7 @@ func TestAccGithubDependabotSecretsDataSource_Migration(t *testing.T) {
 				Steps: []resource.TestStep{
 					// Step 1: Use muxed provider (should use SDKv2 implementation)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check:                    check,
 					},

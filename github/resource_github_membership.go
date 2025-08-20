@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -355,8 +354,8 @@ func (r *githubMembershipResource) readMembership(ctx context.Context, model *gi
 	// Use etag if available for conditional requests
 	reqCtx := ctx
 	if !model.Etag.IsNull() && !model.Etag.IsUnknown() {
-		// Note: Framework doesn't have direct equivalent to SDKv2's ctxEtag pattern
-		// We'll implement basic etag support without the context pattern for now
+		// Add ETag to context for conditional requests
+		reqCtx = context.WithValue(ctx, CtxEtag, model.Etag.ValueString())
 	}
 
 	membership, resp, err := r.client.V3Client().Organizations.GetOrgMembership(reqCtx, username, orgName)
@@ -393,4 +392,3 @@ func (r *githubMembershipResource) readMembership(ctx context.Context, model *gi
 		}
 	}
 }
-

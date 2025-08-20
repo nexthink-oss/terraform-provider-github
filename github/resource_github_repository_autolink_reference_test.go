@@ -103,7 +103,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				CheckDestroy:             testAccCheckGithubRepositoryAutolinkReferenceDestroy,
 				Steps: []resource.TestStep{
 					{
@@ -211,7 +211,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				CheckDestroy:             testAccCheckGithubRepositoryAutolinkReferenceDestroy,
 				Steps: []resource.TestStep{
 					{
@@ -285,7 +285,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				CheckDestroy:             testAccCheckGithubRepositoryAutolinkReferenceDestroy,
 				Steps: []resource.TestStep{
 					{
@@ -339,7 +339,7 @@ func TestAccGithubRepositoryAutolinkReference(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				CheckDestroy:             testAccCheckGithubRepositoryAutolinkReferenceDestroy,
 				Steps: []resource.TestStep{
 					{

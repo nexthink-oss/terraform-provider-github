@@ -46,7 +46,7 @@ func TestAccGithubUserGpgKey_Framework(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -84,7 +84,7 @@ func TestAccGithubUserGpgKey_MigrationValidation(t *testing.T) {
 				// This test step would use SDKv2 provider if we had external provider setup
 				// For now we'll just test the framework implementation directly
 				{
-					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 					Config:                   config,
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttrSet("github_user_gpg_key.test", "id"),
@@ -95,7 +95,7 @@ func TestAccGithubUserGpgKey_MigrationValidation(t *testing.T) {
 				},
 				// Test that applying the same config results in no changes
 				{
-					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 					Config:                   config,
 					PlanOnly:                 true,
 					ExpectNonEmptyPlan:       false,
@@ -107,7 +107,7 @@ func TestAccGithubUserGpgKey_MigrationValidation(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { testAccPreCheck(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -141,7 +141,7 @@ func TestAccGithubUserGpgKey_Import(t *testing.T) {
 	testCase := func(t *testing.T, mode string) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { testAccPreCheck(t, mode) },
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

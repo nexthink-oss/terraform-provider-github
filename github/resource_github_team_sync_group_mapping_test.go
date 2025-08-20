@@ -1,19 +1,13 @@
 package github
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"testing"
 
-	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
 )
-
-var isEnterprise = os.Getenv("ENTERPRISE_ACCOUNT")
 
 func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 	if isEnterprise != "true" {
@@ -24,7 +18,7 @@ func TestAccGithubTeamSyncGroupMapping_basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { skipUnlessMode(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubTeamSyncGroupMappingDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -58,7 +52,7 @@ func TestAccGithubTeamSyncGroupMapping_disappears(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { skipUnlessMode(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubTeamSyncGroupMappingDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -82,7 +76,7 @@ func TestAccGithubTeamSyncGroupMapping_update(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { skipUnlessMode(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubTeamSyncGroupMappingDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -128,7 +122,7 @@ func TestAccGithubTeamSyncGroupMapping_empty(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { skipUnlessMode(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubTeamSyncGroupMappingDestroy,
 		Steps: []resource.TestStep{
 			{

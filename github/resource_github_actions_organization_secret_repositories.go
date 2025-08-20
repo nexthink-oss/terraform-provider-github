@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
+	"github.com/isometry/terraform-provider-github/v7/github/internal/common"
 )
 
 var (
@@ -57,7 +58,7 @@ func (r *githubActionsOrganizationSecretRepositoriesResource) Schema(ctx context
 				Description: "Name of the existing secret.",
 				Required:    true,
 				Validators: []validator.String{
-					&secretNameValidator{},
+					common.NewSecretNameValidator(),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),

@@ -15,7 +15,7 @@ func TestAccGithubOrganizationBlock_basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubOrganizationBlockConfig,
@@ -25,15 +25,14 @@ func TestAccGithubOrganizationBlock_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      rn,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            rn,
+				ImportState:             true,
+				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
 }
-
 
 const testAccGithubOrganizationBlockConfig = `
 resource "github_organization_block" "test" {

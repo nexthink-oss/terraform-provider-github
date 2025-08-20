@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -244,7 +243,7 @@ func (d *githubRepositoryPullRequestsDataSource) Read(ctx context.Context, req d
 	direction := data.SortDirection.ValueString()
 
 	options := &github.PullRequestListOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
+		ListOptions: github.ListOptions{PerPage: maxPerPage},
 		State:       state,
 		Head:        head,
 		Base:        base,

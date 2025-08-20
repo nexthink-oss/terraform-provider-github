@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -151,7 +150,7 @@ func (d *githubExternalGroupsDataSource) Read(ctx context.Context, req datasourc
 		groupModel := githubExternalGroupModel{}
 
 		if group.GroupID != nil {
-			groupModel.GroupID = types.Int64Value(int64(*group.GroupID))
+			groupModel.GroupID = types.Int64Value(*group.GroupID)
 		} else {
 			groupModel.GroupID = types.Int64Null()
 		}

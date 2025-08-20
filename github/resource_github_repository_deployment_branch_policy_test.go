@@ -13,7 +13,7 @@ func TestAccGithubRepositoryDeploymentBranchPolicyResource_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID),
@@ -34,7 +34,7 @@ func TestAccGithubRepositoryDeploymentBranchPolicyResource_update(t *testing.T) 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID),
@@ -57,7 +57,7 @@ func TestAccGithubRepositoryDeploymentBranchPolicyResource_import(t *testing.T) 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID),
@@ -79,7 +79,7 @@ func TestAccGithubRepositoryDeploymentBranchPolicyResource_organization(t *testi
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID),

@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 )
 
 var (
@@ -187,7 +186,7 @@ func (r *githubOrganizationSecurityManagerResource) Read(ctx context.Context, re
 	}
 
 	// There is no endpoint for getting a single security manager team, so get the list and filter.
-	options := &github.ListOptions{PerPage: 100}
+	options := &github.ListOptions{PerPage: maxPerPage}
 	var smTeam *github.Team = nil
 
 	for {

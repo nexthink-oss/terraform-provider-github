@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -357,7 +356,7 @@ func (r *githubRepositoryAutolinkReferenceResource) getAutolinkByKeyPrefix(ctx c
 // listAutolinks returns all autolink references for the given repository
 func (r *githubRepositoryAutolinkReferenceResource) listAutolinks(ctx context.Context, client *github.Client, owner, repo string) ([]*github.Autolink, error) {
 	opts := &github.ListOptions{
-		PerPage: 100, // GitHub's maximum per page
+		PerPage: maxPerPage, // GitHub's maximum per page
 	}
 
 	var allAutolinks []*github.Autolink

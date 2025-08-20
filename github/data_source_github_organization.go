@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
-
 )
 
 var (
@@ -263,7 +262,7 @@ func (d *githubOrganizationDataSource) Read(ctx context.Context, req datasource.
 	if !summaryOnly {
 		// Fetch repositories
 		opts := &github.RepositoryListByOrgOptions{
-			ListOptions: github.ListOptions{PerPage: 100, Page: 1},
+			ListOptions: github.ListOptions{PerPage: maxPerPage, Page: 1},
 		}
 
 		var repoList []string

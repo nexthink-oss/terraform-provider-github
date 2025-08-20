@@ -33,7 +33,7 @@ func TestAccGithubOrganizationCustomRoleResource_migration(t *testing.T) {
 			},
 			{
 				// Test migration to Plugin Framework provider
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Config:                   testAccGithubOrganizationCustomRoleMigrationConfig(randomID),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{

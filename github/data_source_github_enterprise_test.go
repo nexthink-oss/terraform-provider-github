@@ -16,10 +16,10 @@ func TestAccGithubEnterpriseDataSource(t *testing.T) {
 			data "github_enterprise" "test" {
 				slug = "%s"
 			}
-		`, testEnterprise())
+		`, testEnterprise)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_enterprise.test", "slug", testEnterprise()),
+			resource.TestCheckResourceAttr("data.github_enterprise.test", "slug", testEnterprise),
 			resource.TestCheckResourceAttrSet("data.github_enterprise.test", "id"),
 			resource.TestCheckResourceAttrSet("data.github_enterprise.test", "database_id"),
 			resource.TestCheckResourceAttrSet("data.github_enterprise.test", "name"),
@@ -30,7 +30,7 @@ func TestAccGithubEnterpriseDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessEnterpriseMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -57,7 +57,7 @@ func TestAccGithubEnterpriseDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessEnterpriseMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config:      config,

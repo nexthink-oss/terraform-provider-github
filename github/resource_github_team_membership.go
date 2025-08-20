@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -393,4 +392,3 @@ func (r *githubTeamMembershipResource) getTeamID(teamIDString string) (int64, er
 
 	return team.GetID(), nil
 }
-

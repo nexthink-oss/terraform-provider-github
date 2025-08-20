@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
-
 )
 
 var (
@@ -502,6 +501,7 @@ func (r *githubTeamMembersResource) getTeamSlug(teamIDString string) (string, er
 	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
 	if parseIntErr == nil {
 		// The given id is an integer, so we need to get the slug from the API
+		//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
 		team, _, err := r.client.V3Client().Teams.GetTeamByID(context.Background(), r.client.ID(), teamId)
 		if err != nil {
 			return "", err

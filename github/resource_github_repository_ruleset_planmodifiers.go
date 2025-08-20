@@ -47,7 +47,8 @@ func (v rulesetTargetConflictValidator) PlanModifyList(ctx context.Context, req 
 		// Path structure: rules.0.branch_name_pattern or rules.0.tag_name_pattern
 		if pathStep, ok := currentPath.Steps()[2].(path.PathStepAttributeName); ok {
 			stepName := pathStep.String()
-			if stepName == "branch_name_pattern" {
+			switch stepName {
+			case "branch_name_pattern":
 				if targetValue != "branch" && !req.PlanValue.IsNull() && !req.PlanValue.IsUnknown() {
 					resp.Diagnostics.AddAttributeError(
 						req.Path,
@@ -56,7 +57,7 @@ func (v rulesetTargetConflictValidator) PlanModifyList(ctx context.Context, req 
 					)
 					return
 				}
-			} else if stepName == "tag_name_pattern" {
+			case "tag_name_pattern":
 				if targetValue != "tag" && !req.PlanValue.IsNull() && !req.PlanValue.IsUnknown() {
 					resp.Diagnostics.AddAttributeError(
 						req.Path,

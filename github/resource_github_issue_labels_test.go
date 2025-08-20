@@ -16,7 +16,7 @@ func TestAccGithubIssueLabelsResource_basic(t *testing.T) {
 	testCase := func(t *testing.T, mode string) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { skipUnlessMode(t, mode) },
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				// 0. Check if some labels already exist (indicated by non-empty plan)
 				{
@@ -96,7 +96,7 @@ func TestAccGithubIssueLabelsResource_updateLabels(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueLabelsConfig(randomID, []map[string]any{
@@ -144,7 +144,7 @@ func TestAccGithubIssueLabelsResource_emptyLabels(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueLabelsConfig_emptyLabels(randomID),
@@ -163,7 +163,7 @@ func TestAccGithubIssueLabelsResource_import(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueLabelsConfig(randomID, []map[string]any{
@@ -202,7 +202,7 @@ func TestAccGithubIssueLabelsResource_migration(t *testing.T) {
 		Steps: []resource.TestStep{
 			// First step with muxed provider (includes SDKv2)
 			{
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Config:                   testAccGithubIssueLabelsConfig(randomID, testLabels),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("github_issue_labels.test", "label.#", "1"),
@@ -211,7 +211,7 @@ func TestAccGithubIssueLabelsResource_migration(t *testing.T) {
 			},
 			// Second step should be no-op with same provider
 			{
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Config:                   testAccGithubIssueLabelsConfig(randomID, testLabels),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{

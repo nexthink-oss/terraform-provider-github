@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 const (
@@ -244,7 +243,6 @@ func (r *githubRepositoryCustomPropertyResource) Delete(ctx context.Context, req
 	}
 
 	client := r.client.V3Client()
-	owner := r.client.Name()
 
 	// Parse ID to get components
 	owner, repoName, propertyName, err := r.parseThreePartID(data.ID.ValueString(), "owner", "repoName", "propertyName")
@@ -328,7 +326,7 @@ func (r *githubRepositoryCustomPropertyResource) ImportState(ctx context.Context
 func (r *githubRepositoryCustomPropertyResource) parseThreePartID(id, left, center, right string) (string, string, string, error) {
 	parts := strings.Split(id, "/")
 	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("Unexpected ID format (%q), expected %s/%s/%s", id, left, center, right)
+		return "", "", "", fmt.Errorf("unexpected ID format (%q), expected %s/%s/%s", id, left, center, right)
 	}
 	return parts[0], parts[1], parts[2], nil
 }
@@ -381,7 +379,6 @@ func (r *githubRepositoryCustomPropertyResource) parseRepositoryCustomPropertyVa
 
 func (r *githubRepositoryCustomPropertyResource) readGithubRepositoryCustomProperty(ctx context.Context, data *githubRepositoryCustomPropertyResourceModel, diags *diag.Diagnostics) {
 	client := r.client.V3Client()
-	owner := r.client.Name()
 
 	// Parse ID to get components
 	owner, repoName, propertyName, err := r.parseThreePartID(data.ID.ValueString(), "owner", "repository", "property_name")

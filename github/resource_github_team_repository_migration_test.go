@@ -52,7 +52,7 @@ func TestAccGithubTeamRepositoryResource_migration(t *testing.T) {
 					},
 					// Step 2: Migrate to Framework provider (should be no-op)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						ConfigPlanChecks: resource.ConfigPlanChecks{
 							PreApply: []plancheck.PlanCheck{

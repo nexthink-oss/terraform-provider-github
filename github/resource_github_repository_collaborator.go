@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -277,7 +276,7 @@ func (r *githubRepositoryCollaboratorResource) buildTwoPartID(a, b string) strin
 func (r *githubRepositoryCollaboratorResource) parseTwoPartID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected ID format (%q), expected repository:username", id)
+		return "", "", fmt.Errorf("unexpected ID format (%q), expected repository:username", id)
 	}
 
 	return parts[0], parts[1], nil
@@ -295,7 +294,7 @@ func (r *githubRepositoryCollaboratorResource) parseRepoName(repoName string, de
 }
 
 func (r *githubRepositoryCollaboratorResource) findRepoInvitation(ctx context.Context, client *github.Client, owner, repo, collaborator string) (*github.RepositoryInvitation, error) {
-	opt := &github.ListOptions{PerPage: 100}
+	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
 		invitations, resp, err := client.Repositories.ListInvitations(ctx, owner, repo, opt)
 		if err != nil {
@@ -380,7 +379,7 @@ func (r *githubRepositoryCollaboratorResource) readGithubRepositoryCollaborator(
 
 	// Next, check if the user has accepted the invite and is a full collaborator
 	opt := &github.ListCollaboratorsOptions{ListOptions: github.ListOptions{
-		PerPage: 100,
+		PerPage: maxPerPage,
 	}}
 
 	for {

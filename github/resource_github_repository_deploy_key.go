@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -327,7 +326,7 @@ func (r *githubRepositoryDeployKeyResource) readGithubRepositoryDeployKey(ctx co
 	if !data.Etag.IsNull() && !data.Etag.IsUnknown() {
 		// The GitHub client expects the etag in a specific context key
 		// This follows the pattern from the SDKv2 implementation
-		apiCtx = context.WithValue(ctx, "etag", data.Etag.ValueString())
+		apiCtx = context.WithValue(ctx, CtxEtag, data.Etag.ValueString())
 	}
 
 	key, resp, err := client.Repositories.GetKey(apiCtx, owner, repoName, keyID)

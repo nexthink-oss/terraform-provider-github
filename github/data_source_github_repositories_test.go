@@ -19,12 +19,12 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 			data "github_repositories" "test" {
 				query = "org:%s"
 			}
-		`, testOrganization())
+		`, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
 				"data.github_repositories.test", "full_names.0",
-				regexp.MustCompile(`^`+testOrganization()),
+				regexp.MustCompile(`^`+testOrganization),
 			),
 			resource.TestCheckResourceAttrSet(
 				"data.github_repositories.test", "names.0",
@@ -49,7 +49,7 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -81,12 +81,12 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 				include_repo_id = true
 				results_per_page = 20
 			}
-		`, testOrganization())
+		`, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
 				"data.github_repositories.test", "full_names.0",
-				regexp.MustCompile(`^`+testOrganization()),
+				regexp.MustCompile(`^`+testOrganization),
 			),
 			resource.TestCheckResourceAttrSet(
 				"data.github_repositories.test", "names.0",
@@ -111,7 +111,7 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -142,12 +142,12 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 				query = "org:%s"
 				sort = "stars"
 			}
-		`, testOrganization())
+		`, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
 				"data.github_repositories.test", "full_names.0",
-				regexp.MustCompile(`^`+testOrganization()),
+				regexp.MustCompile(`^`+testOrganization),
 			),
 			resource.TestCheckResourceAttrSet(
 				"data.github_repositories.test", "names.0",
@@ -161,7 +161,7 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -210,7 +210,7 @@ func TestAccGithubRepositoriesDataSource(t *testing.T) {
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
 				PreCheck:                 func() { skipUnlessMode(t, mode) },
-				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -17,11 +18,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
-
 )
 
 // UpdateTeamReviewAssignmentInput represents the input for updating team review assignment settings
@@ -178,7 +177,6 @@ func (v *teamSettingsAlgorithmValidator) ValidateString(ctx context.Context, req
 		)
 	}
 }
-
 
 func (r *githubTeamSettingsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
@@ -360,6 +358,7 @@ func (r *githubTeamSettingsResource) resolveTeamIDs(ctx context.Context, idOrSlu
 		return team.GetNodeID(), team.GetSlug(), nil
 	} else {
 		// The given id is an integer, assume it is a team id
+		//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
 		team, _, teamIdErr := client.Teams.GetTeamByID(ctx, orgId, teamId)
 		if teamIdErr != nil {
 			// There isn't a team with the given ID, assume it is a teamslug

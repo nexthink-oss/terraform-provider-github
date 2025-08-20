@@ -18,8 +18,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 )
+
+type rulesetContextKey string
+
+const rulesetEtagContextKey rulesetContextKey = "etag"
 
 var (
 	_ resource.Resource                = &githubOrganizationRulesetResource{}
@@ -709,7 +712,7 @@ func (r *githubOrganizationRulesetResource) readRuleset(ctx context.Context, sta
 
 	apiCtx := ctx
 	if !state.ETag.IsNull() && !state.ETag.IsUnknown() {
-		apiCtx = context.WithValue(ctx, "etag", state.ETag.ValueString())
+		apiCtx = context.WithValue(ctx, rulesetEtagContextKey, state.ETag.ValueString())
 	}
 
 	ruleset, response, err := r.client.V3Client().Organizations.GetRepositoryRuleset(apiCtx, r.client.Name(), rulesetID)

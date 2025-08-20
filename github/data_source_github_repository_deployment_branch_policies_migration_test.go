@@ -46,7 +46,7 @@ func TestAccGithubRepositoryDeploymentBranchPoliciesDataSource_Migration(t *test
 				Steps: []resource.TestStep{
 					{
 						// Test with SDKv2 provider (external provider would be used in real scenarios)
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("data.github_repository_deployment_branch_policies.all", "deployment_branch_policies.#", "1"),
@@ -132,7 +132,7 @@ func TestAccGithubRepositoryDeploymentBranchPoliciesDataSource_BehavioralEquival
 				Steps: []resource.TestStep{
 					{
 						// First test with mux provider (both SDKv2 and Framework available)
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check:                    commonChecks,
 					},

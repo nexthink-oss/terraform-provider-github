@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -603,6 +602,40 @@ func (r *githubRepositoryCollaboratorsResource) getTeamID(ctx context.Context, t
 	return team.GetID(), nil
 }
 
+func (r *githubRepositoryCollaboratorsResource) getTeamSlugFromID(ctx context.Context, teamID int64) (string, error) {
+	client := r.client.V3Client()
+	orgId := r.client.ID()
+
+	// Note: This still uses GetTeamByID as it's the only way to get slug from numeric ID
+	// This call is minimized by caching and the migration to slug-based APIs elsewhere
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
+	team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamID)
+	if err != nil {
+		return "", err
+	}
+	return team.GetSlug(), nil
+}
+
+func (r *githubRepositoryCollaboratorsResource) getTeamSlug(ctx context.Context, teamIDString string) (string, error) {
+	client := r.client.V3Client()
+	orgId := r.client.ID()
+
+	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
+	if parseIntErr == nil {
+		// It's an ID, get the team to find the slug
+		// Note: This still uses GetTeamByID as it's the only way to get slug from numeric ID
+		//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
+		team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
+		if err != nil {
+			return "", err
+		}
+		return team.GetSlug(), nil
+	}
+
+	// The given id is not an integer, assume it is already a team slug
+	return teamIDString, nil
+}
+
 func (r *githubRepositoryCollaboratorsResource) is404Error(err error) bool {
 	if ghErr, ok := err.(*github.ErrorResponse); ok {
 		return ghErr.Response.StatusCode == 404
@@ -704,7 +737,7 @@ func (r *githubRepositoryCollaboratorsResource) readGithubRepositoryCollaborator
 }
 
 func (r *githubRepositoryCollaboratorsResource) flattenUserCollaborators(users []userCollaborator, invites []invitedCollaborator) []userCollaboratorModel {
-	allUsers := make([]userCollaborator, len(users))
+	allUsers := make([]userCollaborator, len(users), len(users)+len(invites))
 	copy(allUsers, users)
 
 	for _, invite := range invites {
@@ -781,7 +814,7 @@ func (r *githubRepositoryCollaboratorsResource) listUserCollaborators(ctx contex
 
 	for _, affiliation := range affiliations {
 		opt := &github.ListCollaboratorsOptions{
-			ListOptions: github.ListOptions{PerPage: 100},
+			ListOptions: github.ListOptions{PerPage: maxPerPage},
 			Affiliation: affiliation,
 		}
 
@@ -812,7 +845,7 @@ func (r *githubRepositoryCollaboratorsResource) listUserCollaborators(ctx contex
 func (r *githubRepositoryCollaboratorsResource) listInvitations(ctx context.Context, client *github.Client, owner, repoName string) ([]invitedCollaborator, error) {
 	invitedCollaborators := make([]invitedCollaborator, 0)
 
-	opt := &github.ListOptions{PerPage: 100}
+	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
 		invitations, resp, err := client.Repositories.ListInvitations(ctx, owner, repoName, opt)
 		if err != nil {
@@ -841,7 +874,7 @@ func (r *githubRepositoryCollaboratorsResource) listTeams(ctx context.Context, c
 		return allTeams, nil
 	}
 
-	opt := &github.ListOptions{PerPage: 100}
+	opt := &github.ListOptions{PerPage: maxPerPage}
 	for {
 		repoTeams, resp, err := client.Repositories.ListTeams(ctx, owner, repoName, opt)
 		if err != nil {
@@ -980,12 +1013,7 @@ func (r *githubRepositoryCollaboratorsResource) matchTeamCollaborators(ctx conte
 	client := r.client.V3Client()
 	owner := r.client.Name()
 
-	// Get organization ID from the API
-	org, _, err := client.Organizations.Get(ctx, owner)
-	if err != nil {
-		return fmt.Errorf("failed to get organization %s: %w", owner, err)
-	}
-	orgID := org.GetID()
+	// Note: Organization validation is handled by the client and resource config
 
 	remove := make([]teamCollaborator, 0)
 	for _, hasTeam := range has {
@@ -1005,8 +1033,12 @@ func (r *githubRepositoryCollaboratorsResource) matchTeamCollaborators(ctx conte
 			remove = append(remove, hasTeam)
 		} else if wantPerm != hasTeam.permission { // permission should be updated
 			log.Printf("[DEBUG] Updating team %d permission from %s to %s for repo: %s.", hasTeam.teamID, hasTeam.permission, wantPerm, repoName)
-			_, err := client.Teams.AddTeamRepoByID(
-				ctx, orgID, hasTeam.teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+			teamSlug, err := r.getTeamSlugFromID(ctx, hasTeam.teamID)
+			if err != nil {
+				return err
+			}
+			_, err = client.Teams.AddTeamRepoBySlug(
+				ctx, owner, teamSlug, owner, repoName, &github.TeamAddTeamRepoOptions{
 					Permission: wantPerm,
 				},
 			)
@@ -1035,8 +1067,12 @@ func (r *githubRepositoryCollaboratorsResource) matchTeamCollaborators(ctx conte
 		permission := t.Permission.ValueString()
 		// team needs to be added
 		log.Printf("[DEBUG] Adding team %s with permission %s for repo: %s.", teamIDString, permission, repoName)
-		_, err = client.Teams.AddTeamRepoByID(
-			ctx, orgID, teamID, owner, repoName, &github.TeamAddTeamRepoOptions{
+		teamSlug, err := r.getTeamSlug(ctx, teamIDString)
+		if err != nil {
+			return err
+		}
+		_, err = client.Teams.AddTeamRepoBySlug(
+			ctx, owner, teamSlug, owner, repoName, &github.TeamAddTeamRepoOptions{
 				Permission: permission,
 			},
 		)
@@ -1047,7 +1083,11 @@ func (r *githubRepositoryCollaboratorsResource) matchTeamCollaborators(ctx conte
 
 	for _, team := range remove {
 		log.Printf("[DEBUG] Removing team %d from repo: %s.", team.teamID, repoName)
-		_, err := client.Teams.RemoveTeamRepoByID(ctx, orgID, team.teamID, owner, repoName)
+		teamSlug, err := r.getTeamSlugFromID(ctx, team.teamID)
+		if err != nil {
+			return err
+		}
+		_, err = client.Teams.RemoveTeamRepoBySlug(ctx, owner, teamSlug, owner, repoName)
 		if err != nil {
 			return err
 		}

@@ -11,8 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-var testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
-
 // TestGithubUserInvitationAccepterResource tests basic resource creation
 func TestGithubUserInvitationAccepterResource(t *testing.T) {
 	resource := NewGithubUserInvitationAccepterResource()

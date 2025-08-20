@@ -7,10 +7,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
-
 )
 
 var (
@@ -192,9 +192,9 @@ func (d *githubOrganizationExternalIdentitiesDataSource) Read(ctx context.Contex
 					"given_name":  types.StringValue(string(edge.Node.SamlIdentity.GivenName)),
 					"family_name": types.StringValue(string(edge.Node.SamlIdentity.FamilyName)),
 				}
-				var diags = resp.Diagnostics
-				identityModel.SamlIdentity, diags = types.MapValue(types.StringType, samlIdentityMap)
-				resp.Diagnostics.Append(diags...)
+				var diagsSaml diag.Diagnostics
+				identityModel.SamlIdentity, diagsSaml = types.MapValue(types.StringType, samlIdentityMap)
+				resp.Diagnostics.Append(diagsSaml...)
 			} else {
 				identityModel.SamlIdentity = types.MapNull(types.StringType)
 			}
@@ -206,9 +206,9 @@ func (d *githubOrganizationExternalIdentitiesDataSource) Read(ctx context.Contex
 					"given_name":  types.StringValue(string(edge.Node.ScimIdentity.GivenName)),
 					"family_name": types.StringValue(string(edge.Node.ScimIdentity.FamilyName)),
 				}
-				var diags = resp.Diagnostics
-				identityModel.ScimIdentity, diags = types.MapValue(types.StringType, scimIdentityMap)
-				resp.Diagnostics.Append(diags...)
+				var diagsScim diag.Diagnostics
+				identityModel.ScimIdentity, diagsScim = types.MapValue(types.StringType, scimIdentityMap)
+				resp.Diagnostics.Append(diagsScim...)
 			} else {
 				identityModel.ScimIdentity = types.MapNull(types.StringType)
 			}

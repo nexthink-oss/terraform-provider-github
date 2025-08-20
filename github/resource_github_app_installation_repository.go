@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -315,7 +314,7 @@ func (r *githubAppInstallationRepositoryResource) readGithubAppInstallationRepos
 	}
 
 	ctx = context.WithValue(ctx, CtxId, data.ID.ValueString())
-	opt := &github.ListOptions{PerPage: 100} // maxPerPage from util.go
+	opt := &github.ListOptions{PerPage: maxPerPage}
 
 	for {
 		repos, resp, err := client.Apps.ListUserRepos(ctx, installationID, opt)

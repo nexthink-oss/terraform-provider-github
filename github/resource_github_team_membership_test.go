@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
 )
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
@@ -31,7 +30,7 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -88,7 +87,7 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, organization) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
@@ -134,7 +133,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 	}
 
 	conn := meta.(*Owner).V3Client()
-	orgID := meta.(*Owner).ID
+	orgID := meta.(*Owner).ID()
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
@@ -197,7 +196,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 		}
 
 		conn := meta.(*Owner).V3Client()
-		orgID := meta.(*Owner).ID
+		orgID := meta.(*Owner).ID()
 		teamIDString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
@@ -249,7 +248,7 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		}
 
 		conn := meta.(*Owner).V3Client()
-		orgID := meta.(*Owner).ID
+		orgID := meta.(*Owner).ID()
 		teamIDString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err

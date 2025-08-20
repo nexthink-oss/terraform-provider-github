@@ -16,10 +16,10 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			data "github_organization" "test" {
 				name = "%s"
 			}
-		`, testOrganization())
+		`, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_organization.test", "login", testOrganization()),
+			resource.TestCheckResourceAttr("data.github_organization.test", "login", testOrganization),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "name"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "orgname"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "node_id"),
@@ -104,7 +104,7 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 			output "should_be_true" {
 				value = contains(data.github_organization.all_repos.repositories, github_repository.archived.full_name)
 			}
-		`, randomID, testOrganization(), testOrganization())
+		`, randomID, testOrganization, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckOutput("should_be_false", "false"),
@@ -145,10 +145,10 @@ func TestAccGithubOrganizationDataSource(t *testing.T) {
 				name = "%s"
 				summary_only = true
 			}
-		`, testOrganization())
+		`, testOrganization)
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_organization.test", "login", testOrganization()),
+			resource.TestCheckResourceAttr("data.github_organization.test", "login", testOrganization),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "name"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "orgname"),
 			resource.TestCheckResourceAttrSet("data.github_organization.test", "node_id"),

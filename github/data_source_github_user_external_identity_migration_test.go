@@ -74,7 +74,7 @@ func TestAccGithubUserExternalIdentityDataSource_MuxedProvider(t *testing.T) {
 		}`, testUser)
 
 		resource.Test(t, resource.TestCase{
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,

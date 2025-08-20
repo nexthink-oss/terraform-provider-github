@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
-
 )
 
 var (
@@ -281,7 +280,7 @@ func (d *githubTeamDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		// Get team repositories
 		options.Page = 0 // Reset page counter
 		for {
-			repository, resp_api, err := client.Teams.ListTeamReposByID(ctx, orgID, team.GetID(), &options.ListOptions)
+			repository, resp_api, err := client.Teams.ListTeamReposBySlug(ctx, orgName, *team.Slug, &options.ListOptions)
 			if err != nil {
 				resp.Diagnostics.AddError(
 					"Unable to Read GitHub Team Repositories",

@@ -15,7 +15,7 @@ func TestAccGithubEmuGroupMapping(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t, organization)
 		},
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubEmuGroupMappingConfig("example-team", 12345),
@@ -37,7 +37,7 @@ func TestAccGithubEmuGroupMapping_importBasic(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t, organization)
 		},
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubEmuGroupMappingConfig("example-team", 12345),

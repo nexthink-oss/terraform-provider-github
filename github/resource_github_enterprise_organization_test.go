@@ -38,7 +38,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			  data.github_user.current.login
 			]
 		  }
-			`, testEnterprise(), orgName, desc)
+			`, testEnterprise, orgName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -114,7 +114,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			  data.github_user.current.login
 			]
 		  }
-			`, testEnterprise(), orgName)
+			`, testEnterprise, orgName)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -164,7 +164,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			  data.github_user.current.login
 			]
 		  }
-			`, testEnterprise(), orgName, displayName, desc)
+			`, testEnterprise, orgName, displayName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -260,7 +260,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			  data.github_user.current.login
 			]
 		  }
-			`, testEnterprise(), orgName, desc)
+			`, testEnterprise, orgName, desc)
 
 		configWithDisplayName := fmt.Sprintf(`
 			data "github_enterprise" "enterprise" {
@@ -281,7 +281,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 				data.github_user.current.login
 			  ]
 			}
-			  `, testEnterprise(), orgName, displayName, desc)
+			  `, testEnterprise, orgName, displayName, desc)
 
 		checks := map[string]resource.TestCheckFunc{
 			"create": resource.ComposeTestCheckFunc(
@@ -405,7 +405,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 				data.github_user.current.login
 			  ]
 			}
-			  `, testEnterprise(), orgName)
+			  `, testEnterprise, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 
@@ -422,7 +422,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 						ResourceName:      "github_enterprise_organization.org",
 						ImportState:       true,
 						ImportStateVerify: true,
-						ImportStateId:     fmt.Sprintf(`%s/%s`, testEnterprise(), orgName),
+						ImportStateId:     fmt.Sprintf(`%s/%s`, testEnterprise, orgName),
 					},
 				},
 			})
@@ -455,7 +455,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 				data.github_user.current.login
 			  ]
 			}
-			  `, testEnterprise(), orgName)
+			  `, testEnterprise, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 
@@ -506,7 +506,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 				data.github_user.current.login
 			  ]
 			}
-			  `, testEnterprise(), orgName)
+			  `, testEnterprise, orgName)
 
 		check := resource.ComposeTestCheckFunc()
 
@@ -522,7 +522,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 					{
 						ResourceName:  "github_enterprise_organization.org",
 						ImportState:   true,
-						ImportStateId: fmt.Sprintf(`%s/%s`, testEnterprise(), randomID),
+						ImportStateId: fmt.Sprintf(`%s/%s`, testEnterprise, randomID),
 						ExpectError:   regexp.MustCompile("Could not resolve to an Organization with the login of .*"),
 					},
 				},
@@ -562,7 +562,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 			  data.github_user.current.login
 			]
 		  }
-		`, testEnterprise(), orgName, displayName, desc)
+		`, testEnterprise, orgName, displayName, desc)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -570,7 +570,7 @@ func TestAccGithubEnterpriseOrganization(t *testing.T) {
 				Steps: []resource.TestStep{
 					// First create the resource with the muxed provider (which uses SDKv2 for this resource initially)
 					{
-						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+						ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 						Config:                   config,
 						Check: resource.ComposeTestCheckFunc(
 							resource.TestCheckResourceAttr("github_enterprise_organization.org", "name", orgName),

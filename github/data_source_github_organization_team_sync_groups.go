@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -107,7 +106,7 @@ func (d *githubOrganizationTeamSyncGroupsDataSource) Read(ctx context.Context, r
 
 	options := &github.ListIDPGroupsOptions{
 		ListCursorOptions: github.ListCursorOptions{
-			PerPage: 100, // maxPerPage from GitHub SDK package
+			PerPage: maxPerPage, // maxPerPage from GitHub SDK package
 		},
 	}
 

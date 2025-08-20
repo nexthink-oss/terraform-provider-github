@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -302,7 +301,7 @@ func (r *githubBranchResource) buildTwoPartID(a, b string) string {
 func (r *githubBranchResource) parseTwoPartID(id string) (string, string, error) {
 	parts := strings.SplitN(id, ":", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Unexpected ID format (%q), expected repository:branch", id)
+		return "", "", fmt.Errorf("unexpected ID format (%q), expected repository:branch", id)
 	}
 
 	return parts[0], parts[1], nil

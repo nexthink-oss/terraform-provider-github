@@ -11,10 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-
 )
-
-var testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
 
 func TestAccGithubTeamMembers(t *testing.T) {
 	if testCollaborator == "" {
@@ -109,8 +106,8 @@ func testAccCheckGithubTeamMembersDestroy(s *terraform.State) error {
 			return fmt.Errorf("error creating GitHub client: %s", err.Error())
 		}
 
-		conn := meta.(*Owner).V3Client
-		orgId := meta.(*Owner).ID
+		conn := meta.(*Owner).V3Client()
+		orgId := meta.(*Owner).ID()
 
 		members, resp, err := conn.Teams.ListTeamMembersByID(context.TODO(),
 			orgId, teamId, nil)
@@ -160,8 +157,8 @@ func testAccCheckGithubTeamMembersExists(n string, membership *github.Membership
 			return fmt.Errorf("error creating GitHub client: %s", err.Error())
 		}
 
-		conn := meta.(*Owner).V3Client
-		orgId := meta.(*Owner).ID
+		conn := meta.(*Owner).V3Client()
+		orgId := meta.(*Owner).ID()
 		teamIdString := rs.Primary.Attributes["team_id"]
 
 		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
@@ -221,8 +218,8 @@ func testAccCheckGithubTeamMembersRoleState(n, expected string, membership *gith
 			return fmt.Errorf("error creating GitHub client: %s", err.Error())
 		}
 
-		conn := meta.(*Owner).V3Client
-		orgId := meta.(*Owner).ID
+		conn := meta.(*Owner).V3Client()
+		orgId := meta.(*Owner).ID()
 		teamIdString := rs.Primary.Attributes["team_id"]
 
 		teamId, err := strconv.ParseInt(teamIdString, 10, 64)

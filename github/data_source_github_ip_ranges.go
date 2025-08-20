@@ -9,9 +9,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -198,9 +198,9 @@ func (d *githubIpRangesDataSource) Read(ctx context.Context, req datasource.Read
 	}
 
 	// Convert string slices to List types
-	var diags = resp.Diagnostics
-
 	data.ID = types.StringValue("github-ip-ranges")
+
+	var diags diag.Diagnostics
 
 	data.Hooks, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Hooks)
 	resp.Diagnostics.Append(diags...)

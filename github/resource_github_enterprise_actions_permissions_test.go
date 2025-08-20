@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -22,7 +21,7 @@ func TestAccGithubEnterpriseActionsPermissions(t *testing.T) {
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 			}
-		`, testEnterprise(), allowedActions, enabledOrganizations)
+		`, testEnterprise, allowedActions, enabledOrganizations)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -91,7 +90,7 @@ func TestAccGithubEnterpriseActionsPermissions(t *testing.T) {
 					organization_ids       = [github_enterprise_organization.org.id]
 				}]
 			}
-		`, testEnterprise(), orgName, displayName, desc, testEnterprise(), allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
+		`, testEnterprise, orgName, displayName, desc, testEnterprise, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -148,7 +147,7 @@ func TestAccGithubEnterpriseActionsPermissions(t *testing.T) {
 					verified_allowed     = %t
 				}]
 			}
-		`, testEnterprise(), allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
+		`, testEnterprise, allowedActions, enabledOrganizations, githubOwnedAllowed, verifiedAllowed)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -226,7 +225,7 @@ func TestAccGithubEnterpriseActionsPermissions(t *testing.T) {
 					organization_ids       = [github_enterprise_organization.org.id, github_enterprise_organization.org2.id]
 				}]
 			}
-		`, testEnterprise(), orgName, displayName, desc, testEnterprise(), orgName2, displayName2, desc2, testEnterprise(), allowedActions, enabledOrganizations)
+		`, testEnterprise, orgName, displayName, desc, testEnterprise, orgName2, displayName2, desc2, testEnterprise, allowedActions, enabledOrganizations)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -268,7 +267,7 @@ func TestAccGithubEnterpriseActionsPermissions(t *testing.T) {
 				allowed_actions = "%s"
 				enabled_organizations = "%s"
 			}
-		`, testEnterprise(), allowedActions, enabledOrganizations)
+		`, testEnterprise, allowedActions, enabledOrganizations)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
@@ -305,33 +304,4 @@ func TestAccGithubEnterpriseActionsPermissions(t *testing.T) {
 			testCase(t, enterprise)
 		})
 	})
-}
-
-// Helper functions specific to enterprise testing
-
-const enterprise = "enterprise"
-
-func skipUnlessEnterpriseMode(t *testing.T, mode string) {
-	switch mode {
-	case enterprise:
-		testAccPreCheckEnterprise(t)
-	default:
-		t.Fatalf("Unknown test mode: %s", mode)
-	}
-}
-
-func testAccPreCheckEnterprise(t *testing.T) {
-	if err := os.Getenv("GITHUB_TOKEN"); err == "" {
-		t.Skip("GITHUB_TOKEN must be set for acceptance tests")
-	}
-	if err := os.Getenv("ENTERPRISE_SLUG"); err == "" {
-		t.Skip("ENTERPRISE_SLUG must be set for enterprise acceptance tests")
-	}
-	if err := os.Getenv("ENTERPRISE_ACCOUNT"); err != "true" {
-		t.Skip("ENTERPRISE_ACCOUNT must be set to 'true' for enterprise acceptance tests")
-	}
-}
-
-func testEnterprise() string {
-	return os.Getenv("ENTERPRISE_SLUG")
 }

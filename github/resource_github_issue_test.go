@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -21,7 +20,7 @@ func TestAccGithubIssueResource_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueConfig_basic(randomID, title, body),
@@ -59,7 +58,7 @@ func TestAccGithubIssueResource_withLabelsAndAssignees(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueConfig_withLabelsAndAssignees(randomID, title, body),
@@ -97,7 +96,7 @@ func TestAccGithubIssueResource_withMilestone(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueConfig_withMilestone(randomID, title, body),
@@ -123,7 +122,7 @@ func TestAccGithubIssueResource_import(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueConfig_basic(randomID, title, body),
@@ -149,7 +148,7 @@ func TestAccGithubIssueResource_disappears(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueConfig_basic(randomID, title, body),
@@ -177,7 +176,7 @@ func TestAccGithubIssueResource_minimalConfig(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t, individual) },
-		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubIssueConfig_minimal(randomID, title),
@@ -246,7 +245,7 @@ resource "github_issue" "test" {
   labels     = ["bug", "enhancement"]
   assignees  = ["%s"]
 }
-`, randomID, title, body, testOwner())
+`, randomID, title, body, testOwner)
 }
 
 func testAccGithubIssueConfig_withUpdatedLabels(randomID, title, body string) string {
@@ -265,7 +264,7 @@ resource "github_issue" "test" {
   labels     = ["documentation"]
   assignees  = ["%s"]
 }
-`, randomID, title, body, testOwner())
+`, randomID, title, body, testOwner)
 }
 
 func testAccGithubIssueConfig_withMilestone(randomID, title, body string) string {
@@ -309,13 +308,4 @@ resource "github_issue" "test" {
   title      = "%s"
 }
 `, randomID, title)
-}
-
-// Helper function to get the test owner (similar to testOwnerFunc() in SDKv2 tests)
-func testOwner() string {
-	owner := os.Getenv("GITHUB_OWNER")
-	if owner == "" {
-		owner = os.Getenv("GITHUB_TEST_OWNER")
-	}
-	return owner
 }

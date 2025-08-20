@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
-
 )
 
 var (
@@ -217,9 +216,9 @@ func (r *githubTeamResource) Create(ctx context.Context, req resource.CreateRequ
 
 	// Handle parent team setting for GitHub App authentication
 	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
-		_, _, err := client.Teams.EditTeamByID(ctx,
-			*githubTeam.Organization.ID,
-			*githubTeam.ID,
+		_, _, err := client.Teams.EditTeamBySlug(ctx,
+			ownerName,
+			githubTeam.GetSlug(),
 			newTeam,
 			false)
 		if err != nil {
@@ -286,6 +285,7 @@ func (r *githubTeamResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	client := r.client.V3Client()
 	orgId := r.client.ID()
+	orgName := r.client.Name()
 	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
@@ -312,7 +312,15 @@ func (r *githubTeamResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, removeParentTeam)
+	// Get team slug from team ID for the EditTeamBySlug call
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
+	currentTeam, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to retrieve team", err.Error())
+		return
+	}
+
+	team, _, err := client.Teams.EditTeamBySlug(ctx, orgName, currentTeam.GetSlug(), editedTeam, removeParentTeam)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update team", err.Error())
 		return
@@ -367,10 +375,18 @@ func (r *githubTeamResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	// Get team slug first for the delete call
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
+	teamToDelete, _, err := client.Teams.GetTeamByID(ctx, orgId, id)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to retrieve team for deletion", err.Error())
+		return
+	}
+
+	_, err = client.Teams.DeleteTeamBySlug(ctx, r.client.Name(), teamToDelete.GetSlug())
 	if err != nil {
 		// Check if the team still exists in case of parallel deletion
-		_, _, checkErr := client.Teams.GetTeamByID(ctx, orgId, id)
+		_, _, checkErr := client.Teams.GetTeamBySlug(ctx, r.client.Name(), teamToDelete.GetSlug())
 		if checkErr != nil {
 			if ghErr, ok := checkErr.(*github.ErrorResponse); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -431,6 +447,7 @@ func (r *githubTeamResource) readTeam(ctx context.Context, model *githubTeamReso
 		requestCtx = context.WithValue(requestCtx, CtxEtag, model.Etag.ValueString())
 	}
 
+	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
 	team, resp, err := client.Teams.GetTeamByID(requestCtx, orgId, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {

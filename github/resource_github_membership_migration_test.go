@@ -36,7 +36,7 @@ func TestAccGithubMembership_migration(t *testing.T) {
 					),
 				},
 				{
-					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 					Config:                   testAccGithubMembershipConfig(testCollaborator),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
@@ -68,7 +68,7 @@ func TestAccGithubMembership_migration(t *testing.T) {
 					),
 				},
 				{
-					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 					Config:                   testAccGithubMembershipConfigDowngradable(testCollaborator),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
@@ -102,7 +102,7 @@ func TestAccGithubMembership_migration(t *testing.T) {
 					),
 				},
 				{
-					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+					ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 					Config:                   testAccGithubMembershipConfig(otherCase),
 					ConfigPlanChecks: resource.ConfigPlanChecks{
 						PreApply: []plancheck.PlanCheck{
@@ -126,7 +126,7 @@ func TestAccGithubMembership_muxValidation(t *testing.T) {
 	t.Run("validates mux server handles github_membership resource correctly", func(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { testAccPreCheck(t, organization) },
-			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: testAccGithubMembershipConfig(testCollaborator),

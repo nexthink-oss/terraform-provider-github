@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 )
 
 var (
@@ -112,7 +111,7 @@ func (d *githubIssueLabelsDataSource) Read(ctx context.Context, req datasource.R
 	repository := data.Repository.ValueString()
 
 	opts := &github.ListOptions{
-		PerPage: 100,
+		PerPage: maxPerPage,
 	}
 
 	var allLabels []githubLabelModel
