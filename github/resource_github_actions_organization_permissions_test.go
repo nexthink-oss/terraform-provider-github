@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 
 	t.Run("test setting of basic actions organization permissions", func(t *testing.T) {
-
 		allowedActions := "local_only"
 		enabledRepositories := "all"
 
@@ -33,8 +33,8 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -50,7 +50,6 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	})
 
 	t.Run("imports entire set of github action organization permissions without error", func(t *testing.T) {
-
 		allowedActions := "selected"
 		enabledRepositories := "selected"
 		githubOwnedAllowed := true
@@ -67,14 +66,14 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			resource "github_actions_organization_permissions" "test" {
 				allowed_actions = "%s"
 				enabled_repositories = "%s"
-				allowed_actions_config {
+				allowed_actions_config = [{
 					github_owned_allowed = %t
 					patterns_allowed     = ["actions/cache@*", "actions/checkout@*"]
 					verified_allowed     = %t
-				}
-				enabled_repositories_config {
+				}]
+				enabled_repositories_config = [{
 					repository_ids       = [github_repository.test.repo_id]
-				}
+				}]
 			}
 		`, randomID, allowedActions, enabledRepositories, githubOwnedAllowed, verifiedAllowed)
 
@@ -95,8 +94,8 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -117,22 +116,20 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	})
 
 	t.Run("test setting of organization allowed actions", func(t *testing.T) {
-
 		allowedActions := "selected"
 		enabledRepositories := "all"
 		githubOwnedAllowed := true
 		verifiedAllowed := true
 
 		config := fmt.Sprintf(`
-
 			resource "github_actions_organization_permissions" "test" {
 				allowed_actions = "%s"
 				enabled_repositories = "%s"
-				allowed_actions_config {
+				allowed_actions_config = [{
 					github_owned_allowed = %t
 					patterns_allowed     = ["actions/cache@*", "actions/checkout@*"]
 					verified_allowed     = %t
-				}
+				}]
 			}
 		`, allowedActions, enabledRepositories, githubOwnedAllowed, verifiedAllowed)
 
@@ -150,8 +147,8 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -167,12 +164,10 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	})
 
 	t.Run("test not setting of organization allowed actions without error", func(t *testing.T) {
-
 		allowedActions := "selected"
 		enabledRepositories := "all"
 
 		config := fmt.Sprintf(`
-
 			resource "github_actions_organization_permissions" "test" {
 				allowed_actions = "%s"
 				enabled_repositories = "%s"
@@ -193,8 +188,8 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -210,7 +205,6 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 	})
 
 	t.Run("test setting of organization enabled repositories", func(t *testing.T) {
-
 		allowedActions := "all"
 		enabledRepositories := "selected"
 		githubOwnedAllowed := true
@@ -234,9 +228,9 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 			resource "github_actions_organization_permissions" "test" {
 				allowed_actions = "%s"
 				enabled_repositories = "%s"
-				enabled_repositories_config {
+				enabled_repositories_config = [{
 					repository_ids       = [github_repository.test.repo_id, github_repository.test2.repo_id]
-				}
+				}]
 			}
 		`, randomID, randomID2, allowedActions, enabledRepositories, githubOwnedAllowed, verifiedAllowed)
 
@@ -254,8 +248,8 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -270,4 +264,50 @@ func TestAccGithubActionsOrganizationPermissions(t *testing.T) {
 		})
 	})
 
+	t.Run("test behavioral equivalence with SDKv2", func(t *testing.T) {
+		allowedActions := "local_only"
+		enabledRepositories := "all"
+
+		config := fmt.Sprintf(`
+			resource "github_actions_organization_permissions" "test" {
+				allowed_actions = "%s"
+				enabled_repositories = "%s"
+			}
+		`, allowedActions, enabledRepositories)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck: func() { skipUnlessMode(t, mode) },
+				Steps: []resource.TestStep{
+					{
+						ExternalProviders: map[string]resource.ExternalProvider{
+							"github": {
+								Source:            "integrations/github",
+								VersionConstraint: "~> 6.0", // SDKv2 version
+							},
+						},
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr("github_actions_organization_permissions.test", "allowed_actions", allowedActions),
+							resource.TestCheckResourceAttr("github_actions_organization_permissions.test", "enabled_repositories", enabledRepositories),
+							resource.TestCheckResourceAttrSet("github_actions_organization_permissions.test", "id"),
+						),
+					},
+					{
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories, // Framework version
+						Config:                   config,                          // Same config
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PreApply: []plancheck.PlanCheck{
+								plancheck.ExpectEmptyPlan(), // Should be no-op
+							},
+						},
+					},
+				},
+			})
+		}
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }

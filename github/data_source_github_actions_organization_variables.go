@@ -2,42 +2,79 @@ package github
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/go-github/v74/github"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get Actions variables of the organization",
-		Read:        dataSourceGithubActionsOrganizationVariablesRead,
+var (
+	_ datasource.DataSource              = &githubActionsOrganizationVariablesDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubActionsOrganizationVariablesDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"variables": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+type githubActionsOrganizationVariablesDataSource struct {
+	client *Owner
+}
+
+type githubActionsOrganizationVariablesDataSourceModel struct {
+	ID        types.String `tfsdk:"id"`
+	Variables types.List   `tfsdk:"variables"`
+}
+
+type githubActionsOrganizationVariableModel struct {
+	Name       types.String `tfsdk:"name"`
+	Value      types.String `tfsdk:"value"`
+	Visibility types.String `tfsdk:"visibility"`
+	CreatedAt  types.String `tfsdk:"created_at"`
+	UpdatedAt  types.String `tfsdk:"updated_at"`
+}
+
+func NewGithubActionsOrganizationVariablesDataSource() datasource.DataSource {
+	return &githubActionsOrganizationVariablesDataSource{}
+}
+
+func (d *githubActionsOrganizationVariablesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_actions_organization_variables"
+}
+
+func (d *githubActionsOrganizationVariablesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get Actions variables of the organization",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the organization.",
+				Computed:    true,
+			},
+			"variables": schema.ListNestedAttribute{
+				Description: "An array of organization actions variables.",
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Description: "Variable name.",
+							Computed:    true,
 						},
-						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"value": schema.StringAttribute{
+							Description: "Variable value.",
+							Computed:    true,
 						},
-						"visibility": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"visibility": schema.StringAttribute{
+							Description: "Variable visibility (all, private, selected).",
+							Computed:    true,
 						},
-						"created_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"created_at": schema.StringAttribute{
+							Description: "Date of 'variable' creation.",
+							Computed:    true,
 						},
-						"updated_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"updated_at": schema.StringAttribute{
+							Description: "Date of 'variable' update.",
+							Computed:    true,
 						},
 					},
 				},
@@ -46,41 +83,86 @@ func dataSourceGithubActionsOrganizationVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsOrganizationVariablesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func (d *githubActionsOrganizationVariablesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			"Expected *github.Owner, got something else.",
+		)
+		return
+	}
+
+	d.client = client
+}
+
+func (d *githubActionsOrganizationVariablesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubActionsOrganizationVariablesDataSourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := d.client.Name()
+
+	tflog.Debug(ctx, "Reading GitHub Actions organization variables", map[string]interface{}{
+		"organization": owner,
+	})
 
 	options := github.ListOptions{
 		PerPage: 100,
 	}
 
-	var all_variables []map[string]string
+	var allVariables []githubActionsOrganizationVariableModel
 	for {
-		variables, resp, err := client.Actions.ListOrgVariables(context.TODO(), owner, &options)
+		variables, resp_github, err := d.client.V3Client().Actions.ListOrgVariables(ctx, owner, &options)
 		if err != nil {
-			return err
+			resp.Diagnostics.AddError(
+				"Unable to Read GitHub Actions Organization Variables",
+				fmt.Sprintf("Error reading organization variables: %s", err.Error()),
+			)
+			return
 		}
+
 		for _, variable := range variables.Variables {
-			new_variable := map[string]string{
-				"name":       variable.Name,
-				"value":      variable.Value,
-				"visibility": *variable.Visibility,
-				"created_at": variable.CreatedAt.String(),
-				"updated_at": variable.UpdatedAt.String(),
+			variableModel := githubActionsOrganizationVariableModel{
+				Name:       types.StringValue(variable.Name),
+				Value:      types.StringValue(variable.Value),
+				Visibility: types.StringValue(*variable.Visibility),
+				CreatedAt:  types.StringValue(variable.CreatedAt.String()),
+				UpdatedAt:  types.StringValue(variable.UpdatedAt.String()),
 			}
-			all_variables = append(all_variables, new_variable)
+			allVariables = append(allVariables, variableModel)
 		}
-		if resp.NextPage == 0 {
+
+		if resp_github.NextPage == 0 {
 			break
 		}
-		options.Page = resp.NextPage
+		options.Page = resp_github.NextPage
 	}
 
-	d.SetId(owner)
-	err := d.Set("variables", all_variables)
-	if err != nil {
-		return err
+	// Convert variables to Framework List
+	variablesList, diags := types.ListValueFrom(ctx, types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"name":       types.StringType,
+			"value":      types.StringType,
+			"visibility": types.StringType,
+			"created_at": types.StringType,
+			"updated_at": types.StringType,
+		},
+	}, allVariables)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	return nil
+	data.ID = types.StringValue(owner)
+	data.Variables = variablesList
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

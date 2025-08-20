@@ -6,11 +6,20 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
+
+var testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
+
+// TestGithubUserInvitationAccepterResource tests basic resource creation
+func TestGithubUserInvitationAccepterResource(t *testing.T) {
+	resource := NewGithubUserInvitationAccepterResource()
+	if resource == nil {
+		t.Error("Resource should not be nil")
+	}
+}
 
 func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
 	rn := "github_repository_collaborator.test"
@@ -21,12 +30,10 @@ func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
 		t.Skip("GITHUB_TEST_COLLABORATOR_TOKEN was not provided, skipping test")
 	}
 
-	var providers []*schema.Provider
-
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories(&providers),
-		CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGithubUserInvitationAccepterDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubUserInvitationAccepterConfig(inviteeToken, repoName),
@@ -42,12 +49,10 @@ func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
 func TestAccGithubUserInvitationAccepterAllowEmptyId(t *testing.T) {
 	rn := "github_user_invitation_accepter.test"
 
-	var providers []*schema.Provider
-
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories(&providers),
-		CheckDestroy:      testAccCheckGithubUserInvitationAccepterDestroy,
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGithubUserInvitationAccepterDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubUserInvitationAccepterAllowEmptyId(),

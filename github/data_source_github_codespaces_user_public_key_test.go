@@ -3,12 +3,12 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
 
-	t.Run("queries an user public key without error", func(t *testing.T) {
+	t.Run("queries a user public key without error", func(t *testing.T) {
 
 		config := `
 			data "github_codespaces_user_public_key" "test" {}
@@ -18,12 +18,18 @@ func TestAccGithubCodespacesUserPublicKeyDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"data.github_codespaces_user_public_key.test", "key",
 			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_codespaces_user_public_key.test", "key_id",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_codespaces_user_public_key.test", "id",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,

@@ -2,157 +2,380 @@ package github
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func resourceGithubActionsEnvironmentVariable() *schema.Resource {
-	return &schema.Resource{
+var (
+	_ resource.Resource                = &githubActionsEnvironmentVariableResource{}
+	_ resource.ResourceWithConfigure   = &githubActionsEnvironmentVariableResource{}
+	_ resource.ResourceWithImportState = &githubActionsEnvironmentVariableResource{}
+)
+
+type githubActionsEnvironmentVariableResource struct {
+	client *Owner
+}
+
+type githubActionsEnvironmentVariableResourceModel struct {
+	ID           types.String `tfsdk:"id"`
+	Repository   types.String `tfsdk:"repository"`
+	Environment  types.String `tfsdk:"environment"`
+	VariableName types.String `tfsdk:"variable_name"`
+	Value        types.String `tfsdk:"value"`
+	CreatedAt    types.String `tfsdk:"created_at"`
+	UpdatedAt    types.String `tfsdk:"updated_at"`
+}
+
+func NewGithubActionsEnvironmentVariableResource() resource.Resource {
+	return &githubActionsEnvironmentVariableResource{}
+}
+
+func (r *githubActionsEnvironmentVariableResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_actions_environment_variable"
+}
+
+func (r *githubActionsEnvironmentVariableResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Creates and manages an Action variable within a GitHub repository environment",
-		Create:      resourceGithubActionsEnvironmentVariableCreate,
-		Read:        resourceGithubActionsEnvironmentVariableRead,
-		Update:      resourceGithubActionsEnvironmentVariableUpdate,
-		Delete:      resourceGithubActionsEnvironmentVariableDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:        schema.TypeString,
-				Required:    true,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the actions environment variable (repository:environment:variable_name).",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"repository": schema.StringAttribute{
 				Description: "Name of the repository.",
-			},
-			"environment": {
-				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"environment": schema.StringAttribute{
 				Description: "Name of the environment.",
-			},
-			"variable_name": {
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				Description:      "Name of the variable.",
-				ValidateDiagFunc: validateSecretNameFunc,
-			},
-			"value": {
-				Type:        schema.TypeString,
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"variable_name": schema.StringAttribute{
+				Description: "Name of the variable.",
+				Required:    true,
+				Validators: []validator.String{
+					&variableNameValidator{},
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"value": schema.StringAttribute{
 				Description: "Value of the variable.",
+				Required:    true,
 			},
-			"created_at": {
-				Type:        schema.TypeString,
-				Computed:    true,
+			"created_at": schema.StringAttribute{
 				Description: "Date of 'actions_variable' creation.",
-			},
-			"updated_at": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"updated_at": schema.StringAttribute{
 				Description: "Date of 'actions_variable' update.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
-
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
-	name := d.Get("variable_name").(string)
-
-	variable := &github.ActionsVariable{
-		Name:  name,
-		Value: d.Get("value").(string),
+func (r *githubActionsEnvironmentVariableResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	_, err := client.Actions.CreateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
-	if err != nil {
-		return err
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
 	}
 
-	d.SetId(buildThreePartID(repoName, envName, name))
-	return resourceGithubActionsEnvironmentVariableRead(d, meta)
+	r.client = client
 }
 
-func resourceGithubActionsEnvironmentVariableUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+func (r *githubActionsEnvironmentVariableResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data githubActionsEnvironmentVariableResourceModel
 
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
-	name := d.Get("variable_name").(string)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
+	client := r.client.V3Client()
+	owner := r.client.Name()
+
+	repo := data.Repository.ValueString()
+	environment := data.Environment.ValueString()
+	escapedEnvName := url.PathEscape(environment)
+	variableName := data.VariableName.ValueString()
+	value := data.Value.ValueString()
+
+	// Create the variable
 	variable := &github.ActionsVariable{
-		Name:  name,
-		Value: d.Get("value").(string),
+		Name:  variableName,
+		Value: value,
 	}
 
-	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repoName, escapedEnvName, variable)
+	_, err := client.Actions.CreateEnvVariable(ctx, owner, repo, escapedEnvName, variable)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Unable to Create Actions Environment Variable",
+			fmt.Sprintf("An unexpected error occurred when creating the actions environment variable: %s", err.Error()),
+		)
+		return
 	}
 
-	d.SetId(buildThreePartID(repoName, envName, name))
-	return resourceGithubActionsEnvironmentVariableRead(d, meta)
+	// Set the ID and read the created resource
+	data.ID = types.StringValue(fmt.Sprintf("%s:%s:%s", repo, environment, variableName))
+
+	tflog.Debug(ctx, "created GitHub actions environment variable", map[string]interface{}{
+		"id":            data.ID.ValueString(),
+		"repository":    repo,
+		"environment":   environment,
+		"variable_name": variableName,
+	})
+
+	// Read the created resource to populate computed fields
+	r.readGithubActionsEnvironmentVariable(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceGithubActionsEnvironmentVariableRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.Background()
+func (r *githubActionsEnvironmentVariableResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data githubActionsEnvironmentVariableResourceModel
 
-	repoName, envName, name, err := parseThreePartID(d.Id(), "repository", "environment", "variable_name")
-	if err != nil {
-		return err
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
+
+	r.readGithubActionsEnvironmentVariable(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubActionsEnvironmentVariableResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data githubActionsEnvironmentVariableResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := r.client.V3Client()
+	owner := r.client.Name()
+
+	repo := data.Repository.ValueString()
+	environment := data.Environment.ValueString()
+	escapedEnvName := url.PathEscape(environment)
+	variableName := data.VariableName.ValueString()
+	value := data.Value.ValueString()
+
+	// Update the variable
+	variable := &github.ActionsVariable{
+		Name:  variableName,
+		Value: value,
+	}
+
+	_, err := client.Actions.UpdateEnvVariable(ctx, owner, repo, escapedEnvName, variable)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Update Actions Environment Variable",
+			fmt.Sprintf("An unexpected error occurred when updating the actions environment variable: %s", err.Error()),
+		)
+		return
+	}
+
+	tflog.Debug(ctx, "updated GitHub actions environment variable", map[string]interface{}{
+		"id":            data.ID.ValueString(),
+		"repository":    repo,
+		"environment":   environment,
+		"variable_name": variableName,
+	})
+
+	// Read the updated resource to populate computed fields
+	r.readGithubActionsEnvironmentVariable(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubActionsEnvironmentVariableResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data githubActionsEnvironmentVariableResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := r.client.V3Client()
+	owner := r.client.Name()
+
+	repoName, envName, variableName, err := r.parseThreePartID(data.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Parse ID",
+			fmt.Sprintf("Unable to parse ID '%s': %s", data.ID.ValueString(), err.Error()),
+		)
+		return
+	}
+
 	escapedEnvName := url.PathEscape(envName)
 
-	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, name)
+	_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, escapedEnvName, variableName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Delete Actions Environment Variable",
+			fmt.Sprintf("An unexpected error occurred when deleting the actions environment variable: %s", err.Error()),
+		)
+		return
+	}
+
+	tflog.Debug(ctx, "deleted GitHub actions environment variable", map[string]interface{}{
+		"id":            data.ID.ValueString(),
+		"repository":    repoName,
+		"environment":   envName,
+		"variable_name": variableName,
+	})
+}
+
+func (r *githubActionsEnvironmentVariableResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Parse the import ID in the format "<repository>/<environment>/<variable_name>"
+	parts := strings.Split(req.ID, "/")
+	if len(parts) != 3 {
+		resp.Diagnostics.AddError(
+			"Unexpected Import Identifier",
+			fmt.Sprintf("Invalid ID specified. Supplied ID must be written as <repository>/<environment>/<variable_name>. Got: %q", req.ID),
+		)
+		return
+	}
+
+	client := r.client.V3Client()
+	owner := r.client.Name()
+	repoName := parts[0]
+	envName := parts[1]
+	variableName := parts[2]
+	escapedEnvName := url.PathEscape(envName)
+
+	// Verify the variable exists
+	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, variableName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Import Actions Environment Variable",
+			fmt.Sprintf("Unable to read actions environment variable for import: %s", err.Error()),
+		)
+		return
+	}
+
+	data := &githubActionsEnvironmentVariableResourceModel{
+		ID:           types.StringValue(fmt.Sprintf("%s:%s:%s", repoName, envName, variableName)),
+		Repository:   types.StringValue(repoName),
+		Environment:  types.StringValue(envName),
+		VariableName: types.StringValue(variableName),
+		Value:        types.StringValue(variable.Value),
+		CreatedAt:    types.StringValue(variable.CreatedAt.String()),
+		UpdatedAt:    types.StringValue(variable.UpdatedAt.String()),
+	}
+
+	tflog.Debug(ctx, "imported GitHub actions environment variable", map[string]interface{}{
+		"id":            data.ID.ValueString(),
+		"repository":    repoName,
+		"environment":   envName,
+		"variable_name": variableName,
+	})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+// Helper functions
+
+func (r *githubActionsEnvironmentVariableResource) parseThreePartID(id string) (string, string, string, error) {
+	parts := strings.SplitN(id, ":", 3)
+	if len(parts) != 3 {
+		return "", "", "", fmt.Errorf("unexpected ID format (%q); expected repository:environment:variable_name", id)
+	}
+
+	return parts[0], parts[1], parts[2], nil
+}
+
+func (r *githubActionsEnvironmentVariableResource) readGithubActionsEnvironmentVariable(ctx context.Context, data *githubActionsEnvironmentVariableResourceModel, diags *diag.Diagnostics) {
+	client := r.client.V3Client()
+	owner := r.client.Name()
+
+	repoName, envName, variableName, err := r.parseThreePartID(data.ID.ValueString())
+	if err != nil {
+		diags.AddError(
+			"Unable to Parse ID",
+			fmt.Sprintf("Unable to parse ID '%s': %s", data.ID.ValueString(), err.Error()),
+		)
+		return
+	}
+
+	escapedEnvName := url.PathEscape(envName)
+
+	variable, _, err := client.Actions.GetEnvVariable(ctx, owner, repoName, escapedEnvName, variableName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing actions variable %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
+				tflog.Info(ctx, "removing actions environment variable from state because it no longer exists in GitHub", map[string]interface{}{
+					"owner":         owner,
+					"repository":    repoName,
+					"environment":   envName,
+					"variable_name": variableName,
+				})
+				data.ID = types.StringNull()
+				return
 			}
 		}
-		return err
+		diags.AddError(
+			"Unable to Read Actions Environment Variable",
+			fmt.Sprintf("An unexpected error occurred when reading the actions environment variable: %s", err.Error()),
+		)
+		return
 	}
 
-	_ = d.Set("repository", repoName)
-	_ = d.Set("environment", envName)
-	_ = d.Set("variable_name", name)
-	_ = d.Set("value", variable.Value)
-	_ = d.Set("created_at", variable.CreatedAt.String())
-	_ = d.Set("updated_at", variable.UpdatedAt.String())
+	data.Repository = types.StringValue(repoName)
+	data.Environment = types.StringValue(envName)
+	data.VariableName = types.StringValue(variableName)
+	data.Value = types.StringValue(variable.Value)
+	data.CreatedAt = types.StringValue(variable.CreatedAt.String())
+	data.UpdatedAt = types.StringValue(variable.UpdatedAt.String())
 
-	return nil
-}
-
-func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	repoName, envName, name, err := parseThreePartID(d.Id(), "repository", "environment", "variable_name")
-	if err != nil {
-		return err
-	}
-	escapedEnvName := url.PathEscape(envName)
-
-	_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, escapedEnvName, name)
-
-	return err
+	tflog.Debug(ctx, "successfully read GitHub actions environment variable", map[string]interface{}{
+		"id":            data.ID.ValueString(),
+		"repository":    repoName,
+		"environment":   envName,
+		"variable_name": variableName,
+	})
 }

@@ -2,336 +2,395 @@ package github
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func resourceGithubRepositoryPullRequest() *schema.Resource {
-	return &schema.Resource{
+var (
+	_ resource.Resource                = &githubRepositoryPullRequestResource{}
+	_ resource.ResourceWithConfigure   = &githubRepositoryPullRequestResource{}
+	_ resource.ResourceWithImportState = &githubRepositoryPullRequestResource{}
+)
+
+type githubRepositoryPullRequestResource struct {
+	client *Owner
+}
+
+type githubRepositoryPullRequestResourceModel struct {
+	ID                  types.String `tfsdk:"id"`
+	Owner               types.String `tfsdk:"owner"`
+	BaseRepository      types.String `tfsdk:"base_repository"`
+	BaseRef             types.String `tfsdk:"base_ref"`
+	HeadRef             types.String `tfsdk:"head_ref"`
+	Title               types.String `tfsdk:"title"`
+	Body                types.String `tfsdk:"body"`
+	MaintainerCanModify types.Bool   `tfsdk:"maintainer_can_modify"`
+	BaseSha             types.String `tfsdk:"base_sha"`
+	Draft               types.Bool   `tfsdk:"draft"`
+	HeadSha             types.String `tfsdk:"head_sha"`
+	Labels              types.List   `tfsdk:"labels"`
+	Number              types.Int64  `tfsdk:"number"`
+	OpenedAt            types.Int64  `tfsdk:"opened_at"`
+	OpenedBy            types.String `tfsdk:"opened_by"`
+	State               types.String `tfsdk:"state"`
+	UpdatedAt           types.Int64  `tfsdk:"updated_at"`
+}
+
+func NewGithubRepositoryPullRequestResource() resource.Resource {
+	return &githubRepositoryPullRequestResource{}
+}
+
+func (r *githubRepositoryPullRequestResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_repository_pull_request"
+}
+
+func (r *githubRepositoryPullRequestResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Get information on a single GitHub Pull Request.",
-		Create:      resourceGithubRepositoryPullRequestCreate,
-		Read:        resourceGithubRepositoryPullRequestRead,
-		Update:      resourceGithubRepositoryPullRequestUpdate,
-		Delete:      resourceGithubRepositoryPullRequestDelete,
-		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, m any) ([]*schema.ResourceData, error) {
-				_, baseRepository, _, err := parsePullRequestID(d)
-				if err != nil {
-					return nil, err
-				}
-				if err := d.Set("base_repository", baseRepository); err != nil {
-					return nil, err
-				}
-
-				return []*schema.ResourceData{d}, nil
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the pull request (owner:repository:number).",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-		},
-
-		Schema: map[string]*schema.Schema{
-			"owner": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
+			"owner": schema.StringAttribute{
 				Description: "Owner of the repository. If not provided, the provider's default owner is used.",
+				Optional:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"base_repository": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
+			"base_repository": schema.StringAttribute{
 				Description: "Name of the base repository to retrieve the Pull Requests from.",
-			},
-			"base_ref": {
-				Type:        schema.TypeString,
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"base_ref": schema.StringAttribute{
 				Description: "Name of the branch serving as the base of the Pull Request.",
-			},
-			"head_ref": {
-				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
+			},
+			"head_ref": schema.StringAttribute{
 				Description: "Name of the branch serving as the head of the Pull Request.",
-			},
-			"title": {
-				// Even though the documentation does not explicitly mark the
-				// title field as required, attempts to create a PR with an
-				// empty title result in a "missing_field" validation error
-				// (HTTP 422).
-				Type:        schema.TypeString,
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"title": schema.StringAttribute{
 				Description: "The title of the Pull Request.",
+				Required:    true,
 			},
-			"body": {
-				Type:        schema.TypeString,
-				Optional:    true,
+			"body": schema.StringAttribute{
 				Description: "Body of the Pull Request.",
-			},
-			"maintainer_can_modify": {
-				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+			},
+			"maintainer_can_modify": schema.BoolAttribute{
 				Description: "Controls whether the base repository maintainers can modify the Pull Request. Default: 'false'.",
-			},
-			"base_sha": {
-				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+			},
+			"base_sha": schema.StringAttribute{
 				Description: "Head commit SHA of the Pull Request base.",
-			},
-			"draft": {
-				// The "draft" field is an interesting corner case because while
-				// you can create a draft PR through the API, the documentation
-				// does not indicate that you can change this field during
-				// update:
-				//
-				// https://docs.github.com/en/rest/reference/pulls#update-a-pull-request
-				//
-				// And since you cannot manage the lifecycle of this field to
-				// reconcile the actual state with the desired one, this field
-				// cannot be managed by Terraform.
-				Type:        schema.TypeBool,
 				Computed:    true,
+			},
+			"draft": schema.BoolAttribute{
 				Description: "Indicates Whether this Pull Request is a draft.",
-			},
-			"head_sha": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"head_sha": schema.StringAttribute{
 				Description: "Head commit SHA of the Pull Request head.",
-			},
-			"labels": {
-				Type:        schema.TypeList,
-				Elem:        &schema.Schema{Type: schema.TypeString},
 				Computed:    true,
+			},
+			"labels": schema.ListAttribute{
 				Description: "List of names of labels on the PR",
-			},
-			"number": {
-				Type:        schema.TypeInt,
 				Computed:    true,
+				ElementType: types.StringType,
+			},
+			"number": schema.Int64Attribute{
 				Description: "The number of the Pull Request within the repository.",
-			},
-			"opened_at": {
-				Type:        schema.TypeInt,
 				Computed:    true,
+			},
+			"opened_at": schema.Int64Attribute{
 				Description: "Unix timestamp indicating the Pull Request creation time.",
-			},
-			"opened_by": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"opened_by": schema.StringAttribute{
 				Description: "Username of the PR creator",
-			},
-			"state": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"state": schema.StringAttribute{
 				Description: "The current Pull Request state - can be 'open', 'closed' or 'merged'.",
-			},
-			"updated_at": {
-				Type:        schema.TypeInt,
 				Computed:    true,
+			},
+			"updated_at": schema.Int64Attribute{
 				Description: "The timestamp of the last Pull Request update.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func resourceGithubRepositoryPullRequestCreate(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
-	client := meta.(*Owner).v3client
+func (r *githubRepositoryPullRequestResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.client = client
+}
+
+func (r *githubRepositoryPullRequestResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data githubRepositoryPullRequestResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := r.client.V3Client()
 
 	// For convenience, by default we expect that the base repository and head
 	// repository owners are the same, and both belong to the caller, indicating
 	// a "PR within the same repo" scenario. The head will *always* belong to
 	// the current caller, the base - not necessarily. The base will belong to
 	// another namespace in case of forks, and this resource supports them.
-	headOwner := meta.(*Owner).name
+	headOwner := r.client.Name()
 
 	baseOwner := headOwner
-	if explicitBaseOwner, ok := d.GetOk("owner"); ok {
-		baseOwner = explicitBaseOwner.(string)
+	if !data.Owner.IsNull() && !data.Owner.IsUnknown() {
+		baseOwner = data.Owner.ValueString()
 	}
 
-	baseRepository := d.Get("base_repository").(string)
+	baseRepository := data.BaseRepository.ValueString()
 
-	head := d.Get("head_ref").(string)
+	head := data.HeadRef.ValueString()
 	if headOwner != baseOwner {
 		head = strings.Join([]string{headOwner, head}, ":")
 	}
 
 	pullRequest, _, err := client.PullRequests.Create(ctx, baseOwner, baseRepository, &github.NewPullRequest{
-		Title:               github.Ptr(d.Get("title").(string)),
+		Title:               github.Ptr(data.Title.ValueString()),
 		Head:                github.Ptr(head),
-		Base:                github.Ptr(d.Get("base_ref").(string)),
-		Body:                github.Ptr(d.Get("body").(string)),
-		MaintainerCanModify: github.Ptr(d.Get("maintainer_can_modify").(bool)),
+		Base:                github.Ptr(data.BaseRef.ValueString()),
+		Body:                github.Ptr(data.Body.ValueString()),
+		MaintainerCanModify: github.Ptr(data.MaintainerCanModify.ValueBool()),
 	})
 
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Unable to Create Pull Request",
+			fmt.Sprintf("An unexpected error occurred when creating the pull request: %s", err.Error()),
+		)
+		return
 	}
 
-	d.SetId(buildThreePartID(baseOwner, baseRepository, strconv.Itoa(pullRequest.GetNumber())))
+	data.ID = types.StringValue(r.buildThreePartID(baseOwner, baseRepository, strconv.Itoa(pullRequest.GetNumber())))
 
-	return resourceGithubRepositoryPullRequestRead(d, meta)
+	tflog.Debug(ctx, "created GitHub repository pull request", map[string]interface{}{
+		"id":         data.ID.ValueString(),
+		"repository": baseRepository,
+		"number":     pullRequest.GetNumber(),
+	})
+
+	// Read the created resource to populate all computed fields
+	r.readGithubRepositoryPullRequest(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
-	client := meta.(*Owner).v3client
+func (r *githubRepositoryPullRequestResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data githubRepositoryPullRequestResourceModel
 
-	owner, repository, number, err := parsePullRequestID(d)
-	if err != nil {
-		return err
-	}
-
-	pullRequest, _, err := client.PullRequests.Get(ctx, owner, repository, number)
-	if err != nil {
-		return err
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
-		return err
+	r.readGithubRepositoryPullRequest(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if head := pullRequest.GetHead(); head != nil {
-		if err = d.Set("head_ref", head.GetRef()); err != nil {
-			return err
-		}
-
-		if err = d.Set("head_sha", head.GetSHA()); err != nil {
-			return err
-		}
-	} else {
-		// Totally unexpected condition. Better do that than segfault, I guess?
-		log.Printf("[INFO] Head branch missing, expected %s", d.Get("head_ref"))
-		d.SetId("")
-		return nil
-	}
-
-	if base := pullRequest.GetBase(); base != nil {
-		if err = d.Set("base_ref", base.GetRef()); err != nil {
-			return err
-		}
-		if err = d.Set("base_sha", base.GetSHA()); err != nil {
-			return err
-		}
-	} else {
-		// Seme logic as with the missing head branch.
-		log.Printf("[INFO] Base branch missing, expected %s", d.Get("base_ref"))
-		d.SetId("")
-		return nil
-	}
-
-	if err = d.Set("body", pullRequest.GetBody()); err != nil {
-		return err
-	}
-	if err = d.Set("title", pullRequest.GetTitle()); err != nil {
-		return err
-	}
-	if err = d.Set("draft", pullRequest.GetDraft()); err != nil {
-		return err
-	}
-	if err = d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify()); err != nil {
-		return err
-	}
-	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
-		return err
-	}
-	if err = d.Set("state", pullRequest.GetState()); err != nil {
-		return err
-	}
-	if err = d.Set("opened_at", pullRequest.GetCreatedAt().Unix()); err != nil {
-		return err
-	}
-	if err = d.Set("updated_at", pullRequest.GetUpdatedAt().Unix()); err != nil {
-		return err
-	}
-
-	if user := pullRequest.GetUser(); user != nil {
-		if err = d.Set("opened_by", user.GetLogin()); err != nil {
-			return err
-		}
-	}
-
-	labels := []string{}
-	for _, label := range pullRequest.Labels {
-		labels = append(labels, label.GetName())
-	}
-	if err = d.Set("labels", labels); err != nil {
-		return err
-	}
-
-	return nil
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceGithubRepositoryPullRequestUpdate(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
-	client := meta.(*Owner).v3client
+func (r *githubRepositoryPullRequestResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data githubRepositoryPullRequestResourceModel
 
-	owner, repository, number, err := parsePullRequestID(d)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := r.client.V3Client()
+
+	owner, repository, number, err := r.parsePullRequestID(data.ID.ValueString())
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Invalid Pull Request ID",
+			fmt.Sprintf("Unable to parse pull request ID: %s", err.Error()),
+		)
+		return
 	}
 
 	update := &github.PullRequest{
-		Title:               github.Ptr(d.Get("title").(string)),
-		Body:                github.Ptr(d.Get("body").(string)),
-		MaintainerCanModify: github.Ptr(d.Get("maintainer_can_modify").(bool)),
+		Title:               github.Ptr(data.Title.ValueString()),
+		Body:                github.Ptr(data.Body.ValueString()),
+		MaintainerCanModify: github.Ptr(data.MaintainerCanModify.ValueBool()),
 	}
 
-	if d.HasChange("base_ref") {
+	// Check if base_ref has changed by getting state and plan values
+	var statePlan, currentState githubRepositoryPullRequestResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &statePlan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &currentState)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if !statePlan.BaseRef.Equal(currentState.BaseRef) {
 		update.Base = &github.PullRequestBranch{
-			Ref: github.Ptr(d.Get("base_ref").(string)),
+			Ref: github.Ptr(data.BaseRef.ValueString()),
 		}
 	}
 
 	_, _, err = client.PullRequests.Edit(ctx, owner, repository, number, update)
 	if err == nil {
-		return resourceGithubRepositoryPullRequestRead(d, meta)
+		// Read the updated resource to populate all computed fields
+		r.readGithubRepositoryPullRequest(ctx, &data, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+		return
 	}
 
-	errs := []error{fmt.Errorf("could not update the Pull Request: %w", err)}
+	resp.Diagnostics.AddError(
+		"Unable to Update Pull Request",
+		fmt.Sprintf("Could not update the Pull Request: %s", err.Error()),
+	)
 
-	if err := resourceGithubRepositoryPullRequestRead(d, meta); err != nil {
-		errs = append(errs, fmt.Errorf("could not read the Pull Request after the failed update: %w", err))
+	// Try to read the current state after the failed update
+	r.readGithubRepositoryPullRequest(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	return errors.Join(errs...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceGithubRepositoryPullRequestDelete(d *schema.ResourceData, meta any) error {
+func (r *githubRepositoryPullRequestResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data githubRepositoryPullRequestResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// It's not entirely clear how to treat PR deletion according to Terraform's
 	// CRUD semantics. The approach we're taking here is to close the PR unless
 	// it's already closed or merged. Merging it feels intuitively wrong in what
 	// effectively is a destructor.
-	if d.Get("state").(string) != "open" {
-		d.SetId("")
-		return nil
+	if !data.State.IsNull() && !data.State.IsUnknown() && data.State.ValueString() != "open" {
+		tflog.Debug(ctx, "pull request is not open, skipping close operation", map[string]interface{}{
+			"id":    data.ID.ValueString(),
+			"state": data.State.ValueString(),
+		})
+		return
 	}
 
-	ctx := context.TODO()
-	client := meta.(*Owner).v3client
+	client := r.client.V3Client()
 
-	owner, repository, number, err := parsePullRequestID(d)
+	owner, repository, number, err := r.parsePullRequestID(data.ID.ValueString())
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Invalid Pull Request ID",
+			fmt.Sprintf("Unable to parse pull request ID: %s", err.Error()),
+		)
+		return
 	}
 
 	update := &github.PullRequest{State: github.Ptr("closed")}
 	if _, _, err = client.PullRequests.Edit(ctx, owner, repository, number, update); err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Unable to Close Pull Request",
+			fmt.Sprintf("An unexpected error occurred when closing the pull request: %s", err.Error()),
+		)
+		return
 	}
 
-	d.SetId("")
-	return nil
+	tflog.Debug(ctx, "closed GitHub repository pull request", map[string]interface{}{
+		"id":         data.ID.ValueString(),
+		"repository": repository,
+		"number":     number,
+	})
 }
 
-func parsePullRequestID(d *schema.ResourceData) (owner, repository string, number int, err error) {
+func (r *githubRepositoryPullRequestResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Parse the import ID to set the base_repository attribute
+	owner, baseRepository, _, err := r.parsePullRequestID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid Import ID",
+			fmt.Sprintf("Unable to parse import ID: %s", err.Error()),
+		)
+		return
+	}
+
+	data := &githubRepositoryPullRequestResourceModel{
+		ID:             types.StringValue(req.ID),
+		BaseRepository: types.StringValue(baseRepository),
+	}
+
+	// Set the owner if it's different from the provider's default
+	if owner != r.client.Name() {
+		data.Owner = types.StringValue(owner)
+	}
+
+	r.readGithubRepositoryPullRequest(ctx, data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+// Helper functions
+
+func (r *githubRepositoryPullRequestResource) parsePullRequestID(id string) (owner, repository string, number int, err error) {
 	var strNumber string
 
-	if owner, repository, strNumber, err = parseThreePartID(d.Id(), "owner", "base_repository", "number"); err != nil {
+	if owner, repository, strNumber, err = parseThreePartID(id, "owner", "base_repository", "number"); err != nil {
 		return
 	}
 
@@ -340,4 +399,83 @@ func parsePullRequestID(d *schema.ResourceData) (owner, repository string, numbe
 	}
 
 	return
+}
+
+func (r *githubRepositoryPullRequestResource) buildThreePartID(a, b, c string) string {
+	return fmt.Sprintf("%s:%s:%s", a, b, c)
+}
+
+func (r *githubRepositoryPullRequestResource) readGithubRepositoryPullRequest(ctx context.Context, data *githubRepositoryPullRequestResourceModel, diagnostics *diag.Diagnostics) {
+	client := r.client.V3Client()
+
+	owner, repository, number, err := r.parsePullRequestID(data.ID.ValueString())
+	if err != nil {
+		diagnostics.AddError(
+			"Invalid Pull Request ID",
+			fmt.Sprintf("Unable to parse pull request ID: %s", err.Error()),
+		)
+		return
+	}
+
+	pullRequest, _, err := client.PullRequests.Get(ctx, owner, repository, number)
+	if err != nil {
+		diagnostics.AddError(
+			"Unable to Read Pull Request",
+			fmt.Sprintf("An unexpected error occurred when reading the pull request: %s", err.Error()),
+		)
+		return
+	}
+
+	data.Number = types.Int64Value(int64(pullRequest.GetNumber()))
+
+	if head := pullRequest.GetHead(); head != nil {
+		data.HeadRef = types.StringValue(head.GetRef())
+		data.HeadSha = types.StringValue(head.GetSHA())
+	} else {
+		// Totally unexpected condition. Better do that than segfault, I guess?
+		tflog.Warn(ctx, "Head branch missing", map[string]interface{}{
+			"expected_head_ref": data.HeadRef.ValueString(),
+		})
+		data.ID = types.StringNull()
+		return
+	}
+
+	if base := pullRequest.GetBase(); base != nil {
+		data.BaseRef = types.StringValue(base.GetRef())
+		data.BaseSha = types.StringValue(base.GetSHA())
+	} else {
+		// Same logic as with the missing head branch.
+		tflog.Warn(ctx, "Base branch missing", map[string]interface{}{
+			"expected_base_ref": data.BaseRef.ValueString(),
+		})
+		data.ID = types.StringNull()
+		return
+	}
+
+	data.Body = types.StringValue(pullRequest.GetBody())
+	data.Title = types.StringValue(pullRequest.GetTitle())
+	data.Draft = types.BoolValue(pullRequest.GetDraft())
+	data.MaintainerCanModify = types.BoolValue(pullRequest.GetMaintainerCanModify())
+	data.State = types.StringValue(pullRequest.GetState())
+	data.OpenedAt = types.Int64Value(pullRequest.GetCreatedAt().Unix())
+	data.UpdatedAt = types.Int64Value(pullRequest.GetUpdatedAt().Unix())
+
+	if user := pullRequest.GetUser(); user != nil {
+		data.OpenedBy = types.StringValue(user.GetLogin())
+	}
+
+	labels := []string{}
+	for _, label := range pullRequest.Labels {
+		labels = append(labels, label.GetName())
+	}
+	labelList, diag := types.ListValueFrom(ctx, types.StringType, labels)
+	diagnostics.Append(diag...)
+	data.Labels = labelList
+
+	tflog.Debug(ctx, "successfully read GitHub repository pull request", map[string]interface{}{
+		"id":         data.ID.ValueString(),
+		"repository": repository,
+		"number":     data.Number.ValueInt64(),
+		"state":      data.State.ValueString(),
+	})
 }

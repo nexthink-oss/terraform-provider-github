@@ -2,119 +2,144 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+
 )
 
-func resourceGithubActionsRepositoryPermissions() *schema.Resource {
-	return &schema.Resource{
-		Description: "Enables and manages Actions permissions for a GitHub repository",
-		Create:      resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
-		Read:        resourceGithubActionsRepositoryPermissionsRead,
-		Update:      resourceGithubActionsRepositoryPermissionsCreateOrUpdate,
-		Delete:      resourceGithubActionsRepositoryPermissionsDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+var (
+	_ resource.Resource                = &githubActionsRepositoryPermissionsResource{}
+	_ resource.ResourceWithConfigure   = &githubActionsRepositoryPermissionsResource{}
+	_ resource.ResourceWithImportState = &githubActionsRepositoryPermissionsResource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"allowed_actions": {
-				Type:             schema.TypeString,
-				Optional:         true,
-				Description:      "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "local_only", "selected"}, false), "allowed_actions"),
+func NewGithubActionsRepositoryPermissionsResource() resource.Resource {
+	return &githubActionsRepositoryPermissionsResource{}
+}
+
+type githubActionsRepositoryPermissionsResource struct {
+	client *Owner
+}
+
+type githubActionsRepositoryPermissionsResourceModel struct {
+	// Required attributes
+	Repository types.String `tfsdk:"repository"`
+
+	// Optional attributes
+	AllowedActions types.String `tfsdk:"allowed_actions"`
+	Enabled        types.Bool   `tfsdk:"enabled"`
+
+	// Nested configuration blocks
+	AllowedActionsConfig types.List `tfsdk:"allowed_actions_config"`
+
+	// Computed attributes - ID is the repository name
+	ID types.String `tfsdk:"id"`
+}
+
+type repositoryAllowedActionsConfigModel struct {
+	GithubOwnedAllowed types.Bool `tfsdk:"github_owned_allowed"`
+	PatternsAllowed    types.Set  `tfsdk:"patterns_allowed"`
+	VerifiedAllowed    types.Bool `tfsdk:"verified_allowed"`
+}
+
+func (r *githubActionsRepositoryPermissionsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_actions_repository_permissions"
+}
+
+func (r *githubActionsRepositoryPermissionsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Enables and manages Actions permissions for a GitHub repository",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The name of the repository.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"allowed_actions_config": {
-				Type:        schema.TypeList,
+			"repository": schema.StringAttribute{
+				Description: "The GitHub repository.",
+				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 100),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"allowed_actions": schema.StringAttribute{
+				Description: "The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.",
 				Optional:    true,
-				MaxItems:    1,
-				Description: "Sets the actions that are allowed in an repository. Only available when 'allowed_actions' = 'selected'. ",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"github_owned_allowed": {
-							Type:        schema.TypeBool,
-							Required:    true,
-							Description: "Whether GitHub-owned actions are allowed in the repository.",
-						},
-						"patterns_allowed": {
-							Type:        schema.TypeSet,
-							Optional:    true,
-							Description: "Specifies a list of string-matching patterns to allow specific action(s). Wildcards, tags, and SHAs are allowed. For example, 'monalisa/octocat@', 'monalisa/octocat@v2', 'monalisa/'.",
-							Elem:        &schema.Schema{Type: schema.TypeString},
-							Set:         schema.HashString,
-						},
-						"verified_allowed": {
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Description: "Whether actions in GitHub Marketplace from verified creators are allowed. Set to 'true' to allow all GitHub Marketplace actions by verified creators.",
-						},
+				Validators: []validator.String{
+					stringvalidator.OneOf("all", "local_only", "selected"),
+				},
+			},
+			"enabled": schema.BoolAttribute{
+				Description: "Should GitHub actions be enabled on this repository.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(true),
+			},
+			"allowed_actions_config": schema.ListAttribute{
+				Description: "Sets the actions that are allowed in a repository. Only available when 'allowed_actions' = 'selected'.",
+				Optional:    true,
+				ElementType: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"github_owned_allowed": types.BoolType,
+						"patterns_allowed":     types.SetType{ElemType: types.StringType},
+						"verified_allowed":     types.BoolType,
 					},
 				},
 			},
-			"enabled": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Description: "Should GitHub actions be enabled on this repository.",
-			},
-			"repository": {
-				Type:             schema.TypeString,
-				Required:         true,
-				Description:      "The GitHub repository.",
-				ValidateDiagFunc: toDiagFunc(validation.StringLenBetween(1, 100), "repository"),
-			},
 		},
 	}
 }
 
-func resourceGithubActionsRepositoryAllowedObject(d *schema.ResourceData) (*github.ActionsAllowed, error) {
-	allowed := &github.ActionsAllowed{}
-
-	config := d.Get("allowed_actions_config").([]any)
-	if len(config) > 0 {
-		data := config[0].(map[string]any)
-		switch x := data["github_owned_allowed"].(type) {
-		case bool:
-			allowed.GithubOwnedAllowed = &x
-		}
-
-		switch x := data["verified_allowed"].(type) {
-		case bool:
-			allowed.VerifiedAllowed = &x
-		}
-
-		patternsAllowed := []string{}
-
-		switch t := data["patterns_allowed"].(type) {
-		case *schema.Set:
-			for _, value := range t.List() {
-				patternsAllowed = append(patternsAllowed, value.(string))
-			}
-		}
-
-		allowed.PatternsAllowed = patternsAllowed
-	} else {
-		return nil, nil
+func (r *githubActionsRepositoryPermissionsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	return allowed, nil
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.client = client
 }
 
-func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func (r *githubActionsRepositoryPermissionsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan githubActionsRepositoryPermissionsResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	allowedActions := d.Get("allowed_actions").(string)
-	enabled := d.Get("enabled").(bool)
+	owner := r.client.Name()
+	repoName := plan.Repository.ValueString()
+	client := r.client.V3Client()
+
+	allowedActions := plan.AllowedActions.ValueString()
+	enabled := plan.Enabled.ValueBool()
 	log.Printf("[DEBUG] Actions enabled: %t", enabled)
 
 	repoActionPermissions := github.ActionsPermissionsRepository{
@@ -132,97 +157,142 @@ func resourceGithubActionsRepositoryPermissionsCreateOrUpdate(d *schema.Resource
 		repoActionPermissions,
 	)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError("Error setting repository actions permissions", err.Error())
+		return
 	}
 
+	// Handle allowed actions config if allowed_actions is "selected"
 	if allowedActions == "selected" {
-		actionsAllowedData, err := resourceGithubActionsRepositoryAllowedObject(d)
-		if err != nil {
-			return err
-		}
-		if actionsAllowedData != nil {
-			log.Printf("[DEBUG] Allowed actions config is set")
-			_, _, err = client.Repositories.EditActionsAllowed(ctx,
-				owner,
-				repoName,
-				*actionsAllowedData)
-			if err != nil {
-				return err
+		if !plan.AllowedActionsConfig.IsNull() && len(plan.AllowedActionsConfig.Elements()) > 0 {
+			actionsAllowed, diags := r.buildActionsAllowedFromPlan(ctx, plan.AllowedActionsConfig)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
 			}
-		} else {
-			log.Printf("[DEBUG] Allowed actions config not set, skipping")
+
+			if actionsAllowed != nil {
+				log.Printf("[DEBUG] Allowed actions config is set")
+				_, _, err = client.Repositories.EditActionsAllowed(ctx,
+					owner,
+					repoName,
+					*actionsAllowed)
+				if err != nil {
+					resp.Diagnostics.AddError("Error setting allowed actions config", err.Error())
+					return
+				}
+			} else {
+				log.Printf("[DEBUG] Allowed actions config not set, skipping")
+			}
 		}
 	}
 
-	d.SetId(repoName)
-	return resourceGithubActionsRepositoryPermissionsRead(d, meta)
+	plan.ID = types.StringValue(repoName)
+
+	// Read the resource to populate all fields
+	r.readResource(ctx, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
-func resourceGithubActionsRepositoryPermissionsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func (r *githubActionsRepositoryPermissionsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state githubActionsRepositoryPermissionsResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
-	owner := meta.(*Owner).name
-	repoName := d.Id()
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	actionsPermissions, _, err := client.Repositories.GetActionsPermissions(ctx, owner, repoName)
+	r.readResource(ctx, &state, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+func (r *githubActionsRepositoryPermissionsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan githubActionsRepositoryPermissionsResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := r.client.Name()
+	repoName := plan.Repository.ValueString()
+	client := r.client.V3Client()
+
+	allowedActions := plan.AllowedActions.ValueString()
+	enabled := plan.Enabled.ValueBool()
+	log.Printf("[DEBUG] Actions enabled: %t", enabled)
+
+	repoActionPermissions := github.ActionsPermissionsRepository{
+		Enabled: &enabled,
+	}
+
+	// Only specify `allowed_actions` if actions are enabled
+	if enabled {
+		repoActionPermissions.AllowedActions = &allowedActions
+	}
+
+	_, _, err := client.Repositories.EditActionsPermissions(ctx,
+		owner,
+		repoName,
+		repoActionPermissions,
+	)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError("Error updating repository actions permissions", err.Error())
+		return
 	}
 
-	// only load and fill allowed_actions_config if allowed_actions_config is also set
-	// in the TF code. (see #2105)
-	// on initial import there might not be any value in the state, then we have to import the data
-	// -> but we can only load an existing state if the current config is set to "selected" (see #2182)
-	allowedActions := d.Get("allowed_actions").(string)
-	allowedActionsConfig := d.Get("allowed_actions_config").([]any)
+	// Handle allowed actions config if allowed_actions is "selected"
+	if allowedActions == "selected" {
+		if !plan.AllowedActionsConfig.IsNull() && len(plan.AllowedActionsConfig.Elements()) > 0 {
+			actionsAllowed, diags := r.buildActionsAllowedFromPlan(ctx, plan.AllowedActionsConfig)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
 
-	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected" && actionsPermissions.GetEnabled()
-	userWantsAllowedActionsConfig := (allowedActions == "selected" && len(allowedActionsConfig) > 0) || allowedActions == ""
-
-	if serverHasAllowedActionsConfig && userWantsAllowedActionsConfig {
-		actionsAllowed, _, err := client.Repositories.GetActionsAllowed(ctx, owner, repoName)
-		if err != nil {
-			return err
-		}
-
-		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
-		if actionsAllowed != nil {
-			if err = d.Set("allowed_actions_config", []any{
-				map[string]any{
-					"github_owned_allowed": actionsAllowed.GetGithubOwnedAllowed(),
-					"patterns_allowed":     actionsAllowed.PatternsAllowed,
-					"verified_allowed":     actionsAllowed.GetVerifiedAllowed(),
-				},
-			}); err != nil {
-				return err
+			if actionsAllowed != nil {
+				log.Printf("[DEBUG] Allowed actions config is set")
+				_, _, err = client.Repositories.EditActionsAllowed(ctx,
+					owner,
+					repoName,
+					*actionsAllowed)
+				if err != nil {
+					resp.Diagnostics.AddError("Error updating allowed actions config", err.Error())
+					return
+				}
+			} else {
+				log.Printf("[DEBUG] Allowed actions config not set, skipping")
 			}
 		}
-	} else {
-		if err = d.Set("allowed_actions_config", []any{}); err != nil {
-			return err
-		}
 	}
 
-	if err = d.Set("allowed_actions", actionsPermissions.GetAllowedActions()); err != nil {
-		return err
-	}
-	if err = d.Set("enabled", actionsPermissions.GetEnabled()); err != nil {
-		return err
-	}
-	if err = d.Set("repository", repoName); err != nil {
-		return err
+	// Read the resource to populate all fields
+	r.readResource(ctx, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	return nil
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
-func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Id()
+func (r *githubActionsRepositoryPermissionsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state githubActionsRepositoryPermissionsResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := r.client.Name()
+	repoName := state.ID.ValueString()
+	client := r.client.V3Client()
 
 	// Reset the repo to "default" settings
 	repoActionPermissions := github.ActionsPermissionsRepository{
@@ -236,8 +306,191 @@ func resourceGithubActionsRepositoryPermissionsDelete(d *schema.ResourceData, me
 		repoActionPermissions,
 	)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError("Error deleting repository actions permissions", err.Error())
+		return
+	}
+}
+
+func (r *githubActionsRepositoryPermissionsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+
+	// Set repository to the same value as id for consistency
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("repository"), req.ID)...)
+}
+
+// Helper methods
+
+func (r *githubActionsRepositoryPermissionsResource) readResource(ctx context.Context, model *githubActionsRepositoryPermissionsResourceModel, diagnostics *diag.Diagnostics) {
+	owner := r.client.Name()
+	repoName := model.ID.ValueString()
+	client := r.client.V3Client()
+
+	actionsPermissions, _, err := client.Repositories.GetActionsPermissions(ctx, owner, repoName)
+	if err != nil {
+		diagnostics.AddError("Error reading repository actions permissions", err.Error())
+		return
 	}
 
-	return nil
+	// Set basic attributes
+	model.AllowedActions = types.StringValue(actionsPermissions.GetAllowedActions())
+	model.Enabled = types.BoolValue(actionsPermissions.GetEnabled())
+	model.Repository = types.StringValue(repoName)
+
+	// Handle allowed actions config
+	// This logic follows the same pattern as the SDKv2 version for compatibility
+	allowedActions := model.AllowedActions.ValueString()
+	currentAllowedActionsConfig := model.AllowedActionsConfig
+
+	serverHasAllowedActionsConfig := actionsPermissions.GetAllowedActions() == "selected" && actionsPermissions.GetEnabled()
+	userWantsAllowedActionsConfig := (allowedActions == "selected" && !currentAllowedActionsConfig.IsNull() && len(currentAllowedActionsConfig.Elements()) > 0) || allowedActions == ""
+
+	if serverHasAllowedActionsConfig && userWantsAllowedActionsConfig {
+		actionsAllowed, _, err := client.Repositories.GetActionsAllowed(ctx, owner, repoName)
+		if err != nil {
+			diagnostics.AddError("Error reading allowed actions config", err.Error())
+			return
+		}
+
+		// If actionsAllowed set to local/all by removing all actions config settings, the response will be empty
+		if actionsAllowed != nil {
+			allowedActionsConfigValue, diags := r.buildAllowedActionsConfigFromAPI(ctx, actionsAllowed)
+			diagnostics.Append(diags...)
+			if diagnostics.HasError() {
+				return
+			}
+			model.AllowedActionsConfig = allowedActionsConfigValue
+		} else {
+			model.AllowedActionsConfig = types.ListNull(types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"github_owned_allowed": types.BoolType,
+					"patterns_allowed":     types.SetType{ElemType: types.StringType},
+					"verified_allowed":     types.BoolType,
+				},
+			})
+		}
+	} else {
+		model.AllowedActionsConfig = types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"github_owned_allowed": types.BoolType,
+				"patterns_allowed":     types.SetType{ElemType: types.StringType},
+				"verified_allowed":     types.BoolType,
+			},
+		})
+	}
+}
+
+func (r *githubActionsRepositoryPermissionsResource) buildActionsAllowedFromPlan(ctx context.Context, planList types.List) (*github.ActionsAllowed, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if planList.IsNull() || len(planList.Elements()) == 0 {
+		return nil, diags
+	}
+
+	element := planList.Elements()[0]
+	var configObj repositoryAllowedActionsConfigModel
+
+	objVal, ok := element.(types.Object)
+	if !ok {
+		diags.AddError("Type assertion failed", "Expected types.Object")
+		return nil, diags
+	}
+
+	diags.Append(objVal.As(ctx, &configObj, basetypes.ObjectAsOptions{})...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	allowed := &github.ActionsAllowed{}
+
+	// Set github owned allowed
+	if !configObj.GithubOwnedAllowed.IsNull() {
+		githubOwnedAllowed := configObj.GithubOwnedAllowed.ValueBool()
+		allowed.GithubOwnedAllowed = &githubOwnedAllowed
+	}
+
+	// Set verified allowed
+	if !configObj.VerifiedAllowed.IsNull() {
+		verifiedAllowed := configObj.VerifiedAllowed.ValueBool()
+		allowed.VerifiedAllowed = &verifiedAllowed
+	}
+
+	// Set patterns allowed
+	if !configObj.PatternsAllowed.IsNull() && len(configObj.PatternsAllowed.Elements()) > 0 {
+		var patterns []string
+		diags.Append(configObj.PatternsAllowed.ElementsAs(ctx, &patterns, false)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		allowed.PatternsAllowed = patterns
+	}
+
+	return allowed, diags
+}
+
+func (r *githubActionsRepositoryPermissionsResource) buildAllowedActionsConfigFromAPI(ctx context.Context, actionsAllowed *github.ActionsAllowed) (types.List, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	var patternsAllowed types.Set
+	if len(actionsAllowed.PatternsAllowed) > 0 {
+		elements := make([]attr.Value, len(actionsAllowed.PatternsAllowed))
+		for i, pattern := range actionsAllowed.PatternsAllowed {
+			elements[i] = types.StringValue(pattern)
+		}
+		var setDiags diag.Diagnostics
+		patternsAllowed, setDiags = types.SetValue(types.StringType, elements)
+		diags.Append(setDiags...)
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"github_owned_allowed": types.BoolType,
+					"patterns_allowed":     types.SetType{ElemType: types.StringType},
+					"verified_allowed":     types.BoolType,
+				},
+			}), diags
+		}
+	} else {
+		patternsAllowed = types.SetNull(types.StringType)
+	}
+
+	configValue := map[string]attr.Value{
+		"github_owned_allowed": types.BoolValue(actionsAllowed.GetGithubOwnedAllowed()),
+		"patterns_allowed":     patternsAllowed,
+		"verified_allowed":     types.BoolValue(actionsAllowed.GetVerifiedAllowed()),
+	}
+
+	objValue, objDiags := types.ObjectValue(map[string]attr.Type{
+		"github_owned_allowed": types.BoolType,
+		"patterns_allowed":     types.SetType{ElemType: types.StringType},
+		"verified_allowed":     types.BoolType,
+	}, configValue)
+	diags.Append(objDiags...)
+	if diags.HasError() {
+		return types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"github_owned_allowed": types.BoolType,
+				"patterns_allowed":     types.SetType{ElemType: types.StringType},
+				"verified_allowed":     types.BoolType,
+			},
+		}), diags
+	}
+
+	listValue, listDiags := types.ListValue(types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"github_owned_allowed": types.BoolType,
+			"patterns_allowed":     types.SetType{ElemType: types.StringType},
+			"verified_allowed":     types.BoolType,
+		},
+	}, []attr.Value{objValue})
+	diags.Append(listDiags...)
+	if diags.HasError() {
+		return types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"github_owned_allowed": types.BoolType,
+				"patterns_allowed":     types.SetType{ElemType: types.StringType},
+				"verified_allowed":     types.BoolType,
+			},
+		}), diags
+	}
+
+	return listValue, diags
 }

@@ -2,13 +2,12 @@ package github
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubActionsRunnerGroup(t *testing.T) {
@@ -102,8 +101,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -165,8 +164,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -210,8 +209,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -259,8 +258,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -319,8 +318,8 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -338,6 +337,37 @@ func TestAccGithubActionsRunnerGroup(t *testing.T) {
 		t.Run("with an individual account", func(t *testing.T) {
 			testCase(t, individual)
 		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("validates configuration errors", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+			}
+
+			resource "github_actions_runner_group" "test" {
+				name       = github_repository.test.name
+				visibility = "all"
+				selected_repository_ids = [github_repository.test.repo_id]
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile("cannot use selected_repository_ids without visibility being set to selected"),
+					},
+				},
+			})
+		}
 
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)

@@ -2,12 +2,21 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// TODO: this is failing
+// testUsersOwner returns the owner for testing, derived from environment variables
+func testUsersOwner() string {
+	owner := os.Getenv("GITHUB_OWNER")
+	if owner == "" {
+		owner = os.Getenv("GITHUB_TEST_OWNER")
+	}
+	return owner
+}
+
 func TestAccGithubUsersDataSource(t *testing.T) {
 
 	t.Run("queries multiple accounts", func(t *testing.T) {
@@ -16,20 +25,20 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 			data "github_users" "test" {
 				usernames = ["%[1]s", "!%[1]s"]
 			}
-		`, testOwnerFunc())
+		`, testUsersOwner())
 
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttr("data.github_users.test", "logins.#", "1"),
-			resource.TestCheckResourceAttr("data.github_users.test", "logins.0", testOwnerFunc()),
+			resource.TestCheckResourceAttr("data.github_users.test", "logins.0", testUsersOwner()),
 			resource.TestCheckResourceAttr("data.github_users.test", "node_ids.#", "1"),
 			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.#", "1"),
-			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.0", fmt.Sprintf("!%s", testOwnerFunc())),
+			resource.TestCheckResourceAttr("data.github_users.test", "unknown_logins.0", fmt.Sprintf("!%s", testUsersOwner())),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -69,8 +78,8 @@ func TestAccGithubUsersDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,

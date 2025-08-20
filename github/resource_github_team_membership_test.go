@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
 )
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
@@ -28,9 +30,9 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 	randString := acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum)
 
 	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
+		PreCheck:                 func() { testAccPreCheck(t, organization) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "member"),
@@ -85,9 +87,9 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
+		PreCheck:                 func() { testAccPreCheck(t, organization) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		CheckDestroy:             testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGithubTeamMembershipConfig(randString, testCollaborator, "member"),
@@ -112,26 +114,45 @@ func TestAccGithubTeamMembership_caseInsensitive(t *testing.T) {
 }
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Owner).v3client
-	orgId := testAccProvider.Meta().(*Owner).id
+	// Create a new GitHub client directly for destroy check
+	token := os.Getenv("GITHUB_TOKEN")
+	owner := os.Getenv("GITHUB_OWNER")
+	if owner == "" {
+		owner = os.Getenv("GITHUB_ORGANIZATION")
+	}
+	baseURL := os.Getenv("GITHUB_BASE_URL")
+
+	config := Config{
+		Token:   token,
+		Owner:   owner,
+		BaseURL: baseURL,
+	}
+
+	meta, err := config.Meta()
+	if err != nil {
+		return err
+	}
+
+	conn := meta.(*Owner).V3Client()
+	orgID := meta.(*Owner).ID
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
 			continue
 		}
 
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		teamIDString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
 			return err
 		}
 
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return fmt.Errorf("could not convert team ID %s to integer: %s", teamIDString, err.Error())
 		}
 
 		membership, resp, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
-			orgId, teamId, username)
+			orgID, teamID, username)
 		if err == nil {
 			if membership != nil {
 				return fmt.Errorf("team membership still exists")
@@ -156,19 +177,38 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 			return fmt.Errorf("no team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgId := testAccProvider.Meta().(*Owner).id
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		// Create a new GitHub client for the check
+		token := os.Getenv("GITHUB_TOKEN")
+		owner := os.Getenv("GITHUB_OWNER")
+		if owner == "" {
+			owner = os.Getenv("GITHUB_ORGANIZATION")
+		}
+		baseURL := os.Getenv("GITHUB_BASE_URL")
+
+		config := Config{
+			Token:   token,
+			Owner:   owner,
+			BaseURL: baseURL,
+		}
+
+		meta, err := config.Meta()
 		if err != nil {
 			return err
 		}
 
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+		conn := meta.(*Owner).V3Client()
+		orgID := meta.(*Owner).ID
+		teamIDString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return err
 		}
 
-		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgId, teamId, username)
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
+		if err != nil {
+			return fmt.Errorf("could not convert team ID %s to integer: %s", teamIDString, err.Error())
+		}
+
+		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(), orgID, teamID, username)
 
 		if err != nil {
 			return err
@@ -189,19 +229,38 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return fmt.Errorf("no team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Owner).v3client
-		orgId := testAccProvider.Meta().(*Owner).id
-		teamIdString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
+		// Create a new GitHub client for the check
+		token := os.Getenv("GITHUB_TOKEN")
+		owner := os.Getenv("GITHUB_OWNER")
+		if owner == "" {
+			owner = os.Getenv("GITHUB_ORGANIZATION")
+		}
+		baseURL := os.Getenv("GITHUB_BASE_URL")
+
+		config := Config{
+			Token:   token,
+			Owner:   owner,
+			BaseURL: baseURL,
+		}
+
+		meta, err := config.Meta()
 		if err != nil {
 			return err
 		}
-		teamId, err := strconv.ParseInt(teamIdString, 10, 64)
+
+		conn := meta.(*Owner).V3Client()
+		orgID := meta.(*Owner).ID
+		teamIDString, username, err := parseTwoPartID(rs.Primary.ID, "team_id", "username")
 		if err != nil {
-			return unconvertibleIdErr(teamIdString, err)
+			return err
+		}
+		teamID, err := strconv.ParseInt(teamIDString, 10, 64)
+		if err != nil {
+			return fmt.Errorf("could not convert team ID %s to integer: %s", teamIDString, err.Error())
 		}
 
 		teamMembership, _, err := conn.Teams.GetTeamMembershipByID(context.TODO(),
-			orgId, teamId, username)
+			orgID, teamID, username)
 		if err != nil {
 			return err
 		}
@@ -238,13 +297,13 @@ resource "github_team" "test_team_slug" {
 }
 
 resource "github_team_membership" "test_team_membership" {
-  team_id  = "${github_team.test_team.id}"
+  team_id  = github_team.test_team.id
   username = "%s"
   role     = "%s"
 }
 
 resource "github_team_membership" "test_team_membership_slug" {
-  team_id  = "${github_team.test_team_slug.slug}"
+  team_id  = github_team.test_team_slug.slug
   username = "%s"
   role     = "%s"
 }

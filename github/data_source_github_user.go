@@ -2,198 +2,274 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func dataSourceGithubUser() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get information on a GitHub user.",
-		Read:        dataSourceGithubUserRead,
+var (
+	_ datasource.DataSource              = &githubUserDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubUserDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"username": {
-				Type:     schema.TypeString,
-				Required: true,
+type githubUserDataSource struct {
+	client *Owner
+}
+
+type githubUserDataSourceModel struct {
+	ID          types.String `tfsdk:"id"`
+	Username    types.String `tfsdk:"username"`
+	Login       types.String `tfsdk:"login"`
+	AvatarURL   types.String `tfsdk:"avatar_url"`
+	GravatarID  types.String `tfsdk:"gravatar_id"`
+	SiteAdmin   types.Bool   `tfsdk:"site_admin"`
+	Name        types.String `tfsdk:"name"`
+	Company     types.String `tfsdk:"company"`
+	Blog        types.String `tfsdk:"blog"`
+	Location    types.String `tfsdk:"location"`
+	Email       types.String `tfsdk:"email"`
+	Bio         types.String `tfsdk:"bio"`
+	GPGKeys     types.List   `tfsdk:"gpg_keys"`
+	SSHKeys     types.List   `tfsdk:"ssh_keys"`
+	PublicRepos types.Int64  `tfsdk:"public_repos"`
+	PublicGists types.Int64  `tfsdk:"public_gists"`
+	Followers   types.Int64  `tfsdk:"followers"`
+	Following   types.Int64  `tfsdk:"following"`
+	CreatedAt   types.String `tfsdk:"created_at"`
+	UpdatedAt   types.String `tfsdk:"updated_at"`
+	SuspendedAt types.String `tfsdk:"suspended_at"`
+	NodeID      types.String `tfsdk:"node_id"`
+}
+
+func NewGithubUserDataSource() datasource.DataSource {
+	return &githubUserDataSource{}
+}
+
+func (d *githubUserDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_user"
+}
+
+func (d *githubUserDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get information on a GitHub user.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the user.",
+				Computed:    true,
 			},
-			"login": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"username": schema.StringAttribute{
+				Description: "The username to lookup.",
+				Required:    true,
 			},
-			"avatar_url": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"login": schema.StringAttribute{
+				Description: "The user's login.",
+				Computed:    true,
 			},
-			"gravatar_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"avatar_url": schema.StringAttribute{
+				Description: "The user's avatar URL.",
+				Computed:    true,
 			},
-			"site_admin": {
-				Type:     schema.TypeBool,
-				Computed: true,
+			"gravatar_id": schema.StringAttribute{
+				Description: "The user's Gravatar ID.",
+				Computed:    true,
 			},
-			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"site_admin": schema.BoolAttribute{
+				Description: "Whether the user is a site administrator.",
+				Computed:    true,
 			},
-			"company": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"name": schema.StringAttribute{
+				Description: "The user's public name.",
+				Computed:    true,
 			},
-			"blog": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"company": schema.StringAttribute{
+				Description: "The user's company.",
+				Computed:    true,
 			},
-			"location": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"blog": schema.StringAttribute{
+				Description: "The user's blog URL.",
+				Computed:    true,
 			},
-			"email": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"location": schema.StringAttribute{
+				Description: "The user's location.",
+				Computed:    true,
 			},
-			"bio": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"email": schema.StringAttribute{
+				Description: "The user's public email address.",
+				Computed:    true,
 			},
-			"gpg_keys": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"bio": schema.StringAttribute{
+				Description: "The user's bio.",
+				Computed:    true,
 			},
-			"ssh_keys": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"gpg_keys": schema.ListAttribute{
+				Description: "List of the user's GPG keys.",
+				Computed:    true,
+				ElementType: types.StringType,
 			},
-			"public_repos": {
-				Type:     schema.TypeInt,
-				Computed: true,
+			"ssh_keys": schema.ListAttribute{
+				Description: "List of the user's SSH keys.",
+				Computed:    true,
+				ElementType: types.StringType,
 			},
-			"public_gists": {
-				Type:     schema.TypeInt,
-				Computed: true,
+			"public_repos": schema.Int64Attribute{
+				Description: "The number of public repositories owned by the user.",
+				Computed:    true,
 			},
-			"followers": {
-				Type:     schema.TypeInt,
-				Computed: true,
+			"public_gists": schema.Int64Attribute{
+				Description: "The number of public gists owned by the user.",
+				Computed:    true,
 			},
-			"following": {
-				Type:     schema.TypeInt,
-				Computed: true,
+			"followers": schema.Int64Attribute{
+				Description: "The number of followers of the user.",
+				Computed:    true,
 			},
-			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"following": schema.Int64Attribute{
+				Description: "The number of users followed by the user.",
+				Computed:    true,
 			},
-			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"created_at": schema.StringAttribute{
+				Description: "The date the user was created.",
+				Computed:    true,
 			},
-			"suspended_at": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"updated_at": schema.StringAttribute{
+				Description: "The date the user was last updated.",
+				Computed:    true,
 			},
-			"node_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"suspended_at": schema.StringAttribute{
+				Description: "The date the user was suspended.",
+				Computed:    true,
+			},
+			"node_id": schema.StringAttribute{
+				Description: "The node ID of the user.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func dataSourceGithubUserRead(d *schema.ResourceData, meta any) error {
-	username := d.Get("username").(string)
+func (d *githubUserDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
 
-	client := meta.(*Owner).v3client
-	ctx := context.Background()
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
 
-	user, _, err := client.Users.Get(ctx, username)
+	d.client = client
+}
+
+func (d *githubUserDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubUserDataSourceModel
+
+	// Read configuration
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	username := data.Username.ValueString()
+
+	tflog.Debug(ctx, "Reading GitHub user", map[string]interface{}{
+		"username": username,
+	})
+
+	user, _, err := d.client.V3Client().Users.Get(ctx, username)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub User",
+			fmt.Sprintf("An unexpected error occurred while reading the GitHub user %s: %s", username, err.Error()),
+		)
+		return
 	}
 
-	gpg, _, err := client.Users.ListGPGKeys(ctx, user.GetLogin(), nil)
+	// Get GPG keys
+	gpg, _, err := d.client.V3Client().Users.ListGPGKeys(ctx, user.GetLogin(), nil)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub User GPG Keys",
+			fmt.Sprintf("An unexpected error occurred while reading GPG keys for GitHub user %s: %s", username, err.Error()),
+		)
+		return
 	}
-	ssh, _, err := client.Users.ListKeys(ctx, user.GetLogin(), nil)
+
+	// Get SSH keys
+	ssh, _, err := d.client.V3Client().Users.ListKeys(ctx, user.GetLogin(), nil)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub User SSH Keys",
+			fmt.Sprintf("An unexpected error occurred while reading SSH keys for GitHub user %s: %s", username, err.Error()),
+		)
+		return
 	}
 
-	gpgKeys := []string{}
-	for _, v := range gpg {
-		gpgKeys = append(gpgKeys, v.GetPublicKey())
+	// Process GPG keys
+	gpgKeys := make([]string, len(gpg))
+	for i, v := range gpg {
+		gpgKeys[i] = v.GetPublicKey()
 	}
 
-	sshKeys := []string{}
-	for _, v := range ssh {
-		sshKeys = append(sshKeys, v.GetKey())
+	// Process SSH keys
+	sshKeys := make([]string, len(ssh))
+	for i, v := range ssh {
+		sshKeys[i] = v.GetKey()
 	}
 
-	d.SetId(strconv.FormatInt(user.GetID(), 10))
-	if err = d.Set("login", user.GetLogin()); err != nil {
-		return err
-	}
-	if err = d.Set("avatar_url", user.GetAvatarURL()); err != nil {
-		return err
-	}
-	if err = d.Set("gravatar_id", user.GetGravatarID()); err != nil {
-		return err
-	}
-	if err = d.Set("site_admin", user.GetSiteAdmin()); err != nil {
-		return err
-	}
-	if err = d.Set("company", user.GetCompany()); err != nil {
-		return err
-	}
-	if err = d.Set("blog", user.GetBlog()); err != nil {
-		return err
-	}
-	if err = d.Set("location", user.GetLocation()); err != nil {
-		return err
-	}
-	if err = d.Set("name", user.GetName()); err != nil {
-		return err
-	}
-	if err = d.Set("email", user.GetEmail()); err != nil {
-		return err
-	}
-	if err = d.Set("bio", user.GetBio()); err != nil {
-		return err
-	}
-	if err = d.Set("gpg_keys", gpgKeys); err != nil {
-		return err
-	}
-	if err = d.Set("ssh_keys", sshKeys); err != nil {
-		return err
-	}
-	if err = d.Set("public_repos", user.GetPublicRepos()); err != nil {
-		return err
-	}
-	if err = d.Set("public_gists", user.GetPublicGists()); err != nil {
-		return err
-	}
-	if err = d.Set("followers", user.GetFollowers()); err != nil {
-		return err
-	}
-	if err = d.Set("following", user.GetFollowing()); err != nil {
-		return err
-	}
-	if err = d.Set("created_at", user.GetCreatedAt().String()); err != nil {
-		return err
-	}
-	if err = d.Set("updated_at", user.GetUpdatedAt().String()); err != nil {
-		return err
-	}
-	if err = d.Set("suspended_at", user.GetSuspendedAt().String()); err != nil {
-		return err
-	}
-	if err = d.Set("node_id", user.GetNodeID()); err != nil {
-		return err
-	}
+	// Set values
+	data.ID = types.StringValue(strconv.FormatInt(user.GetID(), 10))
+	data.Login = types.StringValue(user.GetLogin())
+	data.AvatarURL = types.StringValue(user.GetAvatarURL())
+	data.GravatarID = types.StringValue(user.GetGravatarID())
+	data.SiteAdmin = types.BoolValue(user.GetSiteAdmin())
+	data.Name = types.StringValue(user.GetName())
+	data.Company = types.StringValue(user.GetCompany())
+	data.Blog = types.StringValue(user.GetBlog())
+	data.Location = types.StringValue(user.GetLocation())
+	data.Email = types.StringValue(user.GetEmail())
+	data.Bio = types.StringValue(user.GetBio())
+	data.PublicRepos = types.Int64Value(int64(user.GetPublicRepos()))
+	data.PublicGists = types.Int64Value(int64(user.GetPublicGists()))
+	data.Followers = types.Int64Value(int64(user.GetFollowers()))
+	data.Following = types.Int64Value(int64(user.GetFollowing()))
+	data.CreatedAt = types.StringValue(user.GetCreatedAt().String())
+	data.UpdatedAt = types.StringValue(user.GetUpdatedAt().String())
+	data.SuspendedAt = types.StringValue(user.GetSuspendedAt().String())
+	data.NodeID = types.StringValue(user.GetNodeID())
 
-	return nil
+	// Convert slices to Framework list values
+	gpgList, diags := types.ListValueFrom(ctx, types.StringType, gpgKeys)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.GPGKeys = gpgList
+
+	sshList, diags := types.ListValueFrom(ctx, types.StringType, sshKeys)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.SSHKeys = sshList
+
+	tflog.Debug(ctx, "Successfully read GitHub user", map[string]interface{}{
+		"username":     username,
+		"id":           data.ID.ValueString(),
+		"login":        data.Login.ValueString(),
+		"name":         data.Name.ValueString(),
+		"public_repos": data.PublicRepos.ValueInt64(),
+		"followers":    data.Followers.ValueInt64(),
+		"following":    data.Following.ValueInt64(),
+	})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

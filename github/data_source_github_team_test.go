@@ -5,16 +5,14 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubTeamDataSource(t *testing.T) {
-
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("queries an existing team without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -32,8 +30,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -54,11 +52,9 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries an existing team without error with immediate membership", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -77,8 +73,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -102,7 +98,6 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 	})
 
 	t.Run("errors when querying a non-existing team", func(t *testing.T) {
-
 		config := `
 			data "github_team" "test" {
 				slug = ""
@@ -111,8 +106,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
@@ -133,11 +128,9 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries an existing team without error in summary_only mode", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -158,8 +151,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -180,11 +173,9 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries an existing team without error with results_per_page reduced", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -203,8 +194,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -225,11 +216,9 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries an existing team with connected repositories", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
 				name = "tf-acc-test-%s"
@@ -260,8 +249,8 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -286,7 +275,5 @@ func TestAccGithubTeamDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }

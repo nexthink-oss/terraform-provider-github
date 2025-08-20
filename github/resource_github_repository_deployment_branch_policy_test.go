@@ -4,92 +4,141 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccGithubRepositoryDeploymentBranchPolicy(t *testing.T) {
-
+func TestAccGithubRepositoryDeploymentBranchPolicyResource_basic(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("creates deployment branch policy", func(t *testing.T) {
-
-		config := fmt.Sprintf(`
-
-			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
-				auto_init = true
-			}
-
-			resource "github_repository_environment" "env" {
-				repository  = github_repository.test.name
-				environment = "my_env"
-				deployment_branch_policy {
-					protected_branches     = false
-					custom_branch_policies = true
-				}
-			}
-		`, randomID)
-
-		config1 := `
-			resource "github_repository_deployment_branch_policy" "br" {
-				repository       = github_repository.test.name
-				environment_name = github_repository_environment.env.environment
-				name             = github_repository.test.default_branch
-			}
-		`
-
-		config2 := `
-			resource "github_repository_deployment_branch_policy" "br" {
-				repository       = github_repository.test.name
-				environment_name = github_repository_environment.env.environment
-				name             = "foo"
-			}
-		`
-
-		check1 := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_deployment_branch_policy.br", "name", "main",
-			),
-			resource.TestCheckResourceAttrSet(
-				"github_repository_deployment_branch_policy.br", "etag",
-			),
-		)
-
-		check2 := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr(
-				"github_repository_deployment_branch_policy.br", "name", "foo",
-			),
-		)
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config + config1,
-						Check:  check1,
-					},
-					{
-						Config: config + config2,
-						Check:  check2,
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
-
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "name", "main"),
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "environment_name", "my_env"),
+					resource.TestCheckResourceAttrSet("github_repository_deployment_branch_policy.test", "etag"),
+					resource.TestCheckResourceAttrSet("github_repository_deployment_branch_policy.test", "id"),
+				),
+			},
+		},
 	})
+}
+
+func TestAccGithubRepositoryDeploymentBranchPolicyResource_update(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "name", "main"),
+				),
+			},
+			{
+				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_updated(randomID),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "name", "foo"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubRepositoryDeploymentBranchPolicyResource_import(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "name", "main"),
+				),
+			},
+			{
+				ResourceName:      "github_repository_deployment_branch_policy.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccGithubRepositoryDeploymentBranchPolicyResource_organization(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, organization) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "name", "main"),
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+					resource.TestCheckResourceAttr("github_repository_deployment_branch_policy.test", "environment_name", "my_env"),
+					resource.TestCheckResourceAttrSet("github_repository_deployment_branch_policy.test", "etag"),
+					resource.TestCheckResourceAttrSet("github_repository_deployment_branch_policy.test", "id"),
+				),
+			},
+		},
+	})
+}
+
+func testAccGithubRepositoryDeploymentBranchPolicyConfig_basic(randomID string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name      = "tf-acc-test-%s"
+  auto_init = true
+}
+
+resource "github_repository_environment" "env" {
+  repository  = github_repository.test.name
+  environment = "my_env"
+  deployment_branch_policy {
+    protected_branches     = false
+    custom_branch_policies = true
+  }
+}
+
+resource "github_repository_deployment_branch_policy" "test" {
+  repository       = github_repository.test.name
+  environment_name = github_repository_environment.env.environment
+  name             = github_repository.test.default_branch
+}
+`, randomID)
+}
+
+func testAccGithubRepositoryDeploymentBranchPolicyConfig_updated(randomID string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name      = "tf-acc-test-%s"
+  auto_init = true
+}
+
+resource "github_repository_environment" "env" {
+  repository  = github_repository.test.name
+  environment = "my_env"
+  deployment_branch_policy {
+    protected_branches     = false
+    custom_branch_policies = true
+  }
+}
+
+resource "github_repository_deployment_branch_policy" "test" {
+  repository       = github_repository.test.name
+  environment_name = github_repository_environment.env.environment
+  name             = "foo"
+}
+`, randomID)
 }

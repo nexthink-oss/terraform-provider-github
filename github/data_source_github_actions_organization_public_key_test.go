@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubActionsOrganizationPublicKeyDataSource(t *testing.T) {
@@ -18,12 +18,18 @@ func TestAccGithubActionsOrganizationPublicKeyDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"data.github_actions_organization_public_key.test", "key",
 			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_actions_organization_public_key.test", "key_id",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_actions_organization_public_key.test", "id",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,

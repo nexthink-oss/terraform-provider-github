@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccGithubRepositoryPullRequest(t *testing.T) {
+func TestAccGithubRepositoryPullRequestResource(t *testing.T) {
 	t.Run("manages the pull request lifecycle", func(t *testing.T) {
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
@@ -65,8 +65,8 @@ func TestAccGithubRepositoryPullRequest(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -92,5 +92,101 @@ func TestAccGithubRepositoryPullRequest(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
+	})
+}
+
+func TestAccGithubRepositoryPullRequestResource_update(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	configStep1 := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name      = "tf-acc-test-%s"
+			auto_init = true
+		}
+
+		resource "github_branch" "test" {
+			repository    = github_repository.test.name
+			branch        = "test"
+			source_branch = github_repository.test.default_branch
+		}
+
+		resource "github_repository_file" "test" {
+			repository     = github_repository.test.name
+			branch         = github_branch.test.branch
+			file           = "test"
+			content        = "bar"
+		}
+
+		resource "github_repository_pull_request" "test" {
+			base_repository = github_repository_file.test.repository
+			base_ref        = github_repository.test.default_branch
+			head_ref        = github_branch.test.branch
+			title           = "test title"
+			body            = "test body"
+		}
+	`, randomID)
+
+	configStep2 := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name      = "tf-acc-test-%s"
+			auto_init = true
+		}
+
+		resource "github_branch" "test" {
+			repository    = github_repository.test.name
+			branch        = "test"
+			source_branch = github_repository.test.default_branch
+		}
+
+		resource "github_repository_file" "test" {
+			repository     = github_repository.test.name
+			branch         = github_branch.test.branch
+			file           = "test"
+			content        = "bar"
+		}
+
+		resource "github_repository_pull_request" "test" {
+			base_repository      = github_repository_file.test.repository
+			base_ref             = github_repository.test.default_branch
+			head_ref             = github_branch.test.branch
+			title                = "updated title"
+			body                 = "updated body"
+			maintainer_can_modify = true
+		}
+	`, randomID)
+
+	const resourceName = "github_repository_pull_request.test"
+
+	testCase := func(t *testing.T, mode string) {
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { testAccPreCheck(t, mode) },
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			Steps: []resource.TestStep{
+				{
+					Config: configStep1,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(resourceName, "title", "test title"),
+						resource.TestCheckResourceAttr(resourceName, "body", "test body"),
+						resource.TestCheckResourceAttr(resourceName, "maintainer_can_modify", "false"),
+					),
+				},
+				{
+					Config: configStep2,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr(resourceName, "title", "updated title"),
+						resource.TestCheckResourceAttr(resourceName, "body", "updated body"),
+						resource.TestCheckResourceAttr(resourceName, "maintainer_can_modify", "true"),
+					),
+				},
+			},
+		})
+	}
+
+	t.Run("with an individual account", func(t *testing.T) {
+		testCase(t, individual)
+	})
+
+	t.Run("with an organization account", func(t *testing.T) {
+		testCase(t, organization)
 	})
 }

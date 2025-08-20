@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccGithubCodespacesSecret(t *testing.T) {
@@ -18,7 +18,6 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 	t.Run("reads a repository public key without error", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
-
 			resource "github_repository" "test" {
 			  name = "tf-acc-test-%s"
 			}
@@ -26,7 +25,6 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 			data "github_codespaces_public_key" "test_pk" {
 			  repository = github_repository.test.name
 			}
-
 		`, randomID)
 
 		check := resource.ComposeAggregateTestCheckFunc(
@@ -40,8 +38,8 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -85,7 +83,7 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 			  secret_name      = "test_encrypted_secret"
 			  encrypted_value  = "%s"
 			}
-			`, randomID, secretValue, secretValue)
+		`, randomID, secretValue, secretValue)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -124,8 +122,8 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -173,7 +171,7 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 			  secret_name      = "test_encrypted_secret"
 			  encrypted_value  = "%s"
 			}
-			`, repoName, secretValue, secretValue)
+		`, repoName, secretValue, secretValue)
 
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -220,8 +218,8 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -252,25 +250,25 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 
 	t.Run("deletes secrets without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
-				resource "github_repository" "test" {
-					name = "tf-acc-test-%s"
-				}
+			resource "github_repository" "test" {
+				name = "tf-acc-test-%s"
+			}
 
-				resource "github_codespaces_secret" "plaintext_secret" {
-					repository 	= github_repository.test.name
-					secret_name	= "test_plaintext_secret"
-				}
+			resource "github_codespaces_secret" "plaintext_secret" {
+				repository 	= github_repository.test.name
+				secret_name	= "test_plaintext_secret"
+			}
 
-				resource "github_codespaces_secret" "encrypted_secret" {
-					repository 	= github_repository.test.name
-					secret_name	= "test_encrypted_secret"
-				}
-			`, randomID)
+			resource "github_codespaces_secret" "encrypted_secret" {
+				repository 	= github_repository.test.name
+				secret_name	= "test_encrypted_secret"
+			}
+		`, randomID)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config:  config,
@@ -293,4 +291,64 @@ func TestAccGithubCodespacesSecret(t *testing.T) {
 		})
 
 	})
+
+	t.Run("imports secrets without error", func(t *testing.T) {
+		secretValue := base64.StdEncoding.EncodeToString([]byte("super_secret_value"))
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%s"
+			}
+
+			resource "github_codespaces_secret" "plaintext_secret" {
+			  repository       = github_repository.test.name
+			  secret_name      = "test_plaintext_secret"
+			  plaintext_value  = "%s"
+			}
+		`, randomID, secretValue)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+					},
+					{
+						ResourceName:            "github_codespaces_secret.plaintext_secret",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateIdFunc:       testAccGithubCodespacesSecretImportStateIdFunc("github_codespaces_secret.plaintext_secret"),
+						ImportStateVerifyIgnore: []string{"plaintext_value", "encrypted_value"},
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
+
+func testAccGithubCodespacesSecretImportStateIdFunc(resourceName string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return "", fmt.Errorf("not found: %s", resourceName)
+		}
+
+		repo := rs.Primary.Attributes["repository"]
+		secretName := rs.Primary.Attributes["secret_name"]
+		return fmt.Sprintf("%s/%s", repo, secretName), nil
+	}
 }

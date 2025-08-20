@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubSshKeysDataSource(t *testing.T) {
@@ -14,12 +14,13 @@ func TestAccGithubSshKeysDataSource(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_ssh_keys.test", "keys.#"),
+			resource.TestCheckResourceAttr("data.github_ssh_keys.test", "id", "github-ssh-keys"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,

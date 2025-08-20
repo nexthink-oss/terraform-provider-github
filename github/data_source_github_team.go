@@ -2,135 +2,240 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/google/go-github/v74/github"
-
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func dataSourceGithubTeam() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get information on a GitHub team.",
-		Read:        dataSourceGithubTeamRead,
+var (
+	_ datasource.DataSource              = &githubTeamDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubTeamDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"slug": {
-				Type:     schema.TypeString,
-				Required: true,
+type githubTeamDataSource struct {
+	client *Owner
+}
+
+type githubTeamRepositoryDetailedModel struct {
+	RepoID   types.Int64  `tfsdk:"repo_id"`
+	RoleName types.String `tfsdk:"role_name"`
+}
+
+type githubTeamDataSourceModel struct {
+	ID                   types.String                        `tfsdk:"id"`
+	Slug                 types.String                        `tfsdk:"slug"`
+	Name                 types.String                        `tfsdk:"name"`
+	Description          types.String                        `tfsdk:"description"`
+	Privacy              types.String                        `tfsdk:"privacy"`
+	Permission           types.String                        `tfsdk:"permission"`
+	Members              types.List                          `tfsdk:"members"`
+	Repositories         types.List                          `tfsdk:"repositories"`
+	RepositoriesDetailed []githubTeamRepositoryDetailedModel `tfsdk:"repositories_detailed"`
+	NodeID               types.String                        `tfsdk:"node_id"`
+	MembershipType       types.String                        `tfsdk:"membership_type"`
+	SummaryOnly          types.Bool                          `tfsdk:"summary_only"`
+	ResultsPerPage       types.Int64                         `tfsdk:"results_per_page"`
+}
+
+func NewGithubTeamDataSource() datasource.DataSource {
+	return &githubTeamDataSource{}
+}
+
+func (d *githubTeamDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_team"
+}
+
+func (d *githubTeamDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get information on a GitHub team.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the team.",
+				Computed:    true,
 			},
-			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"slug": schema.StringAttribute{
+				Description: "The slug of the team.",
+				Required:    true,
 			},
-			"description": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"name": schema.StringAttribute{
+				Description: "The name of the team.",
+				Computed:    true,
 			},
-			"privacy": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"description": schema.StringAttribute{
+				Description: "The description of the team.",
+				Computed:    true,
 			},
-			"permission": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"privacy": schema.StringAttribute{
+				Description: "The privacy setting of the team.",
+				Computed:    true,
 			},
-			"members": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"permission": schema.StringAttribute{
+				Description: "The permission level of the team.",
+				Computed:    true,
 			},
-			"repositories": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"members": schema.ListAttribute{
+				Description: "List of team members.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"repositories_detailed": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"repo_id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+			"repositories": schema.ListAttribute{
+				Description: "List of repositories the team has access to.",
+				ElementType: types.StringType,
+				Computed:    true,
+			},
+			"repositories_detailed": schema.ListNestedAttribute{
+				Description: "Detailed information about repositories the team has access to.",
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"repo_id": schema.Int64Attribute{
+							Description: "The ID of the repository.",
+							Computed:    true,
 						},
-						"role_name": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"role_name": schema.StringAttribute{
+							Description: "The role name for the repository.",
+							Computed:    true,
 						},
 					},
 				},
 			},
-			"node_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"node_id": schema.StringAttribute{
+				Description: "The Node ID of the team.",
+				Computed:    true,
 			},
-			"membership_type": {
-				Type:             schema.TypeString,
-				Default:          "all",
-				Optional:         true,
-				ValidateDiagFunc: toDiagFunc(validation.StringInSlice([]string{"all", "immediate"}, false), "membership_type"),
+			"membership_type": schema.StringAttribute{
+				Description: "The type of membership to filter for. Can be either 'all' or 'immediate'.",
+				Optional:    true,
+				Computed:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("all", "immediate"),
+				},
 			},
-			"summary_only": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+			"summary_only": schema.BoolAttribute{
+				Description: "Whether to return only summary information (no members or repositories).",
+				Optional:    true,
+				Computed:    true,
 			},
-			"results_per_page": {
-				Type:             schema.TypeInt,
-				Optional:         true,
-				Default:          100,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
+			"results_per_page": schema.Int64Attribute{
+				Description: "The number of results per page (max 100).",
+				Optional:    true,
+				Computed:    true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, 100),
+				},
 			},
 		},
 	}
 }
 
-func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
-	slug := d.Get("slug").(string)
-
-	client := meta.(*Owner).v3client
-	orgId := meta.(*Owner).id
-	ctx := context.Background()
-	summaryOnly := d.Get("summary_only").(bool)
-	resultsPerPage := d.Get("results_per_page").(int)
-
-	team, _, err := client.Teams.GetTeamBySlug(ctx, meta.(*Owner).name, slug)
-	if err != nil {
-		return err
+func (d *githubTeamDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	var members []string
-	var repositories []string
-	var repositories_detailed []any
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	d.client = client
+}
+
+func (d *githubTeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubTeamDataSourceModel
+
+	// Read configuration
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	slug := data.Slug.ValueString()
+
+	// Set defaults for optional fields
+	summaryOnly := false
+	if !data.SummaryOnly.IsNull() && !data.SummaryOnly.IsUnknown() {
+		summaryOnly = data.SummaryOnly.ValueBool()
+	}
+
+	resultsPerPage := 100
+	if !data.ResultsPerPage.IsNull() && !data.ResultsPerPage.IsUnknown() {
+		resultsPerPage = int(data.ResultsPerPage.ValueInt64())
+	}
+
+	membershipType := "all"
+	if !data.MembershipType.IsNull() && !data.MembershipType.IsUnknown() {
+		membershipType = data.MembershipType.ValueString()
+	}
+
+	tflog.Debug(ctx, "Reading GitHub team", map[string]interface{}{
+		"slug":             slug,
+		"summary_only":     summaryOnly,
+		"results_per_page": resultsPerPage,
+		"membership_type":  membershipType,
+	})
+
+	client := d.client.V3Client()
+	orgID := d.client.ID()
+	orgName := d.client.Name()
+
+	team, _, err := client.Teams.GetTeamBySlug(ctx, orgName, slug)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub Team",
+			fmt.Sprintf("An unexpected error occurred while reading team %s: %s", slug, err.Error()),
+		)
+		return
+	}
+
+	var members []types.String
+	var repositories []types.String
+	var repositoriesDetailed []githubTeamRepositoryDetailedModel
 
 	if !summaryOnly {
+		// Get team members
 		options := github.TeamListTeamMembersOptions{
 			ListOptions: github.ListOptions{
 				PerPage: resultsPerPage,
 			},
 		}
 
-		if d.Get("membership_type").(string) == "all" {
+		if membershipType == "all" {
 			for {
-				member, resp, err := client.Teams.ListTeamMembersByID(ctx, orgId, team.GetID(), &options)
+				membersList, resp_api, err := client.Teams.ListTeamMembersByID(ctx, orgID, team.GetID(), &options)
 				if err != nil {
-					return err
+					resp.Diagnostics.AddError(
+						"Unable to Read GitHub Team Members",
+						fmt.Sprintf("An unexpected error occurred while reading team members for %s: %s", slug, err.Error()),
+					)
+					return
 				}
 
-				for _, v := range member {
-					members = append(members, v.GetLogin())
+				for _, v := range membersList {
+					members = append(members, types.StringValue(v.GetLogin()))
 				}
 
-				if resp.NextPage == 0 {
+				if resp_api.NextPage == 0 {
 					break
 				}
-				options.Page = resp.NextPage
+				options.Page = resp_api.NextPage
 			}
 		} else {
+			// Use GraphQL for immediate membership
 			type member struct {
 				Login string
 			}
@@ -148,18 +253,22 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 				} `graphql:"organization(login:$owner)"`
 			}
 			variables := map[string]any{
-				"owner":        githubv4.String(meta.(*Owner).name),
+				"owner":        githubv4.String(orgName),
 				"slug":         githubv4.String(slug),
 				"memberCursor": (*githubv4.String)(nil),
 			}
-			client := meta.(*Owner).v4client
+			v4client := d.client.V4Client()
 			for {
-				nameErr := client.Query(ctx, &query, variables)
+				nameErr := v4client.Query(ctx, &query, variables)
 				if nameErr != nil {
-					return nameErr
+					resp.Diagnostics.AddError(
+						"Unable to Read GitHub Team Members",
+						fmt.Sprintf("An unexpected error occurred while reading immediate team members for %s: %s", slug, nameErr.Error()),
+					)
+					return
 				}
 				for _, v := range query.Organization.Team.Members.Nodes {
-					members = append(members, v.Login)
+					members = append(members, types.StringValue(v.Login))
 				}
 				if query.Organization.Team.Members.PageInfo.HasNextPage {
 					variables["memberCursor"] = query.Organization.Team.Members.PageInfo.EndCursor
@@ -169,54 +278,75 @@ func dataSourceGithubTeamRead(d *schema.ResourceData, meta any) error {
 			}
 		}
 
-		repositories_detailed = make([]any, 0, resultsPerPage) //removed this from the loop
-
+		// Get team repositories
+		options.Page = 0 // Reset page counter
 		for {
-			repository, resp, err := client.Teams.ListTeamReposByID(ctx, orgId, team.GetID(), &options.ListOptions)
+			repository, resp_api, err := client.Teams.ListTeamReposByID(ctx, orgID, team.GetID(), &options.ListOptions)
 			if err != nil {
-				return err
+				resp.Diagnostics.AddError(
+					"Unable to Read GitHub Team Repositories",
+					fmt.Sprintf("An unexpected error occurred while reading team repositories for %s: %s", slug, err.Error()),
+				)
+				return
 			}
 
 			for _, v := range repository {
-				repositories = append(repositories, v.GetName())
-				repositories_detailed = append(repositories_detailed, map[string]any{
-					"repo_id":   v.GetID(),
-					"role_name": v.GetRoleName(),
+				repositories = append(repositories, types.StringValue(v.GetName()))
+				repositoriesDetailed = append(repositoriesDetailed, githubTeamRepositoryDetailedModel{
+					RepoID:   types.Int64Value(v.GetID()),
+					RoleName: types.StringValue(v.GetRoleName()),
 				})
 			}
 
-			if resp.NextPage == 0 {
+			if resp_api.NextPage == 0 {
 				break
 			}
-			options.Page = resp.NextPage
+			options.Page = resp_api.NextPage
 		}
 	}
 
-	d.SetId(strconv.FormatInt(team.GetID(), 10))
-	if err = d.Set("name", team.GetName()); err != nil {
-		return err
-	}
-	if err = d.Set("members", members); err != nil {
-		return err
-	}
-	if err = d.Set("repositories", repositories); err != nil {
-		return err
-	}
-	if err = d.Set("repositories_detailed", repositories_detailed); err != nil {
-		return err
-	}
-	if err = d.Set("description", team.GetDescription()); err != nil {
-		return err
-	}
-	if err = d.Set("privacy", team.GetPrivacy()); err != nil {
-		return err
-	}
-	if err = d.Set("permission", team.GetPermission()); err != nil {
-		return err
-	}
-	if err = d.Set("node_id", team.GetNodeID()); err != nil {
-		return err
+	// Convert to list types
+	membersList, diags := types.ListValueFrom(ctx, types.StringType, members)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	return nil
+	repositoriesList, diags := types.ListValueFrom(ctx, types.StringType, repositories)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set values
+	data.ID = types.StringValue(strconv.FormatInt(team.GetID(), 10))
+	data.Name = types.StringValue(team.GetName())
+	data.Description = types.StringValue(team.GetDescription())
+	data.Privacy = types.StringValue(team.GetPrivacy())
+	data.Permission = types.StringValue(team.GetPermission())
+	data.NodeID = types.StringValue(team.GetNodeID())
+	data.Members = membersList
+	data.Repositories = repositoriesList
+	data.RepositoriesDetailed = repositoriesDetailed
+
+	// Set defaults for optional computed fields if they weren't provided
+	if data.MembershipType.IsNull() || data.MembershipType.IsUnknown() {
+		data.MembershipType = types.StringValue("all")
+	}
+	if data.SummaryOnly.IsNull() || data.SummaryOnly.IsUnknown() {
+		data.SummaryOnly = types.BoolValue(false)
+	}
+	if data.ResultsPerPage.IsNull() || data.ResultsPerPage.IsUnknown() {
+		data.ResultsPerPage = types.Int64Value(100)
+	}
+
+	tflog.Debug(ctx, "Successfully read GitHub team", map[string]interface{}{
+		"slug":          slug,
+		"id":            data.ID.ValueString(),
+		"name":          data.Name.ValueString(),
+		"members_count": len(members),
+		"repos_count":   len(repositories),
+	})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

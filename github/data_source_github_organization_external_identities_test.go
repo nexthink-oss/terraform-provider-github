@@ -1,13 +1,14 @@
 package github
 
 import (
+	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccGithubOrganizationExternalIdentities(t *testing.T) {
-	if isEnterprise != "true" {
+func TestAccGithubOrganizationExternalIdentitiesDataSource(t *testing.T) {
+	if os.Getenv("ENTERPRISE_ACCOUNT") != "true" {
 		t.Skip("Skipping because `ENTERPRISE_ACCOUNT` is not set or set to false")
 	}
 
@@ -22,7 +23,7 @@ func TestAccGithubOrganizationExternalIdentities(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				Providers: testAccProviders,
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,

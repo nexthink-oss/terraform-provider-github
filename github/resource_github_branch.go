@@ -3,211 +3,364 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func resourceGithubBranch() *schema.Resource {
-	return &schema.Resource{
-		Description: "Creates and manages branches within GitHub repositories.",
-		Create:      resourceGithubBranchCreate,
-		Read:        resourceGithubBranchRead,
-		Delete:      resourceGithubBranchDelete,
-		Importer: &schema.ResourceImporter{
-			State: resourceGithubBranchImport,
-		},
+var (
+	_ resource.Resource                = &githubBranchResource{}
+	_ resource.ResourceWithConfigure   = &githubBranchResource{}
+	_ resource.ResourceWithImportState = &githubBranchResource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
+type githubBranchResource struct {
+	client *Owner
+}
+
+type githubBranchResourceModel struct {
+	ID           types.String `tfsdk:"id"`
+	Repository   types.String `tfsdk:"repository"`
+	Branch       types.String `tfsdk:"branch"`
+	SourceBranch types.String `tfsdk:"source_branch"`
+	SourceSha    types.String `tfsdk:"source_sha"`
+	Etag         types.String `tfsdk:"etag"`
+	Ref          types.String `tfsdk:"ref"`
+	Sha          types.String `tfsdk:"sha"`
+}
+
+func NewGithubBranchResource() resource.Resource {
+	return &githubBranchResource{}
+}
+
+func (r *githubBranchResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_branch"
+}
+
+func (r *githubBranchResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Creates and manages branches within GitHub repositories.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of this resource.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"repository": schema.StringAttribute{
 				Description: "The GitHub repository name.",
-			},
-			"branch": {
-				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"branch": schema.StringAttribute{
 				Description: "The repository branch to create.",
+				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"source_branch": {
-				Type:        schema.TypeString,
-				Default:     "main",
-				Optional:    true,
-				ForceNew:    true,
+			"source_branch": schema.StringAttribute{
 				Description: "The branch name to start from. Defaults to 'main'.",
-			},
-			"source_sha": {
-				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    true,
 				Computed:    true,
+				Default:     stringdefault.StaticString("main"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"source_sha": schema.StringAttribute{
 				Description: "The commit hash to start from. Defaults to the tip of 'source_branch'. If provided, 'source_branch' is ignored.",
-			},
-			"etag": {
-				Type:        schema.TypeString,
+				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"etag": schema.StringAttribute{
 				Description: "An etag representing the Branch object.",
-			},
-			"ref": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"ref": schema.StringAttribute{
 				Description: "A string representing a branch reference, in the form of 'refs/heads/<branch>'.",
-			},
-			"sha": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"sha": schema.StringAttribute{
 				Description: "A string storing the reference's HEAD commit's SHA1.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func resourceGithubBranchCreate(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
+func (r *githubBranchResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	branchName := d.Get("branch").(string)
+	client, ok := req.ProviderData.(*Owner)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.client = client
+}
+
+func (r *githubBranchResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data githubBranchResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := r.client.Name()
+	repoName := data.Repository.ValueString()
+	branchName := data.Branch.ValueString()
 	branchRefName := "refs/heads/" + branchName
-	sourceBranchName := d.Get("source_branch").(string)
+	sourceBranchName := data.SourceBranch.ValueString()
 	sourceBranchRefName := "refs/heads/" + sourceBranchName
 
-	if _, hasSourceSHA := d.GetOk("source_sha"); !hasSourceSHA {
-		ref, _, err := client.Git.GetRef(ctx, orgName, repoName, sourceBranchRefName)
+	// Determine source SHA
+	var sourceSha string
+	if !data.SourceSha.IsNull() && data.SourceSha.ValueString() != "" {
+		sourceSha = data.SourceSha.ValueString()
+	} else {
+		// Get SHA from source branch
+		ref, _, err := r.client.V3Client().Git.GetRef(ctx, owner, repoName, sourceBranchRefName)
 		if err != nil {
-			return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
-				orgName, repoName, sourceBranchRefName, err)
+			resp.Diagnostics.AddError(
+				"Unable to Get Source Branch Reference",
+				fmt.Sprintf("An unexpected error occurred when querying GitHub branch reference %s/%s (%s): %s",
+					owner, repoName, sourceBranchRefName, err.Error()),
+			)
+			return
 		}
-		if err = d.Set("source_sha", *ref.Object.SHA); err != nil {
-			return err
-		}
+		sourceSha = *ref.Object.SHA
+		data.SourceSha = types.StringValue(sourceSha)
 	}
-	sourceBranchSHA := d.Get("source_sha").(string)
 
-	_, _, err := client.Git.CreateRef(ctx, orgName, repoName, &github.Reference{
+	// Create the branch reference
+	_, _, err := r.client.V3Client().Git.CreateRef(ctx, owner, repoName, &github.Reference{
 		Ref:    &branchRefName,
-		Object: &github.GitObject{SHA: &sourceBranchSHA},
+		Object: &github.GitObject{SHA: &sourceSha},
 	})
+
 	// If the branch already exists, rather than erroring out just continue on to importing the branch
-	//   This avoids the case where a repo with gitignore_template and branch are being created at the same time crashing terraform
+	// This avoids the case where a repo with gitignore_template and branch are being created at the same time crashing terraform
 	if err != nil && !strings.HasSuffix(err.Error(), "422 Reference already exists []") {
-		return fmt.Errorf("error creating GitHub branch reference %s/%s (%s): %s",
-			orgName, repoName, branchRefName, err)
+		resp.Diagnostics.AddError(
+			"Unable to Create Branch Reference",
+			fmt.Sprintf("An unexpected error occurred when creating GitHub branch reference %s/%s (%s): %s",
+				owner, repoName, branchRefName, err.Error()),
+		)
+		return
 	}
 
-	d.SetId(buildTwoPartID(repoName, branchName))
+	data.ID = types.StringValue(r.buildTwoPartID(repoName, branchName))
 
-	return resourceGithubBranchRead(d, meta)
+	tflog.Debug(ctx, "created GitHub branch", map[string]interface{}{
+		"repository": data.Repository.ValueString(),
+		"branch":     data.Branch.ValueString(),
+		"source_sha": data.SourceSha.ValueString(),
+	})
+
+	// Read the created resource to populate all computed fields
+	r.readGithubBranch(ctx, &data, &resp.Diagnostics, false)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceGithubBranchRead(d *schema.ResourceData, meta any) error {
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+func (r *githubBranchResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data githubBranchResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
+	r.readGithubBranch(ctx, &data, &resp.Diagnostics, true)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubBranchResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// This resource doesn't support updates - all attributes require replacement
+	resp.Diagnostics.AddError(
+		"Resource Update Not Supported",
+		"The github_branch resource does not support updates. All changes require resource replacement.",
+	)
+}
+
+func (r *githubBranchResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data githubBranchResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := r.client.Name()
+	repoName, branchName, err := r.parseTwoPartID(data.ID.ValueString())
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Invalid Resource ID",
+			fmt.Sprintf("Unable to parse resource ID: %s", err.Error()),
+		)
+		return
 	}
 	branchRefName := "refs/heads/" + branchName
 
-	ref, resp, err := client.Git.GetRef(ctx, orgName, repoName, branchRefName)
+	_, err = r.client.V3Client().Git.DeleteRef(ctx, owner, repoName, branchRefName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Delete Branch Reference",
+			fmt.Sprintf("An unexpected error occurred when deleting GitHub branch reference %s/%s (%s): %s",
+				owner, repoName, branchRefName, err.Error()),
+		)
+		return
+	}
+
+	tflog.Debug(ctx, "deleted GitHub branch", map[string]interface{}{
+		"repository": repoName,
+		"branch":     branchName,
+	})
+}
+
+func (r *githubBranchResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	repoName, branchName, err := r.parseTwoPartID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid Import ID",
+			fmt.Sprintf("Unable to parse import ID: %s", err.Error()),
+		)
+		return
+	}
+
+	data := &githubBranchResourceModel{
+		ID:         types.StringValue(r.buildTwoPartID(repoName, branchName)),
+		Repository: types.StringValue(repoName),
+		Branch:     types.StringValue(branchName),
+	}
+
+	// Check if import ID includes source branch (format: repo:branch:source_branch)
+	parts := strings.SplitN(req.ID, ":", 3)
+	sourceBranch := "main" // default
+	if len(parts) == 3 {
+		sourceBranch = parts[2]
+	}
+	data.SourceBranch = types.StringValue(sourceBranch)
+
+	r.readGithubBranch(ctx, data, &resp.Diagnostics, false)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check if the branch was found
+	if data.Repository.IsNull() {
+		resp.Diagnostics.AddError(
+			"Branch Not Found",
+			fmt.Sprintf("Repository %s does not have a branch named %s", repoName, branchName),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+// Helper functions
+
+func (r *githubBranchResource) buildTwoPartID(a, b string) string {
+	return fmt.Sprintf("%s:%s", a, b)
+}
+
+func (r *githubBranchResource) parseTwoPartID(id string) (string, string, error) {
+	parts := strings.SplitN(id, ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("Unexpected ID format (%q), expected repository:branch", id)
+	}
+
+	return parts[0], parts[1], nil
+}
+
+func (r *githubBranchResource) readGithubBranch(ctx context.Context, data *githubBranchResourceModel, diags *diag.Diagnostics, useEtag bool) {
+	owner := r.client.Name()
+	repoName, branchName, err := r.parseTwoPartID(data.ID.ValueString())
+	if err != nil {
+		diags.AddError(
+			"Invalid Resource ID",
+			fmt.Sprintf("Unable to parse resource ID: %s", err.Error()),
+		)
+		return
+	}
+	branchRefName := "refs/heads/" + branchName
+
+	// Set up context with ETag if this is not a new resource and useEtag is true
+	reqCtx := ctx
+	if useEtag && !data.Etag.IsNull() && data.Etag.ValueString() != "" {
+		reqCtx = context.WithValue(ctx, CtxEtag, data.Etag.ValueString())
+	}
+	reqCtx = context.WithValue(reqCtx, CtxId, data.ID.ValueString())
+
+	ref, resp, err := r.client.V3Client().Git.GetRef(reqCtx, owner, repoName, branchRefName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
+				// Resource hasn't changed, keep current state
+				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing branch %s/%s (%s) from state because it no longer exists in GitHub",
-					orgName, repoName, branchName)
-				d.SetId("")
-				return nil
+				tflog.Info(ctx, "GitHub branch not found, removing from state", map[string]interface{}{
+					"repository": repoName,
+					"branch":     branchName,
+				})
+				data.Repository = types.StringNull()
+				return
 			}
 		}
-		return fmt.Errorf("error querying GitHub branch reference %s/%s (%s): %s",
-			orgName, repoName, branchRefName, err)
+		diags.AddError(
+			"Unable to Read GitHub Branch Reference",
+			fmt.Sprintf("An unexpected error occurred when reading the GitHub branch reference %s/%s (%s): %s",
+				owner, repoName, branchRefName, err.Error()),
+		)
+		return
 	}
 
-	d.SetId(buildTwoPartID(repoName, branchName))
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("repository", repoName); err != nil {
-		return err
-	}
-	if err = d.Set("branch", branchName); err != nil {
-		return err
-	}
-	if err = d.Set("ref", *ref.Ref); err != nil {
-		return err
-	}
-	if err = d.Set("sha", *ref.Object.SHA); err != nil {
-		return err
-	}
+	data.ID = types.StringValue(r.buildTwoPartID(repoName, branchName))
+	data.Etag = types.StringValue(resp.Header.Get("ETag"))
+	data.Repository = types.StringValue(repoName)
+	data.Branch = types.StringValue(branchName)
+	data.Ref = types.StringValue(*ref.Ref)
+	data.Sha = types.StringValue(*ref.Object.SHA)
 
-	return nil
-}
-
-func resourceGithubBranchDelete(d *schema.ResourceData, meta any) error {
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
-	if err != nil {
-		return err
-	}
-	branchRefName := "refs/heads/" + branchName
-
-	_, err = client.Git.DeleteRef(ctx, orgName, repoName, branchRefName)
-	if err != nil {
-		return fmt.Errorf("error deleting GitHub branch reference %s/%s (%s): %s",
-			orgName, repoName, branchRefName, err)
-	}
-
-	return nil
-}
-
-func resourceGithubBranchImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, branchName, err := parseTwoPartID(d.Id(), "repository", "branch")
-	if err != nil {
-		return nil, err
-	}
-
-	sourceBranch := "main"
-	if strings.Contains(branchName, ":") {
-		branchName, sourceBranch, err = parseTwoPartID(branchName, "branch", "source_branch")
-		if err != nil {
-			return nil, err
-		}
-		d.SetId(buildTwoPartID(repoName, branchName))
-	}
-
-	if err = d.Set("source_branch", sourceBranch); err != nil {
-		return nil, err
-	}
-
-	err = resourceGithubBranchRead(d, meta)
-	if err != nil {
-		return nil, err
-	}
-
-	// resourceGithubBranchRead calls d.SetId("") if the branch does not exist
-	if d.Id() == "" {
-		return nil, fmt.Errorf("repository %s does not have a branch named %s", repoName, branchName)
-	}
-
-	return []*schema.ResourceData{d}, nil
+	tflog.Debug(ctx, "successfully read GitHub branch", map[string]interface{}{
+		"repository": data.Repository.ValueString(),
+		"branch":     data.Branch.ValueString(),
+		"sha":        data.Sha.ValueString(),
+	})
 }

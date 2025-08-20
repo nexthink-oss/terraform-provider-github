@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubDependabotPublicKeyDataSource(t *testing.T) {
@@ -32,12 +32,15 @@ func TestAccGithubDependabotPublicKeyDataSource(t *testing.T) {
 			resource.TestCheckResourceAttrSet(
 				"data.github_dependabot_public_key.test", "key_id",
 			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_dependabot_public_key.test", "id",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,

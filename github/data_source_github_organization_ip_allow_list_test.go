@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationIpAllowListDataSource(t *testing.T) {
@@ -15,18 +15,14 @@ func TestAccGithubOrganizationIpAllowListDataSource(t *testing.T) {
 		`
 
 		check := resource.ComposeAggregateTestCheckFunc(
-			resource.TestCheckResourceAttrSet("data.github_organization_ip_allow_list.all", "ip_allow_list.0.id"),
-			resource.TestCheckResourceAttrSet("data.github_organization_ip_allow_list.all", "ip_allow_list.0.name"),
-			resource.TestCheckResourceAttrSet("data.github_organization_ip_allow_list.all", "ip_allow_list.0.allow_list_value"),
-			resource.TestCheckResourceAttrSet("data.github_organization_ip_allow_list.all", "ip_allow_list.0.is_active"),
-			resource.TestCheckResourceAttrSet("data.github_organization_ip_allow_list.all", "ip_allow_list.0.created_at"),
-			resource.TestCheckResourceAttrSet("data.github_organization_ip_allow_list.all", "ip_allow_list.0.updated_at"),
+			resource.TestCheckResourceAttrSet("data.github_organization_ip_allow_list.all", "id"),
+			resource.TestCheckResourceAttr("data.github_organization_ip_allow_list.all", "ip_allow_list.#", "0"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,

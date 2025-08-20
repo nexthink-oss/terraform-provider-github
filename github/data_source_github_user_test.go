@@ -2,10 +2,11 @@ package github
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubUserDataSource(t *testing.T) {
@@ -21,12 +22,13 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		check := resource.ComposeAggregateTestCheckFunc(
 			resource.TestCheckResourceAttrSet("data.github_user.test", "login"),
 			resource.TestCheckResourceAttrSet("data.github_user.test", "id"),
+			resource.TestCheckResourceAttr("data.github_user.test", "username", testOwnerFunc()),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -60,12 +62,12 @@ func TestAccGithubUserDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config:      config,
-						ExpectError: regexp.MustCompile(`Not Found`),
+						ExpectError: regexp.MustCompile(`Unable to Read GitHub User`),
 					},
 				},
 			})
@@ -84,4 +86,13 @@ func TestAccGithubUserDataSource(t *testing.T) {
 		})
 
 	})
+}
+
+// testOwnerFunc returns the owner for testing, derived from environment variables
+func testOwnerFunc() string {
+	owner := os.Getenv("GITHUB_OWNER")
+	if owner == "" {
+		owner = os.Getenv("GITHUB_TEST_OWNER")
+	}
+	return owner
 }

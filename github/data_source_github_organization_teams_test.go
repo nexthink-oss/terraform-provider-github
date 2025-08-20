@@ -3,13 +3,11 @@ package github
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
-
 	t.Run("queries without error", func(t *testing.T) {
-
 		config := `
 			data "github_organization_teams" "all" {}
 		`
@@ -21,8 +19,8 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -43,11 +41,9 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries root teams only without error", func(t *testing.T) {
-
 		config := `
 			data "github_organization_teams" "root_teams" {
 				root_teams_only = true
@@ -62,8 +58,8 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -84,11 +80,9 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries summary only without error", func(t *testing.T) {
-
 		config := `
 			data "github_organization_teams" "all" {
 				summary_only = true
@@ -104,8 +98,8 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -126,11 +120,9 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
 	t.Run("queries results_per_page only without error", func(t *testing.T) {
-
 		config := `
 			data "github_organization_teams" "all" {
 				results_per_page = 50
@@ -144,8 +136,8 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -166,7 +158,5 @@ func TestAccGithubOrganizationTeamsDataSource(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }

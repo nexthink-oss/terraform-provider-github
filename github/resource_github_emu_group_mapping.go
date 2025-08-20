@@ -6,183 +6,317 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
 )
 
-func resourceGithubEMUGroupMapping() *schema.Resource {
-	return &schema.Resource{
+var (
+	_ resource.Resource                = &githubEmuGroupMappingResource{}
+	_ resource.ResourceWithConfigure   = &githubEmuGroupMappingResource{}
+	_ resource.ResourceWithImportState = &githubEmuGroupMappingResource{}
+)
+
+func NewGithubEmuGroupMappingResource() resource.Resource {
+	return &githubEmuGroupMappingResource{}
+}
+
+type githubEmuGroupMappingResource struct {
+	client *Owner
+}
+
+type githubEmuGroupMappingResourceModel struct {
+	ID       types.String `tfsdk:"id"`
+	TeamSlug types.String `tfsdk:"team_slug"`
+	GroupID  types.Int64  `tfsdk:"group_id"`
+	Etag     types.String `tfsdk:"etag"`
+}
+
+func (r *githubEmuGroupMappingResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_emu_group_mapping"
+}
+
+func (r *githubEmuGroupMappingResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Manages mappings between external groups for enterprise managed users.",
-		Create:      resourceGithubEMUGroupMappingCreate,
-		Read:        resourceGithubEMUGroupMappingRead,
-		Update:      resourceGithubEMUGroupMappingUpdate,
-		Delete:      resourceGithubEMUGroupMappingDelete,
-		Importer: &schema.ResourceImporter{
-			State: func(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-				id, err := strconv.Atoi(d.Id())
-				if err != nil {
-					return nil, err
-				}
-				if err := d.Set("group_id", id); err != nil {
-					return nil, err
-				}
-				ctx := context.WithValue(context.Background(), ctxId, d.Id())
-				client := meta.(*Owner).v3client
-				orgName := meta.(*Owner).name
-				group, _, err := client.Teams.GetExternalGroup(ctx, orgName, int64(id))
-				if err != nil {
-					return nil, err
-				}
-				if len(group.Teams) != 1 {
-					return nil, fmt.Errorf("could not get team_slug from %v number of teams", len(group.Teams))
-				}
-				if err := d.Set("team_slug", group.Teams[0].TeamName); err != nil {
-					return nil, err
-				}
-				d.SetId(fmt.Sprintf("teams/%s/external-groups", d.Id()))
-				return []*schema.ResourceData{d}, nil
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the EMU group mapping.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-		},
-		Schema: map[string]*schema.Schema{
-			"team_slug": {
-				Type:        schema.TypeString,
-				Required:    true,
+			"team_slug": schema.StringAttribute{
 				Description: "Slug of the GitHub team.",
-			},
-			"group_id": {
-				Type:        schema.TypeInt,
 				Required:    true,
-				Description: "Integer corresponding to the external group ID to be linked.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
-			"etag": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"group_id": schema.Int64Attribute{
+				Description: "Integer corresponding to the external group ID to be linked.",
+				Required:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
+			},
+			"etag": schema.StringAttribute{
+				Description: "The etag of the external group.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func resourceGithubEMUGroupMappingCreate(d *schema.ResourceData, meta any) error {
-	return resourceGithubEMUGroupMappingUpdate(d, meta)
+func (r *githubEmuGroupMappingResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.client = client
 }
 
-func resourceGithubEMUGroupMappingRead(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
+func (r *githubEmuGroupMappingResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data githubEmuGroupMappingResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	r.updateEmuGroupMapping(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubEmuGroupMappingResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data githubEmuGroupMappingResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	r.readEmuGroupMapping(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubEmuGroupMappingResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data githubEmuGroupMappingResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	r.updateEmuGroupMapping(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubEmuGroupMappingResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data githubEmuGroupMappingResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Validate this is an organization
+	err := r.checkOrganization()
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Organization Required",
+			fmt.Sprintf("This resource can only be used with organization accounts: %s", err.Error()),
+		)
+		return
 	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
 
-	id, ok := d.GetOk("group_id")
-	if !ok {
-		return fmt.Errorf("could not get group id from provided value")
-	}
-	id64, err := getInt64FromInterface(id)
+	client := r.client.V3Client()
+	owner := r.client.Name()
+	teamSlug := data.TeamSlug.ValueString()
+
+	_, err = client.Teams.RemoveConnectedExternalGroup(ctx, owner, teamSlug)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Error Removing EMU Group Mapping",
+			"Could not remove EMU group mapping for team "+teamSlug+": "+err.Error(),
+		)
+		return
+	}
+}
+
+func (r *githubEmuGroupMappingResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Parse the group ID from the import ID
+	groupID, err := strconv.ParseInt(req.ID, 10, 64)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Importing EMU Group Mapping",
+			"Could not parse group ID: "+err.Error(),
+		)
+		return
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	// Validate this is an organization
+	err = r.checkOrganization()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Organization Required",
+			fmt.Sprintf("This resource can only be used with organization accounts: %s", err.Error()),
+		)
+		return
+	}
 
-	group, resp, err := client.Teams.GetExternalGroup(ctx, orgName, id64)
+	client := r.client.V3Client()
+	owner := r.client.Name()
+
+	// Get the external group to find the associated team
+	group, _, err := client.Teams.GetExternalGroup(ctx, owner, groupID)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Importing EMU Group Mapping",
+			"Could not get external group: "+err.Error(),
+		)
+		return
+	}
+
+	if len(group.Teams) != 1 {
+		resp.Diagnostics.AddError(
+			"Error Importing EMU Group Mapping",
+			fmt.Sprintf("Expected exactly one team associated with group, found %d", len(group.Teams)),
+		)
+		return
+	}
+
+	teamSlug := group.Teams[0].TeamName
+	id := fmt.Sprintf("teams/%s/external-groups", *teamSlug)
+
+	data := githubEmuGroupMappingResourceModel{
+		ID:       types.StringValue(id),
+		TeamSlug: types.StringValue(*teamSlug),
+		GroupID:  types.Int64Value(groupID),
+	}
+
+	r.readEmuGroupMapping(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// Helper methods
+
+func (r *githubEmuGroupMappingResource) checkOrganization() error {
+	if r.client.Name() == "" {
+		return fmt.Errorf("owner is required")
+	}
+	return nil
+}
+
+func (r *githubEmuGroupMappingResource) readEmuGroupMapping(ctx context.Context, data *githubEmuGroupMappingResourceModel, diags *diag.Diagnostics) {
+	// Validate this is an organization
+	err := r.checkOrganization()
+	if err != nil {
+		diags.AddError(
+			"Organization Required",
+			fmt.Sprintf("This resource can only be used with organization accounts: %s", err.Error()),
+		)
+		return
+	}
+
+	client := r.client.V3Client()
+	owner := r.client.Name()
+	groupID := data.GroupID.ValueInt64()
+
+	group, resp, err := client.Teams.GetExternalGroup(ctx, owner, groupID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			// If the group is not found, remove it from state
-			d.SetId("")
-			return nil
+			data.ID = types.StringValue("")
+			return
 		}
-		return err
+		diags.AddError(
+			"Error Reading EMU Group Mapping",
+			"Could not read EMU group mapping: "+err.Error(),
+		)
+		return
 	}
 
 	if len(group.Teams) < 1 {
-		// if there's not a team linked, that means it was removed outside of terraform
-		// and we should remove it from our state
-		d.SetId("")
-		return nil
+		// If there's no team linked, the mapping was removed outside of Terraform
+		data.ID = types.StringValue("")
+		return
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
+	// Update computed attributes
+	data.Etag = types.StringValue(resp.Header.Get("ETag"))
+	data.GroupID = types.Int64Value(int64(group.GetGroupID()))
+
+	// Ensure ID is set correctly
+	if data.ID.IsNull() || data.ID.ValueString() == "" {
+		teamSlug := data.TeamSlug.ValueString()
+		data.ID = types.StringValue(fmt.Sprintf("teams/%s/external-groups", teamSlug))
 	}
-	if err = d.Set("group_id", int(*group.GroupID)); err != nil {
-		return err
-	}
-	return nil
 }
 
-func resourceGithubEMUGroupMappingUpdate(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
+func (r *githubEmuGroupMappingResource) updateEmuGroupMapping(ctx context.Context, data *githubEmuGroupMappingResourceModel, diags *diag.Diagnostics) {
+	// Validate this is an organization
+	err := r.checkOrganization()
 	if err != nil {
-		return err
-	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	teamSlug, ok := d.GetOk("team_slug")
-	if !ok {
-		return fmt.Errorf("could not get team slug from provided value")
+		diags.AddError(
+			"Organization Required",
+			fmt.Sprintf("This resource can only be used with organization accounts: %s", err.Error()),
+		)
+		return
 	}
 
-	id, ok := d.GetOk("group_id")
-	if !ok {
-		return fmt.Errorf("could not get group id from provided value")
+	client := r.client.V3Client()
+	owner := r.client.Name()
+	teamSlug := data.TeamSlug.ValueString()
+	groupID := data.GroupID.ValueInt64()
+
+	externalGroup := &github.ExternalGroup{
+		GroupID: &groupID,
 	}
-	id64, err := getInt64FromInterface(id)
+
+	_, _, err = client.Teams.UpdateConnectedExternalGroup(ctx, owner, teamSlug, externalGroup)
 	if err != nil {
-		return err
+		diags.AddError(
+			"Error Updating EMU Group Mapping",
+			"Could not update EMU group mapping for team "+teamSlug+": "+err.Error(),
+		)
+		return
 	}
 
-	eg := &github.ExternalGroup{
-		GroupID: &id64,
-	}
+	// Set the ID
+	data.ID = types.StringValue(fmt.Sprintf("teams/%s/external-groups", teamSlug))
 
-	_, _, err = client.Teams.UpdateConnectedExternalGroup(ctx, orgName, teamSlug.(string), eg)
-	if err != nil {
-		return err
-	}
-
-	d.SetId(fmt.Sprintf("teams/%s/external-groups", teamSlug))
-	return resourceGithubEMUGroupMappingRead(d, meta)
-}
-
-func resourceGithubEMUGroupMappingDelete(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
-	}
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-
-	teamSlug, ok := d.GetOk("team_slug")
-	if !ok {
-		return fmt.Errorf("could not parse team slug from provided value")
-	}
-
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	_, err = client.Teams.RemoveConnectedExternalGroup(ctx, orgName, teamSlug.(string))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func getInt64FromInterface(val any) (int64, error) {
-	var id64 int64
-	switch val := val.(type) {
-	case int64:
-		id64 = val
-	case int:
-		id64 = int64(val)
-	case string:
-		var err error
-		id64, err = strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return 0, fmt.Errorf("could not parse id from string: %v", err)
-		}
-	default:
-		return 0, fmt.Errorf("unexpected type converting to int64 from interface")
-	}
-	return id64, nil
+	// Read the updated state
+	r.readEmuGroupMapping(ctx, data, diags)
 }

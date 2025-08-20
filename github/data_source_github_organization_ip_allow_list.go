@@ -2,45 +2,84 @@ package github
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
+
 )
 
-func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get the IP allow list of an organization.",
-		Read:        dataSourceGithubOrganizationIpAllowListRead,
+var (
+	_ datasource.DataSource              = &githubOrganizationIpAllowListDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubOrganizationIpAllowListDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"ip_allow_list": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
+type githubOrganizationIpAllowListDataSource struct {
+	client *Owner
+}
+
+type githubOrganizationIpAllowListDataSourceModel struct {
+	ID          types.String `tfsdk:"id"`
+	IpAllowList types.List   `tfsdk:"ip_allow_list"`
+}
+
+type githubIpAllowListEntryModel struct {
+	ID             types.String `tfsdk:"id"`
+	Name           types.String `tfsdk:"name"`
+	AllowListValue types.String `tfsdk:"allow_list_value"`
+	IsActive       types.Bool   `tfsdk:"is_active"`
+	CreatedAt      types.String `tfsdk:"created_at"`
+	UpdatedAt      types.String `tfsdk:"updated_at"`
+}
+
+func NewGithubOrganizationIpAllowListDataSource() datasource.DataSource {
+	return &githubOrganizationIpAllowListDataSource{}
+}
+
+func (d *githubOrganizationIpAllowListDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_organization_ip_allow_list"
+}
+
+func (d *githubOrganizationIpAllowListDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get the IP allow list of an organization.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the organization.",
+				Computed:    true,
+			},
+			"ip_allow_list": schema.ListNestedAttribute{
+				Description: "The list of IP allow list entries for the organization.",
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "The ID of the IP allow list entry.",
+							Computed:    true,
 						},
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"name": schema.StringAttribute{
+							Description: "The name of the IP allow list entry.",
+							Computed:    true,
 						},
-						"allow_list_value": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"allow_list_value": schema.StringAttribute{
+							Description: "The IP address or CIDR block that is allowed.",
+							Computed:    true,
 						},
-						"is_active": {
-							Type:     schema.TypeBool,
-							Computed: true,
+						"is_active": schema.BoolAttribute{
+							Description: "Whether the IP allow list entry is active.",
+							Computed:    true,
 						},
-						"created_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"created_at": schema.StringAttribute{
+							Description: "The timestamp when the IP allow list entry was created.",
+							Computed:    true,
 						},
-						"updated_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"updated_at": schema.StringAttribute{
+							Description: "The timestamp when the IP allow list entry was last updated.",
+							Computed:    true,
 						},
 					},
 				},
@@ -49,15 +88,47 @@ func dataSourceGithubOrganizationIpAllowList() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func (d *githubOrganizationIpAllowListDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	ctx := context.Background()
-	client := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			"Expected *github.Owner, got something else.",
+		)
+		return
+	}
+
+	d.client = client
+}
+
+func (d *githubOrganizationIpAllowListDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubOrganizationIpAllowListDataSourceModel
+
+	// Read configuration
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check if organization is configured
+	if !d.client.IsOrganization {
+		resp.Diagnostics.AddError(
+			"Organization Required",
+			"This data source can only be used with an organization.",
+		)
+		return
+	}
+
+	v4client := d.client.V4Client()
+	orgName := d.client.Name()
+
+	tflog.Debug(ctx, "Reading GitHub organization IP allow list", map[string]interface{}{
+		"organization": orgName,
+	})
 
 	type PageInfo struct {
 		StartCursor     githubv4.String
@@ -93,13 +164,17 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta an
 		"entriesCursor": (*githubv4.String)(nil),
 	}
 
-	var ipAllowList []any
 	var ipAllowListEntries []IpAllowListEntry
 
+	// Paginate through all IP allow list entries
 	for {
-		err := client.Query(ctx, &query, variables)
+		err := v4client.Query(ctx, &query, variables)
 		if err != nil {
-			return err
+			resp.Diagnostics.AddError(
+				"Unable to Read GitHub Organization IP Allow List",
+				fmt.Sprintf("An unexpected error occurred while reading the IP allow list for organization %s: %s", orgName, err.Error()),
+			)
+			return
 		}
 
 		ipAllowListEntries = append(ipAllowListEntries, query.Organization.IpAllowListEntries.Nodes...)
@@ -108,22 +183,50 @@ func dataSourceGithubOrganizationIpAllowListRead(d *schema.ResourceData, meta an
 		}
 		variables["entriesCursor"] = githubv4.NewString(query.Organization.IpAllowListEntries.PageInfo.EndCursor)
 	}
-	for index := range ipAllowListEntries {
-		ipAllowList = append(ipAllowList, map[string]any{
-			"id":               ipAllowListEntries[index].ID,
-			"name":             ipAllowListEntries[index].Name,
-			"allow_list_value": ipAllowListEntries[index].AllowListValue,
-			"is_active":        ipAllowListEntries[index].IsActive,
-			"created_at":       ipAllowListEntries[index].CreatedAt,
-			"updated_at":       ipAllowListEntries[index].UpdatedAt,
-		})
+
+	// Convert to Framework types
+	ipAllowListElements := make([]attr.Value, 0, len(ipAllowListEntries))
+	ipAllowListAttrTypes := map[string]attr.Type{
+		"id":               types.StringType,
+		"name":             types.StringType,
+		"allow_list_value": types.StringType,
+		"is_active":        types.BoolType,
+		"created_at":       types.StringType,
+		"updated_at":       types.StringType,
 	}
 
-	d.SetId(string(query.Organization.ID))
-	err = d.Set("ip_allow_list", ipAllowList)
-	if err != nil {
-		return err
+	for _, entry := range ipAllowListEntries {
+		entryAttrs := map[string]attr.Value{
+			"id":               types.StringValue(string(entry.ID)),
+			"name":             types.StringValue(string(entry.Name)),
+			"allow_list_value": types.StringValue(string(entry.AllowListValue)),
+			"is_active":        types.BoolValue(bool(entry.IsActive)),
+			"created_at":       types.StringValue(string(entry.CreatedAt)),
+			"updated_at":       types.StringValue(string(entry.UpdatedAt)),
+		}
+		entryObj, diags := types.ObjectValue(ipAllowListAttrTypes, entryAttrs)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		ipAllowListElements = append(ipAllowListElements, entryObj)
 	}
 
-	return nil
+	ipAllowListValue, diags := types.ListValue(types.ObjectType{AttrTypes: ipAllowListAttrTypes}, ipAllowListElements)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set the data
+	data.ID = types.StringValue(string(query.Organization.ID))
+	data.IpAllowList = ipAllowListValue
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+	tflog.Debug(ctx, "Successfully read GitHub organization IP allow list", map[string]interface{}{
+		"organization": orgName,
+		"entries":      len(ipAllowListEntries),
+	})
 }

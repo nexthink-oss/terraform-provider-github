@@ -2,182 +2,231 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
 )
 
-func dataSourceGithubRepositoryPullRequest() *schema.Resource {
-	return &schema.Resource{
+var (
+	_ datasource.DataSource              = &githubRepositoryPullRequestDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubRepositoryPullRequestDataSource{}
+)
+
+func NewGithubRepositoryPullRequestDataSource() datasource.DataSource {
+	return &githubRepositoryPullRequestDataSource{}
+}
+
+type githubRepositoryPullRequestDataSource struct {
+	client *Owner
+}
+
+type githubRepositoryPullRequestDataSourceModel struct {
+	ID                  types.String `tfsdk:"id"`
+	Owner               types.String `tfsdk:"owner"`
+	BaseRepository      types.String `tfsdk:"base_repository"`
+	Number              types.Int64  `tfsdk:"number"`
+	BaseRef             types.String `tfsdk:"base_ref"`
+	BaseSha             types.String `tfsdk:"base_sha"`
+	Body                types.String `tfsdk:"body"`
+	Draft               types.Bool   `tfsdk:"draft"`
+	HeadOwner           types.String `tfsdk:"head_owner"`
+	HeadRef             types.String `tfsdk:"head_ref"`
+	HeadRepository      types.String `tfsdk:"head_repository"`
+	HeadSha             types.String `tfsdk:"head_sha"`
+	Labels              types.List   `tfsdk:"labels"`
+	MaintainerCanModify types.Bool   `tfsdk:"maintainer_can_modify"`
+	OpenedAt            types.Int64  `tfsdk:"opened_at"`
+	OpenedBy            types.String `tfsdk:"opened_by"`
+	State               types.String `tfsdk:"state"`
+	Title               types.String `tfsdk:"title"`
+	UpdatedAt           types.Int64  `tfsdk:"updated_at"`
+}
+
+func (d *githubRepositoryPullRequestDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_repository_pull_request"
+}
+
+func (d *githubRepositoryPullRequestDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Get information on a single GitHub Pull Request.",
-		Read:        dataSourceGithubRepositoryPullRequestRead,
-		Schema: map[string]*schema.Schema{
-			"owner": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"base_repository": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"number": {
-				Type:     schema.TypeInt,
-				Required: true,
-			},
-			"base_ref": {
-				Type:     schema.TypeString,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Computed: true,
 			},
-			"base_sha": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"owner": schema.StringAttribute{
+				Description: "The GitHub organization or user owning the repository. If not provided, the configured owner will be used.",
+				Optional:    true,
 			},
-			"body": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"base_repository": schema.StringAttribute{
+				Description: "The name of the repository containing the pull request.",
+				Required:    true,
 			},
-			"draft": {
-				Type:     schema.TypeBool,
-				Computed: true,
+			"number": schema.Int64Attribute{
+				Description: "The pull request number.",
+				Required:    true,
 			},
-			"head_owner": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"head_ref": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"head_repository": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"head_sha": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"labels": {
-				Type:        schema.TypeList,
-				Elem:        &schema.Schema{Type: schema.TypeString},
+			"base_ref": schema.StringAttribute{
+				Description: "The base branch name the PR is merging into.",
 				Computed:    true,
-				Description: "List of names of labels on the PR",
 			},
-			"maintainer_can_modify": {
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
-			"opened_at": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"opened_by": {
-				Type:        schema.TypeString,
+			"base_sha": schema.StringAttribute{
+				Description: "The SHA of the base branch the PR is merging into.",
 				Computed:    true,
-				Description: "Username of the PR creator",
 			},
-			"state": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"body": schema.StringAttribute{
+				Description: "The body/content of the pull request.",
+				Computed:    true,
 			},
-			"title": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"draft": schema.BoolAttribute{
+				Description: "Indicates whether or not the pull request is a draft.",
+				Computed:    true,
 			},
-			"updated_at": {
-				Type:     schema.TypeInt,
-				Computed: true,
+			"head_owner": schema.StringAttribute{
+				Description: "The owner of the repository containing the head branch.",
+				Computed:    true,
+			},
+			"head_ref": schema.StringAttribute{
+				Description: "The head branch name the PR is merging from.",
+				Computed:    true,
+			},
+			"head_repository": schema.StringAttribute{
+				Description: "The name of the repository containing the head branch.",
+				Computed:    true,
+			},
+			"head_sha": schema.StringAttribute{
+				Description: "The SHA of the head branch the PR is merging from.",
+				Computed:    true,
+			},
+			"labels": schema.ListAttribute{
+				Description: "List of names of labels on the PR.",
+				ElementType: types.StringType,
+				Computed:    true,
+			},
+			"maintainer_can_modify": schema.BoolAttribute{
+				Description: "Indicates whether maintainers can modify the pull request.",
+				Computed:    true,
+			},
+			"opened_at": schema.Int64Attribute{
+				Description: "Unix timestamp indicating when the pull request was opened.",
+				Computed:    true,
+			},
+			"opened_by": schema.StringAttribute{
+				Description: "Username of the PR creator.",
+				Computed:    true,
+			},
+			"state": schema.StringAttribute{
+				Description: "The state of the pull request (open, closed, merged).",
+				Computed:    true,
+			},
+			"title": schema.StringAttribute{
+				Description: "The title of the pull request.",
+				Computed:    true,
+			},
+			"updated_at": schema.Int64Attribute{
+				Description: "Unix timestamp indicating when the pull request was last updated.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func dataSourceGithubRepositoryPullRequestRead(d *schema.ResourceData, meta any) error {
-	ctx := context.TODO()
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	if expliclitOwner, ok := d.GetOk("owner"); ok {
-		owner = expliclitOwner.(string)
+func (d *githubRepositoryPullRequestDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	repository := d.Get("base_repository").(string)
-	number := d.Get("number").(int)
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *Owner, got: %T", req.ProviderData),
+		)
+		return
+	}
+
+	d.client = client
+}
+
+func (d *githubRepositoryPullRequestDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubRepositoryPullRequestDataSourceModel
+
+	// Read Terraform configuration data into the model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := d.client.V3Client()
+
+	// Determine owner - use explicit owner if provided, otherwise use configured owner
+	owner := d.client.Name()
+	if !data.Owner.IsNull() && !data.Owner.IsUnknown() {
+		owner = data.Owner.ValueString()
+	}
+
+	repository := data.BaseRepository.ValueString()
+	number := int(data.Number.ValueInt64())
 
 	pullRequest, _, err := client.PullRequests.Get(ctx, owner, repository, number)
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub Pull Request",
+			fmt.Sprintf("Error reading pull request %d in repository %s/%s: %s", number, owner, repository, err.Error()),
+		)
+		return
 	}
 
+	// Map pull request data to model
 	if head := pullRequest.GetHead(); head != nil {
-		if err = d.Set("head_ref", head.GetRef()); err != nil {
-			return err
-		}
-		if err = d.Set("head_sha", head.GetSHA()); err != nil {
-			return err
-		}
+		data.HeadRef = types.StringValue(head.GetRef())
+		data.HeadSha = types.StringValue(head.GetSHA())
 
 		if headRepo := head.Repo; headRepo != nil {
-			if err = d.Set("head_repository", headRepo.GetName()); err != nil {
-				return err
-			}
+			data.HeadRepository = types.StringValue(headRepo.GetName())
 		}
 
 		if headUser := head.User; headUser != nil {
-			if err = d.Set("head_owner", headUser.GetLogin()); err != nil {
-				return err
-			}
+			data.HeadOwner = types.StringValue(headUser.GetLogin())
 		}
 	}
 
 	if base := pullRequest.GetBase(); base != nil {
-		if err = d.Set("base_ref", base.GetRef()); err != nil {
-			return err
-		}
-		if err = d.Set("base_sha", base.GetSHA()); err != nil {
-			return err
-		}
+		data.BaseRef = types.StringValue(base.GetRef())
+		data.BaseSha = types.StringValue(base.GetSHA())
 	}
 
-	if err = d.Set("body", pullRequest.GetBody()); err != nil {
-		return err
-	}
-	if err = d.Set("draft", pullRequest.GetDraft()); err != nil {
-		return err
-	}
-	if err = d.Set("maintainer_can_modify", pullRequest.GetMaintainerCanModify()); err != nil {
-		return err
-	}
-	if err = d.Set("number", pullRequest.GetNumber()); err != nil {
-		return err
-	}
-	if err = d.Set("opened_at", pullRequest.GetCreatedAt().Unix()); err != nil {
-		return err
-	}
-	if err = d.Set("state", pullRequest.GetState()); err != nil {
-		return err
-	}
-	if err = d.Set("title", pullRequest.GetTitle()); err != nil {
-		return err
-	}
-	if err = d.Set("updated_at", pullRequest.GetUpdatedAt().Unix()); err != nil {
-		return err
-	}
+	data.Body = types.StringValue(pullRequest.GetBody())
+	data.Draft = types.BoolValue(pullRequest.GetDraft())
+	data.MaintainerCanModify = types.BoolValue(pullRequest.GetMaintainerCanModify())
+	data.OpenedAt = types.Int64Value(pullRequest.GetCreatedAt().Unix())
+	data.State = types.StringValue(pullRequest.GetState())
+	data.Title = types.StringValue(pullRequest.GetTitle())
+	data.UpdatedAt = types.Int64Value(pullRequest.GetUpdatedAt().Unix())
 
 	if user := pullRequest.GetUser(); user != nil {
-		if err = d.Set("opened_by", user.GetLogin()); err != nil {
-			return err
-		}
+		data.OpenedBy = types.StringValue(user.GetLogin())
 	}
 
-	labels := []string{}
+	// Handle labels
+	labels := make([]types.String, 0)
 	for _, label := range pullRequest.Labels {
-		labels = append(labels, label.GetName())
-	}
-	if err = d.Set("labels", labels); err != nil {
-		return err
+		labels = append(labels, types.StringValue(label.GetName()))
 	}
 
-	d.SetId(buildThreePartID(owner, repository, strconv.Itoa(number)))
+	labelsList, diags := types.ListValueFrom(ctx, types.StringType, labels)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Labels = labelsList
 
-	return nil
+	// Set ID using the same pattern as SDKv2 version
+	data.ID = types.StringValue(buildThreePartID(owner, repository, strconv.Itoa(number)))
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func TestCanUseIDOrSlugForTeamIDWhenChangingSettings(t *testing.T) {
-
+func TestAccGithubTeamSettingsResource_basicIDAndSlug(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("manages team settings can use team_id id and slug", func(t *testing.T) {
@@ -29,12 +29,15 @@ func TestCanUseIDOrSlugForTeamIDWhenChangingSettings(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet("github_team_settings.test", "team_id"),
+			resource.TestCheckResourceAttrSet("github_team_settings.test", "id"),
+			resource.TestCheckResourceAttrSet("github_team_settings.test", "team_slug"),
+			resource.TestCheckResourceAttrSet("github_team_settings.test", "team_uid"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -61,13 +64,10 @@ func TestCanUseIDOrSlugForTeamIDWhenChangingSettings(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
 
-func TestCanUpdateTeamSettings(t *testing.T) {
-
+func TestAccGithubTeamSettingsResource_reviewSettings(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("manages team code review settings", func(t *testing.T) {
@@ -94,6 +94,14 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 					"github_team_settings.test", "review_request_delegation.0.algorithm",
 					"ROUND_ROBIN",
 				),
+				resource.TestCheckResourceAttr(
+					"github_team_settings.test", "review_request_delegation.0.member_count",
+					"1",
+				),
+				resource.TestCheckResourceAttr(
+					"github_team_settings.test", "review_request_delegation.0.notify",
+					"true",
+				),
 			),
 			"load_balance": resource.ComposeTestCheckFunc(
 				resource.TestCheckResourceAttr(
@@ -117,8 +125,8 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -157,16 +165,13 @@ func TestCanUpdateTeamSettings(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
-
 }
 
-func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
-
+func TestAccGithubTeamSettingsResource_validationErrors(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("cannot manage team code review settings if disabled", func(t *testing.T) {
+	t.Run("validates algorithm field", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_team" "test" {
@@ -177,7 +182,7 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 			resource "github_team_settings" "test" {
 				team_id    = "${github_team.test.id}"
 				review_request_delegation {
-					algorithm = "ROUND_ROBIN"
+					algorithm = "invalid"
 					member_count = 1
 					notify = true
 				}
@@ -186,14 +191,12 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
-						Config: strings.Replace(config,
-							`algorithm = "ROUND_ROBIN"`,
-							`algorithm = "invalid"`, 1),
-						ExpectError: regexp.MustCompile(`review request delegation algorithm must be one of \[.*\]`),
+						Config:      config,
+						ExpectError: regexp.MustCompile(`review request delegation algorithm must be one of`),
 					},
 				},
 			})
@@ -210,7 +213,182 @@ func TestCannotUseReviewSettingsIfDisabled(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)
 		})
-
 	})
 
+	t.Run("validates member_count field", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-repo-%s"
+				description = "generated by terraform provider automated testing"
+			}
+
+			resource "github_team_settings" "test" {
+				team_id    = "${github_team.test.id}"
+				review_request_delegation {
+					algorithm = "ROUND_ROBIN"
+					member_count = 0
+					notify = true
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{
+					{
+						Config:      config,
+						ExpectError: regexp.MustCompile(`Attribute member_count value must be at least 1`),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
+
+func TestAccGithubTeamSettingsResource_disableReviewDelegation(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("can disable review request delegation", func(t *testing.T) {
+
+		configWithDelegation := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-repo-%s"
+				description = "generated by terraform provider automated testing"
+			}
+
+			resource "github_team_settings" "test" {
+				team_id    = "${github_team.test.id}"
+				review_request_delegation {
+					algorithm = "ROUND_ROBIN"
+					member_count = 1
+					notify = true
+				}
+			}
+		`, randomID)
+
+		configWithoutDelegation := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-repo-%s"
+				description = "generated by terraform provider automated testing"
+			}
+
+			resource "github_team_settings" "test" {
+				team_id    = "${github_team.test.id}"
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{
+					{
+						Config: configWithDelegation,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_team_settings.test", "review_request_delegation.0.algorithm",
+								"ROUND_ROBIN",
+							),
+						),
+					},
+					{
+						Config: configWithoutDelegation,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr(
+								"github_team_settings.test", "review_request_delegation.#",
+								"0",
+							),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+}
+
+func TestAccGithubTeamSettingsResource_import(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	t.Run("imports team settings by team ID or slug", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_team" "test" {
+				name        = "tf-acc-test-team-repo-%s"
+				description = "generated by terraform provider automated testing"
+			}
+
+			resource "github_team_settings" "test" {
+				team_id    = "${github_team.test.id}"
+				review_request_delegation {
+					algorithm = "ROUND_ROBIN"
+					member_count = 2
+					notify = false
+				}
+			}
+		`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttrSet("github_team_settings.test", "id"),
+							resource.TestCheckResourceAttrSet("github_team_settings.test", "team_slug"),
+							resource.TestCheckResourceAttrSet("github_team_settings.test", "team_uid"),
+						),
+					},
+					{
+						ResourceName:      "github_team_settings.test",
+						ImportState:       true,
+						ImportStateVerify: true,
+						ImportStateIdFunc: func(s *terraform.State) (string, error) {
+							return s.RootModule().Resources["github_team.test"].Primary.Attributes["id"], nil
+						},
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			t.Skip("individual account not supported for this operation")
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }

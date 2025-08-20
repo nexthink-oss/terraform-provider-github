@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *testing.T) {
@@ -35,8 +36,8 @@ func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *te
 		)
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -68,8 +69,7 @@ func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *te
 
 		configs := map[string]string{
 			"before": fmt.Sprintf(resourceTemplate, claims),
-
-			"after": fmt.Sprintf(resourceTemplate, updatedClaims),
+			"after":  fmt.Sprintf(resourceTemplate, updatedClaims),
 		}
 		checks := map[string]resource.TestCheckFunc{
 			"before": resource.ComposeTestCheckFunc(
@@ -115,8 +115,8 @@ func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *te
 		}
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: configs["before"],
@@ -170,8 +170,8 @@ func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *te
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -192,6 +192,50 @@ func TestAccGithubActionsOrganizationOIDCSubjectClaimCustomizationTemplate(t *te
 		t.Run("with an individual account", func(t *testing.T) {
 			t.Skip("individual account not supported for this operation")
 		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
+	t.Run("test behavioral equivalence with SDKv2", func(t *testing.T) {
+		config := `
+		resource "github_actions_organization_oidc_subject_claim_customization_template" "test" {
+			include_claim_keys = ["repo", "context", "job_workflow_ref"]
+		}`
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck: func() { skipUnlessMode(t, mode) },
+				Steps: []resource.TestStep{
+					{
+						ExternalProviders: map[string]resource.ExternalProvider{
+							"github": {
+								Source:            "integrations/github",
+								VersionConstraint: "~> 6.0", // SDKv2 version
+							},
+						},
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr("github_actions_organization_oidc_subject_claim_customization_template.test", "include_claim_keys.#", "3"),
+							resource.TestCheckResourceAttr("github_actions_organization_oidc_subject_claim_customization_template.test", "include_claim_keys.0", "repo"),
+							resource.TestCheckResourceAttr("github_actions_organization_oidc_subject_claim_customization_template.test", "include_claim_keys.1", "context"),
+							resource.TestCheckResourceAttr("github_actions_organization_oidc_subject_claim_customization_template.test", "include_claim_keys.2", "job_workflow_ref"),
+							resource.TestCheckResourceAttrSet("github_actions_organization_oidc_subject_claim_customization_template.test", "id"),
+						),
+					},
+					{
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories, // Framework version
+						Config:                   config,                          // Same config
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PreApply: []plancheck.PlanCheck{
+								plancheck.ExpectEmptyPlan(), // Should be no-op
+							},
+						},
+					},
+				},
+			})
+		}
 
 		t.Run("with an organization account", func(t *testing.T) {
 			testCase(t, organization)

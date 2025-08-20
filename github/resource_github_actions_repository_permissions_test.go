@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
@@ -36,8 +36,8 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -77,11 +77,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 			resource "github_actions_repository_permissions" "test" {
 				allowed_actions = "%s"
-				allowed_actions_config {
+				allowed_actions_config = [{
 					github_owned_allowed = %t
 					patterns_allowed     = ["actions/cache@*", "actions/checkout@*"]
 					verified_allowed     = %t
-				}
+				}]
 				repository = github_repository.test.name
 			}
 		`, randomID, allowedActions, githubOwnedAllowed, verifiedAllowed)
@@ -97,8 +97,8 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -143,11 +143,11 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 			resource "github_actions_repository_permissions" "test" {
 				allowed_actions = "%s"
-				allowed_actions_config {
+				allowed_actions_config = [{
 					github_owned_allowed = %t
 					patterns_allowed     = ["actions/cache@*", "actions/checkout@*"]
 					verified_allowed     = %t
-				}
+				}]
 				repository = github_repository.test.name
 			}
 		`, randomID, allowedActions, githubOwnedAllowed, verifiedAllowed)
@@ -163,8 +163,8 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -219,8 +219,8 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -270,8 +270,8 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -321,15 +321,16 @@ func TestAccGithubActionsRepositoryPermissions(t *testing.T) {
 			resource.TestCheckResourceAttr(
 				"github_actions_repository_permissions.test", "enabled", "false",
 			),
+			// When actions are disabled, allowed_actions should be empty/null
 			resource.TestCheckResourceAttr(
-				"github_actions_repository_permissions.test", "allowed_actions.#", "0",
+				"github_actions_repository_permissions.test", "allowed_actions", "",
 			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,

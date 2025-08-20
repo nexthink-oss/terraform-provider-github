@@ -6,52 +6,101 @@ import (
 	"net/url"
 
 	"github.com/google/go-github/v74/github"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func dataSourceGithubActionsEnvironmentVariables() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get Actions variables of the repository environment",
-		Read:        dataSourceGithubActionsEnvironmentVariablesRead,
+var (
+	_ datasource.DataSource              = &githubActionsEnvironmentVariablesDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubActionsEnvironmentVariablesDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"full_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"name"},
+type githubActionsEnvironmentVariablesDataSource struct {
+	client *Owner
+}
+
+type githubActionsEnvironmentVariablesDataSourceModel struct {
+	ID          types.String `tfsdk:"id"`
+	FullName    types.String `tfsdk:"full_name"`
+	Name        types.String `tfsdk:"name"`
+	Environment types.String `tfsdk:"environment"`
+	Variables   types.List   `tfsdk:"variables"`
+}
+
+type githubActionsEnvironmentVariableModel struct {
+	Name      types.String `tfsdk:"name"`
+	Value     types.String `tfsdk:"value"`
+	CreatedAt types.String `tfsdk:"created_at"`
+	UpdatedAt types.String `tfsdk:"updated_at"`
+}
+
+func NewGithubActionsEnvironmentVariablesDataSource() datasource.DataSource {
+	return &githubActionsEnvironmentVariablesDataSource{}
+}
+
+func (d *githubActionsEnvironmentVariablesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_actions_environment_variables"
+}
+
+func (d *githubActionsEnvironmentVariablesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get Actions variables of the repository environment",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the data source.",
+				Computed:    true,
 			},
-			"name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{"full_name"},
+			"full_name": schema.StringAttribute{
+				Description: "Full name of the repository (in `owner/name` format).",
+				Optional:    true,
+				Computed:    true,
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(
+						path.MatchRoot("name"),
+					),
+				},
 			},
-			"environment": {
-				Type:     schema.TypeString,
-				Required: true,
+			"name": schema.StringAttribute{
+				Description: "The name of the repository.",
+				Optional:    true,
+				Computed:    true,
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(
+						path.MatchRoot("full_name"),
+					),
+				},
 			},
-			"variables": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+			"environment": schema.StringAttribute{
+				Description: "The environment name.",
+				Required:    true,
+			},
+			"variables": schema.ListNestedAttribute{
+				Description: "An array of repository environment actions variables.",
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Description: "Variable name.",
+							Computed:    true,
 						},
-						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"value": schema.StringAttribute{
+							Description: "Variable value.",
+							Computed:    true,
 						},
-						"created_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"created_at": schema.StringAttribute{
+							Description: "Date of 'variable' creation.",
+							Computed:    true,
 						},
-						"updated_at": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"updated_at": schema.StringAttribute{
+							Description: "Date of 'variable' update.",
+							Computed:    true,
 						},
 					},
 				},
@@ -60,57 +109,134 @@ func dataSourceGithubActionsEnvironmentVariables() *schema.Resource {
 	}
 }
 
-func dataSourceGithubActionsEnvironmentVariablesRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
+func (d *githubActionsEnvironmentVariablesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			"Expected *github.Owner, got something else.",
+		)
+		return
+	}
+
+	d.client = client
+}
+
+func (d *githubActionsEnvironmentVariablesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubActionsEnvironmentVariablesDataSourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := d.client.Name()
 	var repoName string
 
-	envName := d.Get("environment").(string)
+	envName := data.Environment.ValueString()
 	escapedEnvName := url.PathEscape(envName)
 
-	if fullName, ok := d.GetOk("full_name"); ok {
+	// Validate ConflictsWith behavior for full_name and name
+	hasFullName := !data.FullName.IsNull() && !data.FullName.IsUnknown()
+	hasName := !data.Name.IsNull() && !data.Name.IsUnknown()
+
+	if hasFullName && hasName {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"Cannot specify both 'full_name' and 'name' attributes.",
+		)
+		return
+	}
+
+	if !hasFullName && !hasName {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"One of 'full_name' or 'name' must be specified.",
+		)
+		return
+	}
+
+	if hasFullName {
 		var err error
-		owner, repoName, err = splitRepoFullName(fullName.(string))
+		owner, repoName, err = splitRepoFullName(data.FullName.ValueString())
 		if err != nil {
-			return err
+			resp.Diagnostics.AddError(
+				"Invalid Repository Full Name",
+				fmt.Sprintf("Unable to parse repository full name: %s", err.Error()),
+			)
+			return
 		}
 	}
 
-	if name, ok := d.GetOk("name"); ok {
-		repoName = name.(string)
+	if hasName {
+		repoName = data.Name.ValueString()
 	}
 
-	if repoName == "" {
-		return fmt.Errorf("one of %q or %q has to be provided", "full_name", "name")
-	}
+	tflog.Debug(ctx, "Reading GitHub Actions environment variables", map[string]interface{}{
+		"owner":       owner,
+		"repository":  repoName,
+		"environment": envName,
+	})
 
 	options := github.ListOptions{
 		PerPage: 100,
 	}
 
-	var all_variables []map[string]string
+	var allVariables []githubActionsEnvironmentVariableModel
 	for {
-		variables, resp, err := client.Actions.ListEnvVariables(context.TODO(), owner, repoName, escapedEnvName, &options)
+		variables, resp_github, err := d.client.V3Client().Actions.ListEnvVariables(ctx, owner, repoName, escapedEnvName, &options)
 		if err != nil {
-			return err
+			resp.Diagnostics.AddError(
+				"Unable to Read GitHub Actions Environment Variables",
+				fmt.Sprintf("Error reading repository environment variables: %s", err.Error()),
+			)
+			return
 		}
+
 		for _, variable := range variables.Variables {
-			new_variable := map[string]string{
-				"name":       variable.Name,
-				"value":      variable.Value,
-				"created_at": variable.CreatedAt.String(),
-				"updated_at": variable.UpdatedAt.String(),
+			variableModel := githubActionsEnvironmentVariableModel{
+				Name:      types.StringValue(variable.Name),
+				Value:     types.StringValue(variable.Value),
+				CreatedAt: types.StringValue(variable.CreatedAt.String()),
+				UpdatedAt: types.StringValue(variable.UpdatedAt.String()),
 			}
-			all_variables = append(all_variables, new_variable)
+			allVariables = append(allVariables, variableModel)
 		}
-		if resp.NextPage == 0 {
+
+		if resp_github.NextPage == 0 {
 			break
 		}
-		options.Page = resp.NextPage
+		options.Page = resp_github.NextPage
 	}
 
-	d.SetId(buildTwoPartID(repoName, envName))
-	_ = d.Set("variables", all_variables)
+	// Convert variables to Framework List
+	variablesList, diags := types.ListValueFrom(ctx, types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"name":       types.StringType,
+			"value":      types.StringType,
+			"created_at": types.StringType,
+			"updated_at": types.StringType,
+		},
+	}, allVariables)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return nil
+	// Set the ID using the same pattern as SDKv2 (repoName:envName)
+	data.ID = types.StringValue(fmt.Sprintf("%s:%s", repoName, envName))
+	data.Variables = variablesList
+
+	// Set computed values based on what was provided
+	if hasFullName {
+		data.Name = types.StringValue(repoName)
+	} else {
+		data.FullName = types.StringValue(fmt.Sprintf("%s/%s", owner, repoName))
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubMembershipDataSource(t *testing.T) {
@@ -17,19 +17,20 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 				username = "%s"
 				organization = "%s"
 			}
-		`, testOwner, testOrganization)
+		`, testOwnerFunc(), testOrganization())
 
 		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttr("data.github_membership.test", "username", testOwner),
+			resource.TestCheckResourceAttr("data.github_membership.test", "username", testOwnerFunc()),
 			resource.TestCheckResourceAttrSet("data.github_membership.test", "role"),
 			resource.TestCheckResourceAttrSet("data.github_membership.test", "etag"),
 			resource.TestCheckResourceAttrSet("data.github_membership.test", "state"),
+			resource.TestCheckResourceAttrSet("data.github_membership.test", "id"),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -60,12 +61,12 @@ func TestAccGithubMembershipDataSource(t *testing.T) {
 				username = "%s"
 				organization = "%s"
 			}
-		`, "!"+testOwner, testOrganization)
+		`, "!"+testOwnerFunc(), testOrganization())
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config:      config,

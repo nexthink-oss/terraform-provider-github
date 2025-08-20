@@ -4,83 +4,145 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccGithubCollaboratorsDataSource_basic(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+func TestAccGithubCollaboratorsDataSource(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	dsn := "data.github_collaborators.test"
-	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+	t.Run("queries repository collaborators without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-collab-%s"
+			}
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubCollaboratorsDataSourceConfig(repoName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(dsn, "collaborator.#"),
-					resource.TestCheckResourceAttr(dsn, "affiliation", "all"),
-				),
-			},
-		},
+			data "github_collaborators" "test" {
+				owner      = "%s"
+				repository = github_repository.test.name
+			}
+		`, randomID, testOwnerFunc())
+
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_collaborators.test", "collaborator.#"),
+			resource.TestCheckResourceAttr("data.github_collaborators.test", "affiliation", "all"),
+			resource.TestCheckResourceAttr("data.github_collaborators.test", "owner", testOwnerFunc()),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 	})
-}
 
-func TestAccGithubCollaboratorsDataSource_withPermission(t *testing.T) {
-	if err := testAccCheckOrganization(); err != nil {
-		t.Skipf("Skipping because %s.", err.Error())
-	}
+	t.Run("queries repository collaborators with permission filter", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-collab-perm-%s"
+			}
 
-	dsn := "data.github_collaborators.test"
-	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+			data "github_collaborators" "test" {
+				owner      = "%s"
+				repository = github_repository.test.name
+				permission = "admin"
+			}
+		`, randomID, testOwnerFunc())
 
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCheckGithubCollaboratorsDataSourcePermissionConfig(repoName),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet(dsn, "collaborator.#"),
-					resource.TestCheckResourceAttr(dsn, "affiliation", "all"),
-					resource.TestCheckResourceAttr(dsn, "permission", "admin"),
-				),
-			},
-		},
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_collaborators.test", "collaborator.#"),
+			resource.TestCheckResourceAttr("data.github_collaborators.test", "affiliation", "all"),
+			resource.TestCheckResourceAttr("data.github_collaborators.test", "permission", "admin"),
+			resource.TestCheckResourceAttr("data.github_collaborators.test", "owner", testOwnerFunc()),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
 	})
-}
 
-func testAccCheckGithubCollaboratorsDataSourceConfig(repo string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "test" {
-  name = "%s"
-}
+	t.Run("queries repository collaborators with affiliation filter", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-test-collab-aff-%s"
+			}
 
-data "github_collaborators" "test" {
-  owner      = "%s"
-  repository = "${github_repository.test.name}"
-}
-`, repo, testOwner)
-}
-func testAccCheckGithubCollaboratorsDataSourcePermissionConfig(repo string) string {
-	return fmt.Sprintf(`
-resource "github_repository" "test" {
-  name = "%s"
-}
+			data "github_collaborators" "test" {
+				owner       = "%s"
+				repository  = github_repository.test.name
+				affiliation = "direct"
+			}
+		`, randomID, testOwnerFunc())
 
-data "github_collaborators" "test" {
-  owner      = "%s"
-  repository = "${github_repository.test.name}"
-  permission = "admin"
-}
-`, repo, testOwner)
+		check := resource.ComposeAggregateTestCheckFunc(
+			resource.TestCheckResourceAttrSet("data.github_collaborators.test", "collaborator.#"),
+			resource.TestCheckResourceAttr("data.github_collaborators.test", "affiliation", "direct"),
+			resource.TestCheckResourceAttr("data.github_collaborators.test", "owner", testOwnerFunc()),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
 }

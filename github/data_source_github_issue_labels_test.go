@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubIssueLabelsDataSource(t *testing.T) {
@@ -15,11 +15,11 @@ func TestAccGithubIssueLabelsDataSource(t *testing.T) {
 
 		config := fmt.Sprintf(`
 			resource "github_repository" "test" {
-				name      = "tf-acc-test-%s"
+				name = "tf-acc-test-%s"
 			}
 
 			data "github_issue_labels" "test" {
-				repository 		= github_repository.test.name
+				repository = github_repository.test.name
 			}
 		`, randomID)
 
@@ -27,12 +27,18 @@ func TestAccGithubIssueLabelsDataSource(t *testing.T) {
 			resource.TestMatchResourceAttr(
 				"data.github_issue_labels.test", "id", regexp.MustCompile(randomID),
 			),
+			resource.TestCheckResourceAttr(
+				"data.github_issue_labels.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID),
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_issue_labels.test", "labels.#",
+			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,

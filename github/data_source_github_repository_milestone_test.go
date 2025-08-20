@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryMilestoneDataSource(t *testing.T) {
@@ -40,15 +39,30 @@ func TestAccGithubRepositoryMilestoneDataSource(t *testing.T) {
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
-				"github_repository_milestone.test", "state",
+				"data.github_repository_milestone.test", "state",
 				"closed",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository_milestone.test", "title",
+				"v1.0.0",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository_milestone.test", "description",
+				"General Availability",
+			),
+			resource.TestCheckResourceAttr(
+				"data.github_repository_milestone.test", "due_date",
+				"2020-11-22",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_repository_milestone.test", "id",
 			),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,

@@ -2,92 +2,280 @@ package github
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func resourceGithubIssueLabels() *schema.Resource {
-	return &schema.Resource{
-		Description: "Provides GitHub issue labels resource.",
-		Create:      resourceGithubIssueLabelsCreateOrUpdate,
-		Read:        resourceGithubIssueLabelsRead,
-		Update:      resourceGithubIssueLabelsCreateOrUpdate,
-		Delete:      resourceGithubIssueLabelsDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
+var (
+	_ resource.Resource                = &githubIssueLabelsResource{}
+	_ resource.ResourceWithConfigure   = &githubIssueLabelsResource{}
+	_ resource.ResourceWithImportState = &githubIssueLabelsResource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The GitHub repository.",
+type githubIssueLabelsResource struct {
+	client *Owner
+}
+
+type githubIssueLabelsResourceModel struct {
+	ID         types.String `tfsdk:"id"`
+	Repository types.String `tfsdk:"repository"`
+	Label      types.Set    `tfsdk:"label"`
+}
+
+type githubIssueLabelModel struct {
+	Name        types.String `tfsdk:"name"`
+	Color       types.String `tfsdk:"color"`
+	Description types.String `tfsdk:"description"`
+	URL         types.String `tfsdk:"url"`
+}
+
+// labelObjectType defines the object type for individual labels
+var labelObjectType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"name":        types.StringType,
+		"color":       types.StringType,
+		"description": types.StringType,
+		"url":         types.StringType,
+	},
+}
+
+func NewGithubIssueLabelsResource() resource.Resource {
+	return &githubIssueLabelsResource{}
+}
+
+func (r *githubIssueLabelsResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_issue_labels"
+}
+
+func (r *githubIssueLabelsResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides GitHub issue labels resource.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the issue labels resource (repository name).",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"label": {
-				Type:        schema.TypeSet,
-				Optional:    true,
+			"repository": schema.StringAttribute{
+				Description: "The GitHub repository.",
+				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"label": schema.SetAttribute{
 				Description: "List of labels",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "The name of the label.",
-						},
-						"color": {
-							Type:        schema.TypeString,
-							Required:    true,
-							Description: "A 6 character hex code, without the leading '#', identifying the color of the label.",
-						},
-						"description": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "A short description of the label.",
-						},
-						"url": {
-							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "The URL to the issue label.",
-						},
-					},
+				Optional:    true,
+				ElementType: labelObjectType,
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{},
 	}
 }
 
-func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	repository := d.Id()
-
-	log.Printf("[DEBUG] Reading GitHub issue labels for %s/%s", owner, repository)
-
-	ctx := context.WithValue(context.Background(), ctxId, repository)
-
-	options := &github.ListOptions{
-		PerPage: maxPerPage,
+func (r *githubIssueLabelsResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	labels := make([]map[string]any, 0)
+	client, ok := req.ProviderData.(*Owner)
+
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.client = client
+}
+
+func (r *githubIssueLabelsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data githubIssueLabelsResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	r.createOrUpdateGithubIssueLabels(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubIssueLabelsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data githubIssueLabelsResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	r.readGithubIssueLabels(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubIssueLabelsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data githubIssueLabelsResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	r.createOrUpdateGithubIssueLabels(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubIssueLabelsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data githubIssueLabelsResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	orgName := r.client.Name()
+	repository := data.Repository.ValueString()
+
+	tflog.Debug(ctx, "deleting all GitHub issue labels", map[string]interface{}{
+		"repository": repository,
+		"owner":      orgName,
+	})
+
+	reqCtx := context.WithValue(ctx, CtxId, repository)
+
+	// Get current labels from the state to delete them
+	if !data.Label.IsNull() && !data.Label.IsUnknown() {
+		var labels []githubIssueLabelModel
+		resp.Diagnostics.Append(data.Label.ElementsAs(ctx, &labels, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		for _, label := range labels {
+			name := label.Name.ValueString()
+
+			tflog.Debug(ctx, "deleting GitHub issue label", map[string]interface{}{
+				"repository": repository,
+				"name":       name,
+				"owner":      orgName,
+			})
+
+			_, err := r.client.V3Client().Issues.DeleteLabel(reqCtx, orgName, repository, name)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Unable to Delete GitHub Issue Label",
+					fmt.Sprintf("An unexpected error occurred when deleting GitHub issue label %s. GitHub Client Error: %s", name, err.Error()),
+				)
+				return
+			}
+		}
+	}
+
+	tflog.Debug(ctx, "deleted all GitHub issue labels", map[string]interface{}{
+		"repository": repository,
+	})
+}
+
+func (r *githubIssueLabelsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	repository := req.ID
+
+	data := &githubIssueLabelsResourceModel{
+		ID:         types.StringValue(repository),
+		Repository: types.StringValue(repository),
+	}
+
+	r.readGithubIssueLabels(ctx, data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+}
+
+func (r *githubIssueLabelsResource) readGithubIssueLabels(ctx context.Context, data *githubIssueLabelsResourceModel, diags *diag.Diagnostics) {
+	orgName := r.client.Name()
+	repository := data.Repository.ValueString()
+
+	reqCtx := context.WithValue(ctx, CtxId, repository)
+
+	tflog.Debug(ctx, "reading GitHub issue labels", map[string]interface{}{
+		"repository": repository,
+		"owner":      orgName,
+	})
+
+	options := &github.ListOptions{
+		PerPage: 100, // maxPerPage constant from github package
+	}
+
+	var labels []githubIssueLabelModel
 
 	for {
-		ls, resp, err := client.Issues.ListLabels(ctx, owner, repository, options)
+		githubLabels, resp, err := r.client.V3Client().Issues.ListLabels(reqCtx, orgName, repository, options)
 		if err != nil {
-			return err
+			if ghErr, ok := err.(*github.ErrorResponse); ok {
+				if ghErr.Response.StatusCode == http.StatusNotFound {
+					tflog.Info(ctx, "GitHub repository not found, removing from state", map[string]interface{}{
+						"id":         data.ID.ValueString(),
+						"repository": repository,
+					})
+					data.ID = types.StringNull()
+					return
+				}
+			}
+			diags.AddError(
+				"Unable to Read GitHub Issue Labels",
+				fmt.Sprintf("An unexpected error occurred when reading GitHub issue labels for repository %s. GitHub Client Error: %s", repository, err.Error()),
+			)
+			return
 		}
-		for _, l := range ls {
-			labels = append(labels, map[string]any{
-				"name":        l.GetName(),
-				"color":       l.GetColor(),
-				"description": l.GetDescription(),
-				"url":         l.GetURL(),
-			})
+
+		for _, l := range githubLabels {
+			labelModel := githubIssueLabelModel{
+				Name:  types.StringValue(l.GetName()),
+				Color: types.StringValue(l.GetColor()),
+				URL:   types.StringValue(l.GetURL()),
+			}
+
+			if l.Description != nil {
+				labelModel.Description = types.StringValue(l.GetDescription())
+			} else {
+				labelModel.Description = types.StringNull()
+			}
+
+			labels = append(labels, labelModel)
 		}
 
 		if resp.NextPage == 0 {
@@ -96,153 +284,224 @@ func resourceGithubIssueLabelsRead(d *schema.ResourceData, meta any) error {
 		options.Page = resp.NextPage
 	}
 
-	log.Printf("[DEBUG] Found %d GitHub issue labels for %s/%s", len(labels), owner, repository)
-	log.Printf("[DEBUG] Labels: %v", labels)
+	tflog.Debug(ctx, "found GitHub issue labels", map[string]interface{}{
+		"repository":  repository,
+		"label_count": len(labels),
+	})
 
-	err := d.Set("repository", repository)
-	if err != nil {
-		return err
+	// Convert labels to Set
+	labelValues := make([]attr.Value, len(labels))
+	for i, label := range labels {
+		labelValues[i] = types.ObjectValueMust(labelObjectType.AttrTypes, map[string]attr.Value{
+			"name":        label.Name,
+			"color":       label.Color,
+			"description": label.Description,
+			"url":         label.URL,
+		})
 	}
 
-	err = d.Set("label", labels)
-	if err != nil {
-		return err
+	if len(labelValues) > 0 {
+		data.Label = types.SetValueMust(labelObjectType, labelValues)
+	} else {
+		data.Label = types.SetValueMust(labelObjectType, []attr.Value{})
 	}
 
-	return nil
+	data.ID = types.StringValue(repository)
 }
 
-func resourceGithubIssueLabelsCreateOrUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func (r *githubIssueLabelsResource) createOrUpdateGithubIssueLabels(ctx context.Context, data *githubIssueLabelsResourceModel, diags *diag.Diagnostics) {
+	orgName := r.client.Name()
+	repository := data.Repository.ValueString()
 
-	owner := meta.(*Owner).name
-	repository := d.Get("repository").(string)
-	ctx := context.WithValue(context.Background(), ctxId, repository)
+	reqCtx := context.WithValue(ctx, CtxId, repository)
 
-	o, n := d.GetChange("label")
+	tflog.Debug(ctx, "updating GitHub issue labels", map[string]interface{}{
+		"repository": repository,
+		"owner":      orgName,
+	})
 
-	log.Printf("[DEBUG] Updating GitHub issue labels for %s/%s", owner, repository)
-	log.Printf("[DEBUG] Old labels: %v", o)
-	log.Printf("[DEBUG] New labels: %v", n)
-
-	oMap := make(map[string]map[string]any)
-	nMap := make(map[string]map[string]any)
-	for _, raw := range o.(*schema.Set).List() {
-		m := raw.(map[string]any)
-		name := strings.ToLower(m["name"].(string))
-		oMap[name] = m
+	// Read current labels from GitHub
+	currentData := &githubIssueLabelsResourceModel{
+		Repository: data.Repository,
+		ID:         data.ID,
 	}
-	for _, raw := range n.(*schema.Set).List() {
-		m := raw.(map[string]any)
-		name := strings.ToLower(m["name"].(string))
-		nMap[name] = m
+	r.readGithubIssueLabels(ctx, currentData, diags)
+	if diags.HasError() {
+		return
 	}
 
-	labels := make([]map[string]any, 0)
+	// Parse old and new labels
+	oldLabels := make(map[string]githubIssueLabelModel)
+	newLabels := make(map[string]githubIssueLabelModel)
 
-	// create
-	for name, n := range nMap {
-		if _, ok := oMap[name]; !ok {
-			log.Printf("[DEBUG] Creating GitHub issue label %s/%s/%s", owner, repository, name)
+	// Get current labels from GitHub
+	if !currentData.Label.IsNull() && !currentData.Label.IsUnknown() {
+		var currentLabels []githubIssueLabelModel
+		diags.Append(currentData.Label.ElementsAs(ctx, &currentLabels, false)...)
+		if diags.HasError() {
+			return
+		}
 
-			label, _, err := client.Issues.CreateLabel(ctx, owner, repository, &github.Label{
-				Name:        github.Ptr(n["name"].(string)),
-				Color:       github.Ptr(n["color"].(string)),
-				Description: github.Ptr(n["description"].(string)),
-			})
-			if err != nil {
-				return err
-			}
-
-			labels = append(labels, map[string]any{
-				"name":        label.GetName(),
-				"color":       label.GetColor(),
-				"description": label.GetDescription(),
-				"url":         label.GetURL(),
-			})
+		for _, label := range currentLabels {
+			name := strings.ToLower(label.Name.ValueString())
+			oldLabels[name] = label
 		}
 	}
 
-	// delete
-	for name, o := range oMap {
-		if _, ok := nMap[name]; !ok {
-			log.Printf("[DEBUG] Deleting GitHub issue label %s/%s/%s", owner, repository, name)
+	// Get desired labels from configuration
+	if !data.Label.IsNull() && !data.Label.IsUnknown() {
+		var desiredLabels []githubIssueLabelModel
+		diags.Append(data.Label.ElementsAs(ctx, &desiredLabels, false)...)
+		if diags.HasError() {
+			return
+		}
 
-			_, err := client.Issues.DeleteLabel(ctx, owner, repository, o["name"].(string))
+		for _, label := range desiredLabels {
+			name := strings.ToLower(label.Name.ValueString())
+			newLabels[name] = label
+		}
+	}
+
+	var resultLabels []githubIssueLabelModel
+
+	// Create new labels
+	for name, newLabel := range newLabels {
+		if _, exists := oldLabels[name]; !exists {
+			tflog.Debug(ctx, "creating GitHub issue label", map[string]interface{}{
+				"repository": repository,
+				"name":       newLabel.Name.ValueString(),
+				"owner":      orgName,
+			})
+
+			label := &github.Label{
+				Name:  github.Ptr(newLabel.Name.ValueString()),
+				Color: github.Ptr(newLabel.Color.ValueString()),
+			}
+
+			if !newLabel.Description.IsNull() {
+				label.Description = github.Ptr(newLabel.Description.ValueString())
+			}
+
+			createdLabel, _, err := r.client.V3Client().Issues.CreateLabel(reqCtx, orgName, repository, label)
 			if err != nil {
-				return err
+				diags.AddError(
+					"Unable to Create GitHub Issue Label",
+					fmt.Sprintf("An unexpected error occurred when creating GitHub issue label %s. GitHub Client Error: %s", newLabel.Name.ValueString(), err.Error()),
+				)
+				return
+			}
+
+			labelModel := githubIssueLabelModel{
+				Name:  types.StringValue(createdLabel.GetName()),
+				Color: types.StringValue(createdLabel.GetColor()),
+				URL:   types.StringValue(createdLabel.GetURL()),
+			}
+
+			if createdLabel.Description != nil {
+				labelModel.Description = types.StringValue(createdLabel.GetDescription())
+			} else {
+				labelModel.Description = types.StringNull()
+			}
+
+			resultLabels = append(resultLabels, labelModel)
+		}
+	}
+
+	// Delete removed labels
+	for name, oldLabel := range oldLabels {
+		if _, exists := newLabels[name]; !exists {
+			tflog.Debug(ctx, "deleting GitHub issue label", map[string]interface{}{
+				"repository": repository,
+				"name":       oldLabel.Name.ValueString(),
+				"owner":      orgName,
+			})
+
+			_, err := r.client.V3Client().Issues.DeleteLabel(reqCtx, orgName, repository, oldLabel.Name.ValueString())
+			if err != nil {
+				diags.AddError(
+					"Unable to Delete GitHub Issue Label",
+					fmt.Sprintf("An unexpected error occurred when deleting GitHub issue label %s. GitHub Client Error: %s", oldLabel.Name.ValueString(), err.Error()),
+				)
+				return
 			}
 		}
 	}
 
-	// update
-	for name, n := range nMap {
-		if o, ok := oMap[name]; ok {
-			if o["name"] != n["name"] || o["color"] != n["color"] || o["description"] != n["description"] {
-				log.Printf("[DEBUG] Updating GitHub issue label %s/%s/%s", owner, repository, name)
+	// Update existing labels
+	for name, newLabel := range newLabels {
+		if oldLabel, exists := oldLabels[name]; exists {
+			needsUpdate := oldLabel.Name.ValueString() != newLabel.Name.ValueString() ||
+				oldLabel.Color.ValueString() != newLabel.Color.ValueString() ||
+				!oldLabel.Description.Equal(newLabel.Description)
 
-				label, _, err := client.Issues.EditLabel(ctx, owner, repository, name, &github.Label{
-					Name:        github.Ptr(n["name"].(string)),
-					Color:       github.Ptr(n["color"].(string)),
-					Description: github.Ptr(n["description"].(string)),
+			if needsUpdate {
+				tflog.Debug(ctx, "updating GitHub issue label", map[string]interface{}{
+					"repository": repository,
+					"old_name":   oldLabel.Name.ValueString(),
+					"new_name":   newLabel.Name.ValueString(),
+					"owner":      orgName,
 				})
-				if err != nil {
-					return err
+
+				label := &github.Label{
+					Name:  github.Ptr(newLabel.Name.ValueString()),
+					Color: github.Ptr(newLabel.Color.ValueString()),
 				}
 
-				labels = append(labels, map[string]any{
-					"name":        label.GetName(),
-					"color":       label.GetColor(),
-					"description": label.GetDescription(),
-					"url":         label.GetURL(),
-				})
+				if !newLabel.Description.IsNull() {
+					label.Description = github.Ptr(newLabel.Description.ValueString())
+				}
+
+				updatedLabel, _, err := r.client.V3Client().Issues.EditLabel(reqCtx, orgName, repository, oldLabel.Name.ValueString(), label)
+				if err != nil {
+					diags.AddError(
+						"Unable to Update GitHub Issue Label",
+						fmt.Sprintf("An unexpected error occurred when updating GitHub issue label %s. GitHub Client Error: %s", oldLabel.Name.ValueString(), err.Error()),
+					)
+					return
+				}
+
+				labelModel := githubIssueLabelModel{
+					Name:  types.StringValue(updatedLabel.GetName()),
+					Color: types.StringValue(updatedLabel.GetColor()),
+					URL:   types.StringValue(updatedLabel.GetURL()),
+				}
+
+				if updatedLabel.Description != nil {
+					labelModel.Description = types.StringValue(updatedLabel.GetDescription())
+				} else {
+					labelModel.Description = types.StringNull()
+				}
+
+				resultLabels = append(resultLabels, labelModel)
 			} else {
-				labels = append(labels, o)
+				// No change needed, keep old label
+				resultLabels = append(resultLabels, oldLabel)
 			}
 		}
 	}
 
-	d.SetId(repository)
+	// Set the ID and update the state
+	data.ID = types.StringValue(repository)
 
-	err := d.Set("label", labels)
-	if err != nil {
-		return err
+	// Convert result labels to Set
+	labelValues := make([]attr.Value, len(resultLabels))
+	for i, label := range resultLabels {
+		labelValues[i] = types.ObjectValueMust(labelObjectType.AttrTypes, map[string]attr.Value{
+			"name":        label.Name,
+			"color":       label.Color,
+			"description": label.Description,
+			"url":         label.URL,
+		})
 	}
 
-	return nil
-}
-
-func resourceGithubIssueLabelsDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	repository := d.Get("repository").(string)
-	ctx := context.WithValue(context.Background(), ctxId, repository)
-
-	labels := d.Get("label").(*schema.Set).List()
-
-	log.Printf("[DEBUG] Deleting GitHub issue labels for %s/%s", owner, repository)
-	log.Printf("[DEBUG] Labels: %v", labels)
-
-	// delete
-	for _, raw := range labels {
-		label := raw.(map[string]any)
-		name := label["name"].(string)
-
-		log.Printf("[DEBUG] Deleting GitHub issue label %s/%s/%s", owner, repository, name)
-
-		_, err := client.Issues.DeleteLabel(ctx, owner, repository, name)
-		if err != nil {
-			return err
-		}
+	if len(labelValues) > 0 {
+		data.Label = types.SetValueMust(labelObjectType, labelValues)
+	} else {
+		data.Label = types.SetValueMust(labelObjectType, []attr.Value{})
 	}
 
-	d.SetId(repository)
-
-	err := d.Set("label", make([]map[string]any, 0))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	tflog.Debug(ctx, "GitHub issue labels operation completed", map[string]interface{}{
+		"repository":  repository,
+		"label_count": len(resultLabels),
+	})
 }

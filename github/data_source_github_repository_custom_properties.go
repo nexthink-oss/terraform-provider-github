@@ -5,38 +5,68 @@ import (
 	"fmt"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get all custom properties of a repository",
-		Read:        dataSourceGithubOrgaRepositoryCustomProperties,
+var (
+	_ datasource.DataSource              = &githubRepositoryCustomPropertiesDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubRepositoryCustomPropertiesDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Name of the repository which the custom properties should be on.",
-			},
-			"property": {
-				Type:        schema.TypeSet,
+type githubRepositoryCustomPropertiesDataSource struct {
+	client *Owner
+}
+
+type githubRepositoryCustomPropertiesDataSourceModel struct {
+	ID         types.String `tfsdk:"id"`
+	Repository types.String `tfsdk:"repository"`
+	Property   types.Set    `tfsdk:"property"`
+}
+
+type githubRepositoryCustomPropertyModel struct {
+	PropertyName  types.String `tfsdk:"property_name"`
+	PropertyValue types.Set    `tfsdk:"property_value"`
+}
+
+func NewGithubRepositoryCustomPropertiesDataSource() datasource.DataSource {
+	return &githubRepositoryCustomPropertiesDataSource{}
+}
+
+func (d *githubRepositoryCustomPropertiesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_repository_custom_properties"
+}
+
+func (d *githubRepositoryCustomPropertiesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get all custom properties of a repository",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the data source.",
 				Computed:    true,
+			},
+			"repository": schema.StringAttribute{
+				Description: "Name of the repository which the custom properties should be on.",
+				Required:    true,
+			},
+			"property": schema.SetNestedAttribute{
 				Description: "List of custom properties",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"property_name": {
-							Type:        schema.TypeString,
-							Computed:    true,
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"property_name": schema.StringAttribute{
 							Description: "Name of the custom property.",
-						},
-						"property_value": {
-							Type:        schema.TypeSet,
 							Computed:    true,
+						},
+						"property_value": schema.SetAttribute{
 							Description: "Value of the custom property.",
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
+							Computed:    true,
+							ElementType: types.StringType,
 						},
 					},
 				},
@@ -45,60 +75,142 @@ func dataSourceGithubRepositoryCustomProperties() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrgaRepositoryCustomProperties(d *schema.ResourceData, meta any) error {
-
-	client := meta.(*Owner).v3client
-	ctx := context.Background()
-
-	owner := meta.(*Owner).name
-
-	repoName := d.Get("repository").(string)
-
-	allCustomProperties, _, err := client.Repositories.GetAllCustomPropertyValues(ctx, owner, repoName)
-	if err != nil {
-		return err
+func (d *githubRepositoryCustomPropertiesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	results, err := flattenRepositoryCustomProperties(allCustomProperties)
-	if err != nil {
-		return err
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
 	}
 
-	d.SetId(buildTwoPartID(owner, repoName))
-	_ = d.Set("repository", repoName)
-	_ = d.Set("property", results)
-
-	return nil
+	d.client = client
 }
 
-func flattenRepositoryCustomProperties(customProperties []*github.CustomPropertyValue) ([]any, error) {
+func (d *githubRepositoryCustomPropertiesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubRepositoryCustomPropertiesDataSourceModel
 
-	results := make([]any, 0)
+	// Read configuration
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	repositoryName := data.Repository.ValueString()
+	owner := d.client.Name()
+
+	tflog.Debug(ctx, "Reading GitHub repository custom properties", map[string]interface{}{
+		"owner":      owner,
+		"repository": repositoryName,
+	})
+
+	// Fetch custom properties from GitHub API
+	allCustomProperties, _, err := d.client.V3Client().Repositories.GetAllCustomPropertyValues(ctx, owner, repositoryName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub Repository Custom Properties",
+			fmt.Sprintf("An unexpected error occurred while reading GitHub repository custom properties: %s", err.Error()),
+		)
+		return
+	}
+
+	// Convert GitHub API response to Terraform data model
+	properties, diags := d.flattenRepositoryCustomProperties(ctx, allCustomProperties)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set the data source fields
+	data.ID = types.StringValue(d.buildTwoPartID(owner, repositoryName))
+	data.Repository = types.StringValue(repositoryName)
+	data.Property = properties
+
+	tflog.Debug(ctx, "Successfully read GitHub repository custom properties", map[string]interface{}{
+		"owner":            owner,
+		"repository":       repositoryName,
+		"properties_count": len(allCustomProperties),
+	})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// flattenRepositoryCustomProperties converts GitHub API custom properties to Terraform model
+func (d *githubRepositoryCustomPropertiesDataSource) flattenRepositoryCustomProperties(ctx context.Context, customProperties []*github.CustomPropertyValue) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if len(customProperties) == 0 {
+		return types.SetNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"property_name":  types.StringType,
+				"property_value": types.SetType{ElemType: types.StringType},
+			},
+		}), diags
+	}
+
+	var properties []githubRepositoryCustomPropertyModel
 	for _, prop := range customProperties {
-		result := make(map[string]any)
-
-		result["property_name"] = prop.PropertyName
-
-		propertyValue, err := parseRepositoryCustomPropertyValueToStringSlice(prop)
+		propertyValues, err := d.parseRepositoryCustomPropertyValueToStringSlice(prop)
 		if err != nil {
-			return nil, err
+			diags.AddError(
+				"Unable to Parse Custom Property Value",
+				fmt.Sprintf("An unexpected error occurred while parsing custom property value: %s", err.Error()),
+			)
+			return types.SetNull(types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"property_name":  types.StringType,
+					"property_value": types.SetType{ElemType: types.StringType},
+				},
+			}), diags
 		}
 
-		result["property_value"] = propertyValue
+		propertyValueSet, setDiags := types.SetValueFrom(ctx, types.StringType, propertyValues)
+		diags.Append(setDiags...)
+		if diags.HasError() {
+			return types.SetNull(types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"property_name":  types.StringType,
+					"property_value": types.SetType{ElemType: types.StringType},
+				},
+			}), diags
+		}
 
-		results = append(results, result)
+		property := githubRepositoryCustomPropertyModel{
+			PropertyName:  types.StringValue(prop.PropertyName),
+			PropertyValue: propertyValueSet,
+		}
+		properties = append(properties, property)
 	}
 
-	return results, nil
+	propertiesSet, setDiags := types.SetValueFrom(ctx, types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"property_name":  types.StringType,
+			"property_value": types.SetType{ElemType: types.StringType},
+		},
+	}, properties)
+	diags.Append(setDiags...)
+
+	return propertiesSet, diags
 }
 
-func parseRepositoryCustomPropertyValueToStringSlice(prop *github.CustomPropertyValue) ([]string, error) {
+// parseRepositoryCustomPropertyValueToStringSlice handles different property value types
+func (d *githubRepositoryCustomPropertiesDataSource) parseRepositoryCustomPropertyValueToStringSlice(prop *github.CustomPropertyValue) ([]string, error) {
 	switch value := prop.Value.(type) {
 	case string:
 		return []string{value}, nil
 	case []string:
 		return value, nil
 	default:
-		return nil, fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %s", value)
+		return nil, fmt.Errorf("custom property value couldn't be parsed as a string or a list of strings: %v", value)
 	}
+}
+
+// buildTwoPartID creates an ID from two parts (same as SDKv2 util function)
+func (d *githubRepositoryCustomPropertiesDataSource) buildTwoPartID(a, b string) string {
+	return fmt.Sprintf("%s:%s", a, b)
 }

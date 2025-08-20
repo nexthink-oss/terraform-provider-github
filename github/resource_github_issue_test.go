@@ -2,175 +2,320 @@ package github
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func TestAccGithubIssue(t *testing.T) {
-
+func TestAccGithubIssueResource_basic(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-	t.Run("creates an issue without error", func(t *testing.T) {
+	title := "Test issue title"
+	body := "Test issue body"
+	updatedTitle := "Updated test issue title"
+	updatedBody := "Updated test issue body"
 
-		title := "issue_title"
-		body := "issue_body"
-		labels := "\"bug\", \"enhancement\""
-		updatedTitle := "updated_issue_title"
-		updatedBody := "update_issue_body"
-		updatedLabels := "\"documentation\""
-
-		issueHCL := `
-			resource "github_repository" "test" {
-			  name = "tf-acc-test-%s"
-				auto_init  = true
-                has_issues = true
-			}
-
-			resource "github_repository_milestone" "test" {
-				owner = split("/", "${github_repository.test.full_name}")[0]
-				repository = github_repository.test.name
-		    	title = "v1.0.0"
-				description = "General Availability"
-		    	due_date = "2022-11-22"
-		    	state = "open"
-			}
-
-			resource "github_issue" "test" {
-			  repository       = github_repository.test.name
-			  title            = "%s"
-			  body             = "%s"
-			  labels           = [%s]
- 			  assignees        = ["%s"]
-			  milestone_number = github_repository_milestone.test.number
-			}
-		`
-		config := fmt.Sprintf(issueHCL, randomID, title, body, labels, testOwnerFunc())
-
-		checks := map[string]resource.TestCheckFunc{
-			"before": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "title",
-					title,
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubIssueConfig_basic(randomID, title, body),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_issue.test", "title", title),
+					resource.TestCheckResourceAttr("github_issue.test", "body", body),
+					resource.TestCheckResourceAttr("github_issue.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+					resource.TestCheckResourceAttrSet("github_issue.test", "number"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "issue_id"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "id"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "etag"),
 				),
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "body",
-					body,
+			},
+			{
+				Config: testAccGithubIssueConfig_basic(randomID, updatedTitle, updatedBody),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_issue.test", "title", updatedTitle),
+					resource.TestCheckResourceAttr("github_issue.test", "body", updatedBody),
+					resource.TestCheckResourceAttr("github_issue.test", "repository", fmt.Sprintf("tf-acc-test-%s", randomID)),
+					resource.TestCheckResourceAttrSet("github_issue.test", "number"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "issue_id"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "id"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "etag"),
 				),
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "labels.#",
-					"2",
-				),
-				func(state *terraform.State) error {
-					issue := state.RootModule().Resources["github_issue.test"].Primary
-					issueMilestone := issue.Attributes["milestone_number"]
-
-					milestone := state.RootModule().Resources["github_repository_milestone.test"].Primary
-					milestoneNumber := milestone.Attributes["number"]
-					if issueMilestone != milestoneNumber {
-						return fmt.Errorf("issue milestone number %s not the same as repository milestone number %s",
-							issueMilestone, milestoneNumber)
-					}
-					return nil
-				},
-			),
-			"after": resource.ComposeTestCheckFunc(
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "title",
-					updatedTitle,
-				),
-				resource.TestCheckResourceAttr(
-					"github_issue.test", "body",
-					updatedBody,
-				), resource.TestCheckResourceAttr(
-					"github_issue.test", "labels.#",
-					"1",
-				), resource.TestCheckResourceAttr(
-					"github_issue.test", "assignees.#",
-					"1",
-				),
-			),
-		}
-
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  checks["before"],
-					},
-					{
-						Config: fmt.Sprintf(issueHCL, randomID, updatedTitle, updatedBody, updatedLabels, testOwnerFunc()),
-						Check:  checks["after"],
-					},
-				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
+			},
+		},
 	})
+}
 
-	t.Run("imports a issue without error", func(t *testing.T) {
-		config := fmt.Sprintf(`
-					resource "github_repository" "test" {
-					  name       = "tf-acc-test-%s"
-					  has_issues = true
-					}
+func TestAccGithubIssueResource_withLabelsAndAssignees(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
-					resource "github_issue" "test" {
-					  repository       = github_repository.test.name
-					  title            = github_repository.test.name
-					}
-		    `, randomID)
+	title := "Test issue with labels and assignees"
+	body := "Test issue body with labels and assignees"
 
-		check := resource.ComposeTestCheckFunc(
-			resource.TestCheckResourceAttrSet("github_issue.test", "title"),
-			resource.TestCheckResourceAttr("github_issue.test", "title", fmt.Sprintf(`tf-acc-test-%s`, randomID)),
-		)
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubIssueConfig_withLabelsAndAssignees(randomID, title, body),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_issue.test", "title", title),
+					resource.TestCheckResourceAttr("github_issue.test", "body", body),
+					resource.TestCheckResourceAttr("github_issue.test", "labels.#", "2"),
+					resource.TestCheckTypeSetElemAttr("github_issue.test", "labels.*", "bug"),
+					resource.TestCheckTypeSetElemAttr("github_issue.test", "labels.*", "enhancement"),
+					resource.TestCheckResourceAttr("github_issue.test", "assignees.#", "1"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "number"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "issue_id"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "id"),
+				),
+			},
+			{
+				Config: testAccGithubIssueConfig_withUpdatedLabels(randomID, title, body),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_issue.test", "title", title),
+					resource.TestCheckResourceAttr("github_issue.test", "body", body),
+					resource.TestCheckResourceAttr("github_issue.test", "labels.#", "1"),
+					resource.TestCheckTypeSetElemAttr("github_issue.test", "labels.*", "documentation"),
+					resource.TestCheckResourceAttr("github_issue.test", "assignees.#", "1"),
+				),
+			},
+		},
+	})
+}
 
-		testCase := func(t *testing.T, mode string) {
-			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
-				Steps: []resource.TestStep{
-					{
-						Config: config,
-						Check:  check,
-					},
-					{
-						ResourceName:      "github_issue.test",
-						ImportState:       true,
-						ImportStateVerify: true,
+func TestAccGithubIssueResource_withMilestone(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	title := "Test issue with milestone"
+	body := "Test issue body with milestone"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubIssueConfig_withMilestone(randomID, title, body),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_issue.test", "title", title),
+					resource.TestCheckResourceAttr("github_issue.test", "body", body),
+					resource.TestCheckResourceAttrSet("github_issue.test", "milestone_number"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "number"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "issue_id"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "id"),
+					testAccCheckMilestoneMatch,
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubIssueResource_import(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	title := "Test issue for import"
+	body := "Test issue body for import"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubIssueConfig_basic(randomID, title, body),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_issue.test", "title", title),
+					resource.TestCheckResourceAttr("github_issue.test", "body", body),
+				),
+			},
+			{
+				ResourceName:      "github_issue.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccGithubIssueResource_disappears(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	title := "Test issue disappears"
+	body := "Test issue body disappears"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubIssueConfig_basic(randomID, title, body),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_issue.test", "title", title),
+					resource.TestCheckResourceAttr("github_issue.test", "body", body),
+				),
+			},
+			{
+				Config: testAccGithubIssueConfig_basic(randomID, title, body),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("github_issue.test", plancheck.ResourceActionNoop),
 					},
 				},
-			})
-		}
-
-		t.Run("with an anonymous account", func(t *testing.T) {
-			t.Skip("anonymous account not supported for this operation")
-		})
-
-		t.Run("with an individual account", func(t *testing.T) {
-			testCase(t, individual)
-		})
-
-		t.Run("with an organization account", func(t *testing.T) {
-			testCase(t, organization)
-		})
+			},
+		},
 	})
+}
 
+func TestAccGithubIssueResource_minimalConfig(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	title := "Minimal test issue"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubIssueConfig_minimal(randomID, title),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_issue.test", "title", title),
+					resource.TestCheckResourceAttr("github_issue.test", "body", ""),
+					resource.TestCheckResourceAttr("github_issue.test", "labels.#", "0"),
+					resource.TestCheckResourceAttr("github_issue.test", "assignees.#", "0"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "number"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "issue_id"),
+					resource.TestCheckResourceAttrSet("github_issue.test", "id"),
+				),
+			},
+		},
+	})
+}
+
+// Test helper functions
+
+func testAccCheckMilestoneMatch(state *terraform.State) error {
+	issue := state.RootModule().Resources["github_issue.test"].Primary
+	issueMilestone := issue.Attributes["milestone_number"]
+
+	milestone := state.RootModule().Resources["github_repository_milestone.test"].Primary
+	milestoneNumber := milestone.Attributes["number"]
+
+	if issueMilestone != milestoneNumber {
+		return fmt.Errorf("issue milestone number %s does not match repository milestone number %s",
+			issueMilestone, milestoneNumber)
+	}
+	return nil
+}
+
+// Test configuration functions
+
+func testAccGithubIssueConfig_basic(randomID, title, body string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "tf-acc-test-%s"
+  description = "Test repository for github_issue resource"
+  auto_init   = true
+  has_issues  = true
+}
+
+resource "github_issue" "test" {
+  repository = github_repository.test.name
+  title      = "%s"
+  body       = "%s"
+}
+`, randomID, title, body)
+}
+
+func testAccGithubIssueConfig_withLabelsAndAssignees(randomID, title, body string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "tf-acc-test-%s"
+  description = "Test repository for github_issue resource"
+  auto_init   = true
+  has_issues  = true
+}
+
+resource "github_issue" "test" {
+  repository = github_repository.test.name
+  title      = "%s"
+  body       = "%s"
+  labels     = ["bug", "enhancement"]
+  assignees  = ["%s"]
+}
+`, randomID, title, body, testOwner())
+}
+
+func testAccGithubIssueConfig_withUpdatedLabels(randomID, title, body string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "tf-acc-test-%s"
+  description = "Test repository for github_issue resource"
+  auto_init   = true
+  has_issues  = true
+}
+
+resource "github_issue" "test" {
+  repository = github_repository.test.name
+  title      = "%s"
+  body       = "%s"
+  labels     = ["documentation"]
+  assignees  = ["%s"]
+}
+`, randomID, title, body, testOwner())
+}
+
+func testAccGithubIssueConfig_withMilestone(randomID, title, body string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "tf-acc-test-%s"
+  description = "Test repository for github_issue resource"
+  auto_init   = true
+  has_issues  = true
+}
+
+resource "github_repository_milestone" "test" {
+  owner       = split("/", github_repository.test.full_name)[0]
+  repository  = github_repository.test.name
+  title       = "v1.0.0"
+  description = "General Availability"
+  due_date    = "2024-12-31"
+  state       = "open"
+}
+
+resource "github_issue" "test" {
+  repository       = github_repository.test.name
+  title            = "%s"
+  body             = "%s"
+  milestone_number = github_repository_milestone.test.number
+}
+`, randomID, title, body)
+}
+
+func testAccGithubIssueConfig_minimal(randomID, title string) string {
+	return fmt.Sprintf(`
+resource "github_repository" "test" {
+  name        = "tf-acc-test-%s"
+  description = "Test repository for github_issue resource"
+  auto_init   = true
+  has_issues  = true
+}
+
+resource "github_issue" "test" {
+  repository = github_repository.test.name
+  title      = "%s"
+}
+`, randomID, title)
+}
+
+// Helper function to get the test owner (similar to testOwnerFunc() in SDKv2 tests)
+func testOwner() string {
+	owner := os.Getenv("GITHUB_OWNER")
+	if owner == "" {
+		owner = os.Getenv("GITHUB_TEST_OWNER")
+	}
+	return owner
 }

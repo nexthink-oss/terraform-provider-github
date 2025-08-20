@@ -4,31 +4,66 @@ import (
 	"context"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func dataSourceGithubRepositoryEnvironments() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get information on a GitHub repository's environments.",
-		Read:        dataSourceGithubRepositoryEnvironmentsRead,
+var (
+	_ datasource.DataSource              = &githubRepositoryEnvironmentsDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubRepositoryEnvironmentsDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+type githubRepositoryEnvironmentsDataSource struct {
+	client *Owner
+}
+
+type githubRepositoryEnvironmentsDataSourceModel struct {
+	ID           types.String `tfsdk:"id"`
+	Repository   types.String `tfsdk:"repository"`
+	Environments types.List   `tfsdk:"environments"`
+}
+
+type githubRepositoryEnvironmentModel struct {
+	Name   types.String `tfsdk:"name"`
+	NodeID types.String `tfsdk:"node_id"`
+}
+
+func NewGithubRepositoryEnvironmentsDataSource() datasource.DataSource {
+	return &githubRepositoryEnvironmentsDataSource{}
+}
+
+func (d *githubRepositoryEnvironmentsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_repository_environments"
+}
+
+func (d *githubRepositoryEnvironmentsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get information on a GitHub repository's environments.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of this resource.",
+				Computed:    true,
 			},
-			"environments": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+			"repository": schema.StringAttribute{
+				Description: "The name of the repository.",
+				Required:    true,
+			},
+			"environments": schema.ListNestedAttribute{
+				Description: "The list of environments in this repository.",
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Description: "The name of the environment.",
+							Computed:    true,
 						},
-						"node_id": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"node_id": schema.StringAttribute{
+							Description: "The node ID of the environment.",
+							Computed:    true,
 						},
 					},
 				},
@@ -37,50 +72,88 @@ func dataSourceGithubRepositoryEnvironments() *schema.Resource {
 	}
 }
 
-func dataSourceGithubRepositoryEnvironmentsRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-	orgName := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
+func (d *githubRepositoryEnvironmentsDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
 
-	results := make([]map[string]any, 0)
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			"Expected *github.Owner, got: %T. Please report this issue to the provider developers.",
+		)
+		return
+	}
 
+	d.client = client
+}
+
+func (d *githubRepositoryEnvironmentsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubRepositoryEnvironmentsDataSourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := d.client.V3Client()
+	orgName := d.client.Name()
+	repoName := data.Repository.ValueString()
+
+	tflog.Debug(ctx, "Reading repository environments", map[string]interface{}{
+		"org":  orgName,
+		"repo": repoName,
+	})
+
+	var allEnvironments []githubRepositoryEnvironmentModel
 	var listOptions *github.EnvironmentListOptions
+
 	for {
-		environments, resp, err := client.Repositories.ListEnvironments(context.Background(), orgName, repoName, listOptions)
+		environments, response, err := client.Repositories.ListEnvironments(ctx, orgName, repoName, listOptions)
 		if err != nil {
-			return err
+			resp.Diagnostics.AddError(
+				"Unable to Read Repository Environments",
+				"An error occurred while reading the repository environments. "+
+					"GitHub API returned: "+err.Error(),
+			)
+			return
 		}
 
-		results = append(results, flattenEnvironments(environments)...)
+		if environments != nil {
+			for _, env := range environments.Environments {
+				envModel := githubRepositoryEnvironmentModel{
+					Name:   types.StringValue(env.GetName()),
+					NodeID: types.StringValue(env.GetNodeID()),
+				}
+				allEnvironments = append(allEnvironments, envModel)
+			}
+		}
 
-		if resp.NextPage == 0 {
+		if response.NextPage == 0 {
 			break
 		}
 
-		listOptions.Page = resp.NextPage
+		if listOptions == nil {
+			listOptions = &github.EnvironmentListOptions{}
+		}
+		listOptions.Page = response.NextPage
 	}
 
-	d.SetId(repoName)
-	err := d.Set("environments", results)
-	if err != nil {
-		return err
+	// Convert to types.List
+	environmentsList, diags := types.ListValueFrom(ctx, types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"name":    types.StringType,
+			"node_id": types.StringType,
+		},
+	}, allEnvironments)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	return nil
-}
+	data.ID = types.StringValue(repoName)
+	data.Environments = environmentsList
 
-func flattenEnvironments(environments *github.EnvResponse) []map[string]any {
-	results := make([]map[string]any, 0)
-	if environments == nil {
-		return results
-	}
-
-	for _, environment := range environments.Environments {
-		environmentMap := make(map[string]any)
-		environmentMap["name"] = environment.GetName()
-		environmentMap["node_id"] = environment.GetNodeID()
-		results = append(results, environmentMap)
-	}
-
-	return results
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

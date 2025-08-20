@@ -1,349 +1,253 @@
 package github
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
-	"net"
+	"io"
+	"net/http"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func dataSourceGithubIpRanges() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get information on GitHub's IP addresses.",
-		Read:        dataSourceGithubIpRangesRead,
+var (
+	_ datasource.DataSource              = &githubIpRangesDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubIpRangesDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"hooks": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+type githubIpRangesDataSource struct {
+	client *Owner
+}
+
+type githubIpRangesDataSourceModel struct {
+	ID                       types.String `tfsdk:"id"`
+	Hooks                    types.List   `tfsdk:"hooks"`
+	Web                      types.List   `tfsdk:"web"`
+	API                      types.List   `tfsdk:"api"`
+	Git                      types.List   `tfsdk:"git"`
+	GithubEnterpriseImporter types.List   `tfsdk:"github_enterprise_importer"`
+	Packages                 types.List   `tfsdk:"packages"`
+	Pages                    types.List   `tfsdk:"pages"`
+	Importer                 types.List   `tfsdk:"importer"`
+	Actions                  types.List   `tfsdk:"actions"`
+	Dependabot               types.List   `tfsdk:"dependabot"`
+}
+
+type githubMetaResponse struct {
+	Hooks                    []string `json:"hooks"`
+	Web                      []string `json:"web"`
+	API                      []string `json:"api"`
+	Git                      []string `json:"git"`
+	GithubEnterpriseImporter []string `json:"github_enterprise_importer"`
+	Packages                 []string `json:"packages"`
+	Pages                    []string `json:"pages"`
+	Importer                 []string `json:"importer"`
+	Actions                  []string `json:"actions"`
+	Dependabot               []string `json:"dependabot"`
+}
+
+func NewGithubIpRangesDataSource() datasource.DataSource {
+	return &githubIpRangesDataSource{}
+}
+
+func (d *githubIpRangesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_ip_ranges"
+}
+
+func (d *githubIpRangesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get GitHub's IP address ranges for various services.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of this data source.",
+				Computed:    true,
 			},
-			"git": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"hooks": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format specifying the addresses that incoming service hooks will originate from.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"web": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"web": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format for GitHub's web servers.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"api": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"api": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format for GitHub's API servers.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"packages": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"git": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format specifying the Git servers.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"pages": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"github_enterprise_importer": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format for the GitHub Enterprise Importer.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"importer": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"packages": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format for GitHub Packages.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"actions": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"pages": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format specifying the A records for GitHub Pages.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"dependabot": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"importer": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format for the GitHub Importer.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"hooks_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"actions": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format for GitHub Actions.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"git_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"web_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"api_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"packages_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"pages_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"importer_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"actions_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"dependabot_ipv4": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"hooks_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"git_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"web_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"api_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"packages_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"pages_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"importer_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"actions_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"dependabot_ipv6": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"dependabot": schema.ListAttribute{
+				Description: "An array of IP addresses in CIDR format for GitHub Dependabot.",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func dataSourceGithubIpRangesRead(d *schema.ResourceData, meta any) error {
-	owner := meta.(*Owner)
-
-	api, _, err := owner.v3client.Meta.Get(owner.StopContext)
-	if err != nil {
-		return err
+func (d *githubIpRangesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	cidrHooksIpv4, cidrHooksIpv6, err := splitIpv4Ipv6Cidrs(&api.Hooks)
-	if err != nil {
-		return err
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
 	}
 
-	cidrGitIpv4, cidrGitIpv6, err := splitIpv4Ipv6Cidrs(&api.Git)
-	if err != nil {
-		return err
-	}
-
-	cidrPackagesIpv4, cidrPackagesIpv6, err := splitIpv4Ipv6Cidrs(&api.Packages)
-	if err != nil {
-		return err
-	}
-
-	cidrPagesIpv4, cidrPagesIpv6, err := splitIpv4Ipv6Cidrs(&api.Pages)
-	if err != nil {
-		return err
-	}
-
-	cidrImporterIpv4, cidrImporterIpv6, err := splitIpv4Ipv6Cidrs(&api.Importer)
-	if err != nil {
-		return err
-	}
-
-	cidrActionsIpv4, cidrActionsIpv6, err := splitIpv4Ipv6Cidrs(&api.Actions)
-	if err != nil {
-		return err
-	}
-
-	cidrDependabotIpv4, cidrDependabotIpv6, err := splitIpv4Ipv6Cidrs(&api.Dependabot)
-	if err != nil {
-		return err
-	}
-
-	cidrWebIpv4, cidrWebIpv6, err := splitIpv4Ipv6Cidrs(&api.Web)
-	if err != nil {
-		return err
-	}
-
-	cidrApiIpv4, cidrApiIpv6, err := splitIpv4Ipv6Cidrs(&api.API)
-	if err != nil {
-		return err
-	}
-
-	if len(api.Hooks)+len(api.Git)+len(api.Pages)+len(api.Importer)+len(api.Actions)+len(api.Dependabot) > 0 {
-		d.SetId("github-ip-ranges")
-	}
-	if len(api.Hooks) > 0 {
-		err = d.Set("hooks", api.Hooks)
-		if err != nil {
-			return err
-		}
-		err = d.Set("hooks_ipv4", cidrHooksIpv4)
-		if err != nil {
-			return err
-		}
-		err = d.Set("hooks_ipv6", cidrHooksIpv6)
-		if err != nil {
-			return err
-		}
-	}
-	if len(api.Git) > 0 {
-		err = d.Set("git", api.Git)
-		if err != nil {
-			return err
-		}
-		err = d.Set("git_ipv4", cidrGitIpv4)
-		if err != nil {
-			return err
-		}
-		err = d.Set("git_ipv6", cidrGitIpv6)
-		if err != nil {
-			return err
-		}
-	}
-	if len(api.Packages) > 0 {
-		_ = d.Set("packages", api.Packages)
-		_ = d.Set("packages_ipv4", cidrPackagesIpv4)
-		_ = d.Set("packages_ipv6", cidrPackagesIpv6)
-	}
-	if len(api.Pages) > 0 {
-		err = d.Set("pages", api.Pages)
-		if err != nil {
-			return err
-		}
-		err = d.Set("pages_ipv4", cidrPagesIpv4)
-		if err != nil {
-			return err
-		}
-		err = d.Set("pages_ipv6", cidrPagesIpv6)
-		if err != nil {
-			return err
-		}
-	}
-	if len(api.Importer) > 0 {
-		err = d.Set("importer", api.Importer)
-		if err != nil {
-			return err
-		}
-		err = d.Set("importer_ipv4", cidrImporterIpv4)
-		if err != nil {
-			return err
-		}
-		err = d.Set("importer_ipv6", cidrImporterIpv6)
-		if err != nil {
-			return err
-		}
-	}
-	if len(api.Actions) > 0 {
-		err = d.Set("actions", api.Actions)
-		if err != nil {
-			return err
-		}
-		err = d.Set("actions_ipv4", cidrActionsIpv4)
-		if err != nil {
-			return err
-		}
-		err = d.Set("actions_ipv6", cidrActionsIpv6)
-		if err != nil {
-			return err
-		}
-	}
-	if len(api.Dependabot) > 0 {
-		err = d.Set("dependabot", api.Dependabot)
-		if err != nil {
-			return err
-		}
-		err = d.Set("dependabot_ipv4", cidrDependabotIpv4)
-		if err != nil {
-			return err
-		}
-		err = d.Set("dependabot_ipv6", cidrDependabotIpv6)
-		if err != nil {
-			return err
-		}
-	}
-	if len(api.Web) > 0 {
-		err = d.Set("web", api.Web)
-		if err != nil {
-			return err
-		}
-		err = d.Set("web_ipv4", cidrWebIpv4)
-		if err != nil {
-			return err
-		}
-		err = d.Set("web_ipv6", cidrWebIpv6)
-		if err != nil {
-			return err
-		}
-	}
-	if len(api.API) > 0 {
-		err = d.Set("api", api.API)
-		if err != nil {
-			return err
-		}
-		err = d.Set("api_ipv4", cidrApiIpv4)
-		if err != nil {
-			return err
-		}
-		err = d.Set("api_ipv6", cidrApiIpv6)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	d.client = client
 }
 
-func splitIpv4Ipv6Cidrs(cidrs *[]string) (*[]string, *[]string, error) {
-	cidrIpv4 := []string{}
-	cidrIpv6 := []string{}
+func (d *githubIpRangesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubIpRangesDataSourceModel
 
-	for _, cidr := range *cidrs {
-		cidrHost, _, err := net.ParseCIDR(cidr)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed parsing cidr %s (%v)", cidr, err)
-		}
-		if cidrHost.To4() != nil {
-			cidrIpv4 = append(cidrIpv4, cidr)
-		} else {
-			cidrIpv6 = append(cidrIpv6, cidr)
+	tflog.Debug(ctx, "Reading GitHub IP ranges from Meta API")
+
+	// Make HTTP request to GitHub Meta API
+	metaURL := "https://api.github.com/meta"
+
+	// Use the base URL from the client if it's configured for GitHub Enterprise
+	if d.client != nil && d.client.V3Client() != nil && d.client.V3Client().BaseURL != nil {
+		baseURL := d.client.V3Client().BaseURL.String()
+		if baseURL != "https://api.github.com/" && baseURL != "" {
+			// Remove trailing slash if present
+			if baseURL[len(baseURL)-1] == '/' {
+				baseURL = baseURL[:len(baseURL)-1]
+			}
+			metaURL = baseURL + "/meta"
 		}
 	}
 
-	return &cidrIpv4, &cidrIpv6, nil
+	tflog.Debug(ctx, "Fetching IP ranges from URL", map[string]interface{}{
+		"url": metaURL,
+	})
+
+	httpResp, err := http.Get(metaURL)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub IP Ranges",
+			fmt.Sprintf("An error occurred while fetching GitHub IP ranges from %s: %s", metaURL, err.Error()),
+		)
+		return
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK {
+		resp.Diagnostics.AddError(
+			"GitHub API Request Failed",
+			fmt.Sprintf("GitHub API returned status %d when fetching IP ranges from %s", httpResp.StatusCode, metaURL),
+		)
+		return
+	}
+
+	body, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub API Response",
+			fmt.Sprintf("An error occurred while reading the GitHub API response: %s", err.Error()),
+		)
+		return
+	}
+
+	var metaResponse githubMetaResponse
+	if err := json.Unmarshal(body, &metaResponse); err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Parse GitHub API Response",
+			fmt.Sprintf("An error occurred while parsing the GitHub API response: %s", err.Error()),
+		)
+		return
+	}
+
+	// Convert string slices to List types
+	var diags = resp.Diagnostics
+
+	data.ID = types.StringValue("github-ip-ranges")
+
+	data.Hooks, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Hooks)
+	resp.Diagnostics.Append(diags...)
+
+	data.Web, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Web)
+	resp.Diagnostics.Append(diags...)
+
+	data.API, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.API)
+	resp.Diagnostics.Append(diags...)
+
+	data.Git, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Git)
+	resp.Diagnostics.Append(diags...)
+
+	data.GithubEnterpriseImporter, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.GithubEnterpriseImporter)
+	resp.Diagnostics.Append(diags...)
+
+	data.Packages, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Packages)
+	resp.Diagnostics.Append(diags...)
+
+	data.Pages, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Pages)
+	resp.Diagnostics.Append(diags...)
+
+	data.Importer, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Importer)
+	resp.Diagnostics.Append(diags...)
+
+	data.Actions, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Actions)
+	resp.Diagnostics.Append(diags...)
+
+	data.Dependabot, diags = types.ListValueFrom(ctx, types.StringType, metaResponse.Dependabot)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "Successfully read GitHub IP ranges", map[string]interface{}{
+		"hooks_count":                      len(metaResponse.Hooks),
+		"web_count":                        len(metaResponse.Web),
+		"api_count":                        len(metaResponse.API),
+		"git_count":                        len(metaResponse.Git),
+		"github_enterprise_importer_count": len(metaResponse.GithubEnterpriseImporter),
+		"packages_count":                   len(metaResponse.Packages),
+		"pages_count":                      len(metaResponse.Pages),
+		"importer_count":                   len(metaResponse.Importer),
+		"actions_count":                    len(metaResponse.Actions),
+		"dependabot_count":                 len(metaResponse.Dependabot),
+	})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

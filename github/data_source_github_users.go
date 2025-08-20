@@ -6,86 +6,148 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
+
 )
 
-func dataSourceGithubUsers() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get information about multiple GitHub users.",
-		Read:        dataSourceGithubUsersRead,
+var (
+	_ datasource.DataSource              = &githubUsersDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubUsersDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"usernames": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Required: true,
+type githubUsersDataSource struct {
+	client *Owner
+}
+
+type githubUsersDataSourceModel struct {
+	ID            types.String `tfsdk:"id"`
+	Usernames     types.List   `tfsdk:"usernames"`
+	Logins        types.List   `tfsdk:"logins"`
+	Emails        types.List   `tfsdk:"emails"`
+	NodeIDs       types.List   `tfsdk:"node_ids"`
+	UnknownLogins types.List   `tfsdk:"unknown_logins"`
+}
+
+func NewGithubUsersDataSource() datasource.DataSource {
+	return &githubUsersDataSource{}
+}
+
+func (d *githubUsersDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_users"
+}
+
+func (d *githubUsersDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get information about multiple GitHub users.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the data source.",
+				Computed:    true,
 			},
-			"logins": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Computed: true,
+			"usernames": schema.ListAttribute{
+				Description: "List of usernames to lookup.",
+				Required:    true,
+				ElementType: types.StringType,
 			},
-			"emails": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Computed: true,
+			"logins": schema.ListAttribute{
+				Description: "List of found user logins.",
+				Computed:    true,
+				ElementType: types.StringType,
 			},
-			"node_ids": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Computed: true,
+			"emails": schema.ListAttribute{
+				Description: "List of found user emails.",
+				Computed:    true,
+				ElementType: types.StringType,
 			},
-			"unknown_logins": {
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Computed: true,
+			"node_ids": schema.ListAttribute{
+				Description: "List of found user node IDs.",
+				Computed:    true,
+				ElementType: types.StringType,
+			},
+			"unknown_logins": schema.ListAttribute{
+				Description: "List of usernames that could not be found.",
+				Computed:    true,
+				ElementType: types.StringType,
 			},
 		},
 	}
 }
 
-func dataSourceGithubUsersRead(d *schema.ResourceData, meta any) error {
-	usernames := expandStringList(d.Get("usernames").([]any))
+func (d *githubUsersDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
 
-	// Create GraphQL variables and query struct
-	type (
-		UserFragment struct {
-			Id    string
-			Login string
-			Email string
-		}
-	)
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	d.client = client
+}
+
+func (d *githubUsersDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubUsersDataSourceModel
+
+	// Read configuration
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Extract usernames list
+	var usernames []string
+	resp.Diagnostics.Append(data.Usernames.ElementsAs(ctx, &usernames, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "Reading GitHub users", map[string]interface{}{
+		"usernames_count": len(usernames),
+		"usernames":       usernames,
+	})
+
+	// Create GraphQL variables and query struct - same pattern as SDKv2
+	type UserFragment struct {
+		Id    string
+		Login string
+		Email string
+	}
+
 	var fields []reflect.StructField
 	variables := make(map[string]any)
 	for idx, username := range usernames {
 		label := fmt.Sprintf("User%d", idx)
 		variables[label] = githubv4.String(username)
 		fields = append(fields, reflect.StructField{
-			Name: label, Type: reflect.TypeOf(UserFragment{}), Tag: reflect.StructTag(fmt.Sprintf("graphql:\"%[1]s: user(login: $%[1]s)\"", label)),
+			Name: label,
+			Type: reflect.TypeOf(UserFragment{}),
+			Tag:  reflect.StructTag(fmt.Sprintf("graphql:\"%[1]s: user(login: $%[1]s)\"", label)),
 		})
 	}
 	query := reflect.New(reflect.StructOf(fields)).Elem()
 
+	// Execute GraphQL query if we have usernames
 	if len(usernames) > 0 {
-		ctx := context.WithValue(context.Background(), ctxId, d.Id())
-		client := meta.(*Owner).v4client
-		err := client.Query(ctx, query.Addr().Interface(), variables)
+		err := d.client.V4Client().Query(ctx, query.Addr().Interface(), variables)
 		if err != nil && !strings.Contains(err.Error(), "Could not resolve to a User with the login of") {
-			return err
+			resp.Diagnostics.AddError(
+				"Unable to Query GitHub Users",
+				fmt.Sprintf("An unexpected error occurred while querying GitHub users: %s", err.Error()),
+			)
+			return
 		}
 	}
 
+	// Process results
 	var logins, emails, nodeIDs, unknownLogins []string
 	for idx, username := range usernames {
 		label := fmt.Sprintf("User%d", idx)
@@ -99,19 +161,47 @@ func dataSourceGithubUsersRead(d *schema.ResourceData, meta any) error {
 		}
 	}
 
-	d.SetId(buildChecksumID(usernames))
-	if err := d.Set("logins", logins); err != nil {
-		return err
-	}
-	if err := d.Set("emails", emails); err != nil {
-		return err
-	}
-	if err := d.Set("node_ids", nodeIDs); err != nil {
-		return err
-	}
-	if err := d.Set("unknown_logins", unknownLogins); err != nil {
-		return err
-	}
+	// Calculate ID using same pattern as SDKv2 (buildChecksumID)
+	id := buildChecksumID(usernames)
+	data.ID = types.StringValue(id)
 
-	return nil
+	// Convert slices to Framework list values
+	loginsList, diags := types.ListValueFrom(ctx, types.StringType, logins)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Logins = loginsList
+
+	emailsList, diags := types.ListValueFrom(ctx, types.StringType, emails)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Emails = emailsList
+
+	nodeIDsList, diags := types.ListValueFrom(ctx, types.StringType, nodeIDs)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.NodeIDs = nodeIDsList
+
+	unknownLoginsList, diags := types.ListValueFrom(ctx, types.StringType, unknownLogins)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.UnknownLogins = unknownLoginsList
+
+	tflog.Debug(ctx, "Successfully read GitHub users", map[string]interface{}{
+		"usernames_count":     len(usernames),
+		"found_users_count":   len(logins),
+		"unknown_users_count": len(unknownLogins),
+		"found_logins":        logins,
+		"unknown_logins":      unknownLogins,
+	})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
+

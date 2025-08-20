@@ -2,181 +2,340 @@ package github
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func resourceGithubRepositoryDeploymentBranchPolicy() *schema.Resource {
-	return &schema.Resource{
-		Description: "Creates and manages deployment branch policies",
-		Create:      resourceGithubRepositoryDeploymentBranchPolicyCreate,
-		Read:        resourceGithubRepositoryDeploymentBranchPolicyRead,
-		Update:      resourceGithubRepositoryDeploymentBranchPolicyUpdate,
-		Delete:      resourceGithubRepositoryDeploymentBranchPolicyDelete,
-		Importer: &schema.ResourceImporter{
-			State: resourceGithubRepositoryDeploymentBranchPolicyImport,
-		},
+var (
+	_ resource.Resource                = &githubRepositoryDeploymentBranchPolicyResource{}
+	_ resource.ResourceWithConfigure   = &githubRepositoryDeploymentBranchPolicyResource{}
+	_ resource.ResourceWithImportState = &githubRepositoryDeploymentBranchPolicyResource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The GitHub repository name.",
-			},
-			"environment_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The target environment name.",
-			},
-			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the branch",
-			},
-			"etag": {
-				Type:        schema.TypeString,
+func NewGithubRepositoryDeploymentBranchPolicyResource() resource.Resource {
+	return &githubRepositoryDeploymentBranchPolicyResource{}
+}
+
+type githubRepositoryDeploymentBranchPolicyResource struct {
+	client *Owner
+}
+
+type githubRepositoryDeploymentBranchPolicyResourceModel struct {
+	ID              types.String `tfsdk:"id"`
+	Repository      types.String `tfsdk:"repository"`
+	EnvironmentName types.String `tfsdk:"environment_name"`
+	Name            types.String `tfsdk:"name"`
+	Etag            types.String `tfsdk:"etag"`
+}
+
+func (r *githubRepositoryDeploymentBranchPolicyResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_repository_deployment_branch_policy"
+}
+
+func (r *githubRepositoryDeploymentBranchPolicyResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Creates and manages deployment branch policies for GitHub repository environments",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the deployment branch policy.",
 				Computed:    true,
-				Description: "An etag representing the Branch object.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"repository": schema.StringAttribute{
+				Description: "The GitHub repository name.",
+				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"environment_name": schema.StringAttribute{
+				Description: "The target environment name.",
+				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"name": schema.StringAttribute{
+				Description: "The name of the branch",
+				Required:    true,
+			},
+			"etag": schema.StringAttribute{
+				Description: "An etag representing the branch policy object.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyUpdate(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
-	name := d.Get("name").(string)
-
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return err
+func (r *githubRepositoryDeploymentBranchPolicyResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	_, _, err = client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id), &github.DeploymentBranchPolicyRequest{Name: &name})
-	if err != nil {
-		return err
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
 	}
 
-	return resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
+	r.client = client
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyCreate(d *schema.ResourceData, meta any) error {
-	ctx := context.Background()
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxId, d.Id())
+func (r *githubRepositoryDeploymentBranchPolicyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data githubRepositoryDeploymentBranchPolicyResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
-	name := d.Get("name").(string)
+	client := r.client.V3Client()
+	owner := r.client.Name()
 
-	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repoName, environmentName, &github.DeploymentBranchPolicyRequest{Name: &name, Type: github.Ptr("branch")})
+	repository := data.Repository.ValueString()
+	environmentName := data.EnvironmentName.ValueString()
+	name := data.Name.ValueString()
+
+	policy, _, err := client.Repositories.CreateDeploymentBranchPolicy(ctx, owner, repository, environmentName, &github.DeploymentBranchPolicyRequest{
+		Name: &name,
+		Type: github.Ptr("branch"),
+	})
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Error creating deployment branch policy",
+			fmt.Sprintf("Could not create deployment branch policy %s for environment %s in repository %s: %s", name, environmentName, repository, err.Error()),
+		)
+		return
 	}
 
-	d.SetId(strconv.FormatInt(*policy.ID, 10))
+	data.ID = types.StringValue(strconv.FormatInt(*policy.ID, 10))
 
-	return resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
+	tflog.Debug(ctx, "created GitHub deployment branch policy", map[string]interface{}{
+		"id":               data.ID.ValueString(),
+		"repository":       repository,
+		"environment_name": environmentName,
+		"name":             name,
+	})
+
+	// Read the created resource to populate all computed fields
+	r.readGithubRepositoryDeploymentBranchPolicy(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func resourceGithubRepositoryDeploymentBranchPolicyRead(d *schema.ResourceData, meta any) error {
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-	if !d.IsNewResource() {
-		ctx = context.WithValue(ctx, ctxEtag, d.Get("etag").(string))
+func (r *githubRepositoryDeploymentBranchPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data githubRepositoryDeploymentBranchPolicyResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
+	r.readGithubRepositoryDeploymentBranchPolicy(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	id, err := strconv.Atoi(d.Id())
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubRepositoryDeploymentBranchPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data githubRepositoryDeploymentBranchPolicyResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := r.client.V3Client()
+	owner := r.client.Name()
+
+	repository := data.Repository.ValueString()
+	environmentName := data.EnvironmentName.ValueString()
+	name := data.Name.ValueString()
+
+	id, err := strconv.Atoi(data.ID.ValueString())
 	if err != nil {
-		return err
+		resp.Diagnostics.AddError(
+			"Invalid ID Format",
+			fmt.Sprintf("Unable to convert deployment branch policy ID to integer: %s", err.Error()),
+		)
+		return
 	}
 
-	policy, resp, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id))
+	_, _, err = client.Repositories.UpdateDeploymentBranchPolicy(ctx, owner, repository, environmentName, int64(id), &github.DeploymentBranchPolicyRequest{
+		Name: &name,
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating deployment branch policy",
+			fmt.Sprintf("Could not update deployment branch policy %d for environment %s in repository %s: %s", id, environmentName, repository, err.Error()),
+		)
+		return
+	}
+
+	tflog.Debug(ctx, "updated GitHub deployment branch policy", map[string]interface{}{
+		"id":               data.ID.ValueString(),
+		"repository":       repository,
+		"environment_name": environmentName,
+		"name":             name,
+	})
+
+	// Read the updated resource to populate all computed fields
+	r.readGithubRepositoryDeploymentBranchPolicy(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (r *githubRepositoryDeploymentBranchPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data githubRepositoryDeploymentBranchPolicyResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := r.client.V3Client()
+	owner := r.client.Name()
+
+	repository := data.Repository.ValueString()
+	environmentName := data.EnvironmentName.ValueString()
+
+	id, err := strconv.Atoi(data.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid ID Format",
+			fmt.Sprintf("Unable to convert deployment branch policy ID to integer: %s", err.Error()),
+		)
+		return
+	}
+
+	_, err = client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repository, environmentName, int64(id))
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error deleting deployment branch policy",
+			fmt.Sprintf("Could not delete deployment branch policy %d for environment %s in repository %s: %s", id, environmentName, repository, err.Error()),
+		)
+		return
+	}
+
+	tflog.Debug(ctx, "deleted GitHub deployment branch policy", map[string]interface{}{
+		"id":               data.ID.ValueString(),
+		"repository":       repository,
+		"environment_name": environmentName,
+	})
+}
+
+func (r *githubRepositoryDeploymentBranchPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Parse the import ID in the format "repository:environment_name:id"
+	parts := strings.Split(req.ID, ":")
+	if len(parts) != 3 {
+		resp.Diagnostics.AddError(
+			"Invalid Import ID",
+			fmt.Sprintf("Expected import ID in the format 'repository:environment_name:id', got: %s", req.ID),
+		)
+		return
+	}
+
+	repository := parts[0]
+	environmentName := parts[1]
+	id := parts[2]
+
+	data := githubRepositoryDeploymentBranchPolicyResourceModel{
+		ID:              types.StringValue(id),
+		Repository:      types.StringValue(repository),
+		EnvironmentName: types.StringValue(environmentName),
+	}
+
+	r.readGithubRepositoryDeploymentBranchPolicy(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// Helper function to read the deployment branch policy
+func (r *githubRepositoryDeploymentBranchPolicyResource) readGithubRepositoryDeploymentBranchPolicy(ctx context.Context, data *githubRepositoryDeploymentBranchPolicyResourceModel, diags *diag.Diagnostics) {
+	client := r.client.V3Client()
+	owner := r.client.Name()
+
+	repository := data.Repository.ValueString()
+	environmentName := data.EnvironmentName.ValueString()
+
+	id, err := strconv.Atoi(data.ID.ValueString())
+	if err != nil {
+		diags.AddError(
+			"Invalid ID Format",
+			fmt.Sprintf("Unable to convert deployment branch policy ID to integer: %s", err.Error()),
+		)
+		return
+	}
+
+	// Set up context with ID for caching
+	ctx = context.WithValue(ctx, CtxId, data.ID.ValueString())
+
+	// Add etag to context for conditional requests if we have one
+	if !data.Etag.IsNull() && !data.Etag.IsUnknown() {
+		ctx = context.WithValue(ctx, CtxEtag, data.Etag.ValueString())
+	}
+
+	policy, resp, err := client.Repositories.GetDeploymentBranchPolicy(ctx, owner, repository, environmentName, int64(id))
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
-				return nil
+				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing deployment branch policy for environment %s: %s from state because it no longer exists in GitHub",
-					repoName, environmentName)
-				d.SetId("")
-				return nil
+				tflog.Info(ctx, "removing deployment branch policy from state because it no longer exists in GitHub", map[string]interface{}{
+					"repository":       repository,
+					"environment_name": environmentName,
+					"id":               data.ID.ValueString(),
+				})
+				data.ID = types.StringNull()
+				return
 			}
 		}
-		return err
+		diags.AddError(
+			"Error reading deployment branch policy",
+			fmt.Sprintf("Could not read deployment branch policy %d for environment %s in repository %s: %s", id, environmentName, repository, err.Error()),
+		)
+		return
 	}
 
-	if err = d.Set("etag", resp.Header.Get("ETag")); err != nil {
-		return err
-	}
-	if err = d.Set("repository", repoName); err != nil {
-		return err
-	}
-	if err = d.Set("environment_name", environmentName); err != nil {
-		return err
-	}
-	if err = d.Set("name", policy.Name); err != nil {
-		return err
-	}
+	data.Repository = types.StringValue(repository)
+	data.EnvironmentName = types.StringValue(environmentName)
+	data.Name = types.StringValue(policy.GetName())
+	data.Etag = types.StringValue(resp.Header.Get("ETag"))
 
-	return nil
-}
-
-func resourceGithubRepositoryDeploymentBranchPolicyDelete(d *schema.ResourceData, meta any) error {
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	client := meta.(*Owner).v3client
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	environmentName := d.Get("environment_name").(string)
-
-	id, err := strconv.Atoi(d.Id())
-	if err != nil {
-		return err
-	}
-
-	_, error := client.Repositories.DeleteDeploymentBranchPolicy(ctx, owner, repoName, environmentName, int64(id))
-	if error != nil {
-		return error
-	}
-	return nil
-}
-
-func resourceGithubRepositoryDeploymentBranchPolicyImport(d *schema.ResourceData, meta any) ([]*schema.ResourceData, error) {
-	repoName, environmentName, id, err := parseThreePartID(d.Id(), "repository", "environment_name", "id")
-	if err != nil {
-		return nil, err
-	}
-
-	d.SetId(id)
-	if err = d.Set("repository", repoName); err != nil {
-		return nil, err
-	}
-	if err = d.Set("environment_name", environmentName); err != nil {
-		return nil, err
-	}
-
-	err = resourceGithubRepositoryDeploymentBranchPolicyRead(d, meta)
-	if err != nil {
-		return nil, err
-	}
-
-	return []*schema.ResourceData{d}, nil
+	tflog.Debug(ctx, "successfully read GitHub deployment branch policy", map[string]interface{}{
+		"id":               data.ID.ValueString(),
+		"repository":       repository,
+		"environment_name": environmentName,
+		"name":             data.Name.ValueString(),
+	})
 }

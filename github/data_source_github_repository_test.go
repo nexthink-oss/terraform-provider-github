@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccGithubRepositoryDataSource(t *testing.T) {
@@ -21,21 +21,21 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 			data "github_repository" "test" {
 				full_name = data.github_repositories.test.full_names.0
 			}
-		`, testOrganization)
+		`, testOrganizationFunc())
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestMatchResourceAttr(
 				"data.github_repositories.test", "full_names.0",
-				regexp.MustCompile(`^`+testOrganization)),
+				regexp.MustCompile(`^`+testOrganizationFunc())),
 			resource.TestMatchResourceAttr(
 				"data.github_repository.test", "full_name",
-				regexp.MustCompile(`^`+testOrganization)),
+				regexp.MustCompile(`^`+testOrganizationFunc())),
 		)
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -80,8 +80,8 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -150,8 +150,8 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -195,8 +195,8 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -251,8 +251,8 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -299,8 +299,8 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -353,8 +353,8 @@ func TestAccGithubRepositoryDataSource(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						// Not doing any checks since the language doesnt have time to be updated on the first apply
@@ -421,8 +421,8 @@ EOT
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -444,5 +444,155 @@ EOT
 			testCase(t, organization)
 		})
 
+	})
+
+	t.Run("migration validation - comparing SDKv2 and Framework behavior", func(t *testing.T) {
+		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+				name = "tf-acc-%s"
+				auto_init = true
+				description = "Test repository for migration validation"
+				homepage_url = "https://example.com"
+				topics = ["terraform", "migration", "test"]
+				has_issues = true
+				has_projects = true
+				has_wiki = true
+				allow_merge_commit = true
+				allow_squash_merge = true
+				allow_rebase_merge = true
+				delete_branch_on_merge = true
+			}
+
+			data "github_repository" "test" {
+				name = github_repository.test.name
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			// Basic attributes
+			resource.TestCheckResourceAttr("data.github_repository.test", "name", "tf-acc-"+randomID),
+			resource.TestCheckResourceAttr("data.github_repository.test", "description", "Test repository for migration validation"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "homepage_url", "https://example.com"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "private", "false"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "fork", "false"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "archived", "false"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "is_template", "false"),
+
+			// Boolean settings
+			resource.TestCheckResourceAttr("data.github_repository.test", "has_issues", "true"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "has_projects", "true"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "has_wiki", "true"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "allow_merge_commit", "true"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "allow_squash_merge", "true"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "allow_rebase_merge", "true"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "delete_branch_on_merge", "true"),
+
+			// Computed values
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "full_name"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "html_url"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "ssh_clone_url"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "git_clone_url"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "http_clone_url"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "svn_url"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "default_branch"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "node_id"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "repo_id"),
+			resource.TestCheckResourceAttrSet("data.github_repository.test", "visibility"),
+
+			// Topics validation
+			resource.TestCheckResourceAttr("data.github_repository.test", "topics.#", "3"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "topics.0", "terraform"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "topics.1", "migration"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "topics.2", "test"),
+
+			// Empty nested structures
+			resource.TestCheckResourceAttr("data.github_repository.test", "pages.#", "0"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "repository_license.#", "0"),
+			resource.TestCheckResourceAttr("data.github_repository.test", "template.#", "0"),
+		)
+
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { testAccPreCheckIndividual(t) },
+			ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+			Steps: []resource.TestStep{
+				{
+					Config: config,
+					Check:  check,
+				},
+			},
+		})
+	})
+}
+
+// Helper functions for migration validation
+func TestAccGithubRepositoryDataSource_ConflictValidation(t *testing.T) {
+	config := `
+		data "github_repository" "test" {
+			full_name = "owner/repo"
+			name = "repo"
+		}
+	`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheckIndividual(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile(`.*`), // Should error due to conflicting attributes
+			},
+		},
+	})
+}
+
+func TestAccGithubRepositoryDataSource_FullNameOnly(t *testing.T) {
+	config := fmt.Sprintf(`
+		data "github_repository" "test" {
+			full_name = "%s/terraform-provider-github"
+		}
+	`, testOrganizationFunc())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { skipUnlessMode(t, anonymous) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.github_repository.test", "name", "terraform-provider-github"),
+					resource.TestCheckResourceAttr("data.github_repository.test", "full_name", testOrganizationFunc()+"/terraform-provider-github"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubRepositoryDataSource_NameOnly(t *testing.T) {
+	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
+
+	config := fmt.Sprintf(`
+		resource "github_repository" "test" {
+			name = "tf-acc-%s"
+		}
+
+		data "github_repository" "test" {
+			name = github_repository.test.name
+		}
+	`, randomID)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheckIndividual(t) },
+		ProtoV6ProviderFactories: testAccMuxedProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.github_repository.test", "name", "tf-acc-"+randomID),
+					resource.TestCheckResourceAttrSet("data.github_repository.test", "full_name"),
+				),
+			},
+		},
 	})
 }

@@ -3,166 +3,307 @@ package github
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func dataSourceGithubRepositoryFile() *schema.Resource {
-	return &schema.Resource{
+var (
+	_ datasource.DataSource              = &githubRepositoryFileDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubRepositoryFileDataSource{}
+)
+
+func NewGithubRepositoryFileDataSource() datasource.DataSource {
+	return &githubRepositoryFileDataSource{}
+}
+
+type githubRepositoryFileDataSource struct {
+	client *Owner
+}
+
+type githubRepositoryFileDataSourceModel struct {
+	ID            types.String `tfsdk:"id"`
+	Repository    types.String `tfsdk:"repository"`
+	File          types.String `tfsdk:"file"`
+	Branch        types.String `tfsdk:"branch"`
+	Ref           types.String `tfsdk:"ref"`
+	Content       types.String `tfsdk:"content"`
+	CommitSha     types.String `tfsdk:"commit_sha"`
+	CommitMessage types.String `tfsdk:"commit_message"`
+	CommitAuthor  types.String `tfsdk:"commit_author"`
+	CommitEmail   types.String `tfsdk:"commit_email"`
+	Sha           types.String `tfsdk:"sha"`
+}
+
+func (d *githubRepositoryFileDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_repository_file"
+}
+
+func (d *githubRepositoryFileDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Reads files within a GitHub repository",
-		ReadContext: dataSourceGithubRepositoryFileRead,
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:        schema.TypeString,
-				Required:    true,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+			},
+			"repository": schema.StringAttribute{
 				Description: "The repository name",
-			},
-			"file": {
-				Type:        schema.TypeString,
 				Required:    true,
+			},
+			"file": schema.StringAttribute{
 				Description: "The file path to manage",
+				Required:    true,
 			},
-			"branch": {
-				Type:        schema.TypeString,
-				Optional:    true,
+			"branch": schema.StringAttribute{
 				Description: "The branch name, defaults to the repository's default branch",
+				Optional:    true,
 			},
-			"ref": {
-				Type:        schema.TypeString,
-				Computed:    true,
+			"ref": schema.StringAttribute{
 				Description: "The name of the commit/branch/tag",
-			},
-			"content": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"content": schema.StringAttribute{
 				Description: "The file's content",
-			},
-			"commit_sha": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"commit_sha": schema.StringAttribute{
 				Description: "The SHA of the commit that modified the file",
-			},
-			"commit_message": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"commit_message": schema.StringAttribute{
 				Description: "The commit message when creating or updating the file",
-			},
-			"commit_author": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"commit_author": schema.StringAttribute{
 				Description: "The commit author name, defaults to the authenticated user's name",
-			},
-			"commit_email": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"commit_email": schema.StringAttribute{
 				Description: "The commit author email address, defaults to the authenticated user's email address",
-			},
-			"sha": {
-				Type:        schema.TypeString,
 				Computed:    true,
+			},
+			"sha": schema.StringAttribute{
 				Description: "The blob SHA of the file",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func dataSourceGithubRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	client := meta.(*Owner).v3client
+func (d *githubRepositoryFileDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
 
-	owner := meta.(*Owner).name
-	repo := d.Get("repository").(string)
-	diags := make(diag.Diagnostics, 0)
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *Owner, got: %T", req.ProviderData),
+		)
+		return
+	}
+
+	d.client = client
+}
+
+func (d *githubRepositoryFileDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubRepositoryFileDataSourceModel
+
+	// Read Terraform configuration data into the model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client := d.client.V3Client()
+	owner := d.client.Name()
+	repo := data.Repository.ValueString()
 
 	// checking if repo has a slash in it, which means that full_name was passed
 	// split and replace owner and repo
 	parts := strings.Split(repo, "/")
 	if len(parts) == 2 {
-		log.Printf("[DEBUG] repo has a slash, extracting owner from: %s", repo)
+		tflog.Debug(ctx, "repo has a slash, extracting owner", map[string]interface{}{
+			"repo": repo,
+		})
 		owner = parts[0]
 		repo = parts[1]
 
-		log.Printf("[DEBUG] owner: %s repo:%s", owner, repo)
+		tflog.Debug(ctx, "extracted owner and repo", map[string]interface{}{
+			"owner": owner,
+			"repo":  repo,
+		})
 	}
 
-	file := d.Get("file").(string)
+	file := data.File.ValueString()
 
 	opts := &github.RepositoryContentGetOptions{}
-	if branch, ok := d.GetOk("branch"); ok {
-		opts.Ref = branch.(string)
+	if !data.Branch.IsNull() && !data.Branch.IsUnknown() {
+		opts.Ref = data.Branch.ValueString()
 	}
 
 	fc, dc, _, err := client.Repositories.GetContents(ctx, owner, repo, file, opts)
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[DEBUG] Missing GitHub repository file %s/%s/%s", owner, repo, file)
-				d.SetId("")
-				return nil
+				tflog.Debug(ctx, "Missing GitHub repository file", map[string]interface{}{
+					"owner": owner,
+					"repo":  repo,
+					"file":  file,
+				})
+				data.ID = types.StringValue("")
+				resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+				return
 			}
 		}
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError(
+			"Unable to Get Repository File",
+			fmt.Sprintf("Error getting repository file %s/%s/%s: %v", owner, repo, file, err),
+		)
+		return
 	}
 
-	_ = d.Set("repository", repo)
-	d.SetId(fmt.Sprintf("%s/%s", repo, file))
-	_ = d.Set("file", file)
+	data.Repository = types.StringValue(repo)
+	data.ID = types.StringValue(fmt.Sprintf("%s/%s", repo, file))
+	data.File = types.StringValue(file)
 
 	// If the repo is a directory, then there is nothing else we can include in
 	// the schema.
 	if dc != nil {
-		return nil
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+		return
 	}
 
 	content, err := fc.GetContent()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError(
+			"Unable to Get File Content",
+			fmt.Sprintf("Error getting file content: %v", err),
+		)
+		return
 	}
 
-	_ = d.Set("content", content)
-	_ = d.Set("sha", fc.GetSHA())
+	data.Content = types.StringValue(content)
+	data.Sha = types.StringValue(fc.GetSHA())
 
 	parsedUrl, err := url.Parse(fc.GetURL())
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError(
+			"Unable to Parse URL",
+			fmt.Sprintf("Error parsing URL: %v", err),
+		)
+		return
 	}
 	parsedQuery, err := url.ParseQuery(parsedUrl.RawQuery)
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError(
+			"Unable to Parse Query",
+			fmt.Sprintf("Error parsing query: %v", err),
+		)
+		return
 	}
-	ref := parsedQuery["ref"][0]
-	if err = d.Set("ref", ref); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Unable to set ref",
-			Detail:   fmt.Sprintf("Unable to set ref: %s", err),
+	if len(parsedQuery["ref"]) > 0 {
+		ref := parsedQuery["ref"][0]
+		data.Ref = types.StringValue(ref)
+
+		tflog.Debug(ctx, "Data Source fetching commit info for repository file", map[string]interface{}{
+			"owner": owner,
+			"repo":  repo,
+			"file":  file,
 		})
+		commit, err := d.getFileCommit(ctx, client, owner, repo, file, ref)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Unable to Get File Commit",
+				fmt.Sprintf("Error getting file commit: %v", err),
+			)
+			return
+		}
+
+		tflog.Debug(ctx, "Found file", map[string]interface{}{
+			"owner":      owner,
+			"repo":       repo,
+			"file":       file,
+			"commit_sha": commit.GetSHA(),
+		})
+
+		data.CommitSha = types.StringValue(commit.GetSHA())
+		data.CommitAuthor = types.StringValue(commit.Commit.GetCommitter().GetName())
+		data.CommitEmail = types.StringValue(commit.Commit.GetCommitter().GetEmail())
+		data.CommitMessage = types.StringValue(commit.GetCommit().GetMessage())
+	} else {
+		resp.Diagnostics.AddWarning(
+			"Unable to set ref",
+			"Unable to extract ref from URL query parameters",
+		)
 	}
 
-	log.Printf("[DEBUG] Data Source fetching commit info for repository file: %s/%s/%s", owner, repo, file)
-	commit, err := getFileCommit(client, owner, repo, file, ref)
-	log.Printf("[DEBUG] Found file: %s/%s/%s, in commit SHA: %s ", owner, repo, file, commit.GetSHA())
-	if err != nil {
-		return diag.FromErr(err)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (d *githubRepositoryFileDataSource) getFileCommit(ctx context.Context, client *github.Client, owner, repo, file, branch string) (*github.RepositoryCommit, error) {
+	opts := &github.CommitsListOptions{
+		SHA:  branch,
+		Path: file,
+	}
+	allCommits := []*github.RepositoryCommit{}
+	for {
+		commits, resp, err := client.Repositories.ListCommits(ctx, owner, repo, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		allCommits = append(allCommits, commits...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opts.Page = resp.NextPage
 	}
 
-	if err = d.Set("commit_sha", commit.GetSHA()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("commit_author", commit.Commit.GetCommitter().GetName()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("commit_email", commit.Commit.GetCommitter().GetEmail()); err != nil {
-		return diag.FromErr(err)
-	}
-	if err = d.Set("commit_message", commit.GetCommit().GetMessage()); err != nil {
-		return diag.FromErr(err)
+	for _, c := range allCommits {
+		sha := c.GetSHA()
+
+		// Skip merge commits
+		if strings.Contains(c.Commit.GetMessage(), "Merge branch") {
+			continue
+		}
+
+		opts := &github.ListOptions{}
+		allFiles := []*github.CommitFile{}
+		var rc *github.RepositoryCommit
+		var resp *github.Response
+		var err error
+		for {
+			rc, resp, err = client.Repositories.GetCommit(ctx, owner, repo, sha, opts)
+			if err != nil {
+				return nil, err
+			}
+
+			allFiles = append(allFiles, rc.Files...)
+
+			if resp.NextPage == 0 {
+				break
+			}
+
+			opts.Page = resp.NextPage
+		}
+
+		for _, f := range allFiles {
+			if f.GetFilename() == file && f.GetStatus() != "removed" {
+				return rc, nil
+			}
+		}
 	}
 
-	return diags
+	return nil, fmt.Errorf("cannot find file %s in repo %s/%s", file, owner, repo)
 }

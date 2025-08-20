@@ -1,76 +1,141 @@
 package github
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"context"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/shurcooL/githubv4"
+
 )
 
-func dataSourceGithubOrganizationTeams() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get information on all GitHub teams of an organization.",
-		Read:        dataSourceGithubOrganizationTeamsRead,
+var (
+	_ datasource.DataSource              = &githubOrganizationTeamsDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubOrganizationTeamsDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"root_teams_only": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+type githubOrganizationTeamsDataSource struct {
+	client *Owner
+}
+
+type githubOrganizationTeamParentModel struct {
+	ID   types.String `tfsdk:"id"`
+	Slug types.String `tfsdk:"slug"`
+	Name types.String `tfsdk:"name"`
+}
+
+type githubOrganizationTeamModel struct {
+	ID           types.Int64                        `tfsdk:"id"`
+	NodeID       types.String                       `tfsdk:"node_id"`
+	Slug         types.String                       `tfsdk:"slug"`
+	Name         types.String                       `tfsdk:"name"`
+	Description  types.String                       `tfsdk:"description"`
+	Privacy      types.String                       `tfsdk:"privacy"`
+	Members      types.List                         `tfsdk:"members"`
+	Repositories types.List                         `tfsdk:"repositories"`
+	Parent       *githubOrganizationTeamParentModel `tfsdk:"parent"`
+}
+
+type githubOrganizationTeamsDataSourceModel struct {
+	ID             types.String                  `tfsdk:"id"`
+	RootTeamsOnly  types.Bool                    `tfsdk:"root_teams_only"`
+	SummaryOnly    types.Bool                    `tfsdk:"summary_only"`
+	ResultsPerPage types.Int64                   `tfsdk:"results_per_page"`
+	Teams          []githubOrganizationTeamModel `tfsdk:"teams"`
+}
+
+func NewGithubOrganizationTeamsDataSource() datasource.DataSource {
+	return &githubOrganizationTeamsDataSource{}
+}
+
+func (d *githubOrganizationTeamsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_organization_teams"
+}
+
+func (d *githubOrganizationTeamsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get information on all GitHub teams of an organization.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the organization.",
+				Computed:    true,
 			},
-			"summary_only": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+			"root_teams_only": schema.BoolAttribute{
+				Description: "Only return root teams (teams with no parent).",
+				Optional:    true,
 			},
-			"results_per_page": {
-				Type:             schema.TypeInt,
-				Optional:         true,
-				Default:          100,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 100), "results_per_page"),
+			"summary_only": schema.BoolAttribute{
+				Description: "Only return basic team information, omitting members and repositories.",
+				Optional:    true,
 			},
-			"teams": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeInt,
-							Computed: true,
+			"results_per_page": schema.Int64Attribute{
+				Description: "Number of teams to fetch per page. Must be between 0 and 100.",
+				Optional:    true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, 100),
+				},
+			},
+			"teams": schema.ListNestedAttribute{
+				Description: "List of teams in the organization.",
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.Int64Attribute{
+							Description: "The team's ID.",
+							Computed:    true,
 						},
-						"node_id": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"node_id": schema.StringAttribute{
+							Description: "The team's node ID.",
+							Computed:    true,
 						},
-						"slug": {
-							Type:     schema.TypeString,
-							Required: true,
+						"slug": schema.StringAttribute{
+							Description: "The team's slug.",
+							Computed:    true,
 						},
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"name": schema.StringAttribute{
+							Description: "The team's name.",
+							Computed:    true,
 						},
-						"description": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"description": schema.StringAttribute{
+							Description: "The team's description.",
+							Computed:    true,
 						},
-						"privacy": {
-							Type:     schema.TypeString,
-							Computed: true,
+						"privacy": schema.StringAttribute{
+							Description: "The team's privacy setting (open, closed, secret).",
+							Computed:    true,
 						},
-						"members": {
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+						"members": schema.ListAttribute{
+							Description: "List of team members (only returned when summary_only is false).",
+							Computed:    true,
+							ElementType: types.StringType,
 						},
-						"repositories": {
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+						"repositories": schema.ListAttribute{
+							Description: "List of team repositories (only returned when summary_only is false).",
+							Computed:    true,
+							ElementType: types.StringType,
 						},
-						"parent": {
-							Type:     schema.TypeMap,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+						"parent": schema.SingleNestedAttribute{
+							Description: "Parent team information.",
+							Computed:    true,
+							Attributes: map[string]schema.Attribute{
+								"id": schema.StringAttribute{
+									Description: "The parent team's ID.",
+									Computed:    true,
+								},
+								"slug": schema.StringAttribute{
+									Description: "The parent team's slug.",
+									Computed:    true,
+								},
+								"name": schema.StringAttribute{
+									Description: "The parent team's name.",
+									Computed:    true,
+								},
+							},
 						},
 					},
 				},
@@ -79,17 +144,65 @@ func dataSourceGithubOrganizationTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta any) error {
-	err := checkOrganization(meta)
-	if err != nil {
-		return err
+func (d *githubOrganizationTeamsDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	client := meta.(*Owner).v4client
-	orgName := meta.(*Owner).name
-	rootTeamsOnly := d.Get("root_teams_only").(bool)
-	summaryOnly := d.Get("summary_only").(bool)
-	resultsPerPage := d.Get("results_per_page").(int)
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	d.client = client
+}
+
+func (d *githubOrganizationTeamsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubOrganizationTeamsDataSourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check organization
+	if !d.client.IsOrganization {
+		resp.Diagnostics.AddError(
+			"Unable to read organization teams",
+			fmt.Sprintf("This resource can only be used in the context of an organization, %q is a user", d.client.Name()),
+		)
+		return
+	}
+
+	// Get configuration values
+	rootTeamsOnly := false
+	if !data.RootTeamsOnly.IsNull() && !data.RootTeamsOnly.IsUnknown() {
+		rootTeamsOnly = data.RootTeamsOnly.ValueBool()
+	}
+
+	summaryOnly := false
+	if !data.SummaryOnly.IsNull() && !data.SummaryOnly.IsUnknown() {
+		summaryOnly = data.SummaryOnly.ValueBool()
+	}
+
+	resultsPerPage := 100
+	if !data.ResultsPerPage.IsNull() && !data.ResultsPerPage.IsUnknown() {
+		resultsPerPage = int(data.ResultsPerPage.ValueInt64())
+	}
+
+	tflog.Debug(ctx, "Reading GitHub organization teams", map[string]interface{}{
+		"root_teams_only":  rootTeamsOnly,
+		"summary_only":     summaryOnly,
+		"results_per_page": resultsPerPage,
+	})
+
+	client := d.client.V4Client()
+	orgName := d.client.Name()
 
 	var query TeamsQuery
 
@@ -101,15 +214,19 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta any) err
 		"summaryOnly":   githubv4.Boolean(summaryOnly),
 	}
 
-	var teams []any
+	var allTeams []githubOrganizationTeamModel
 	for {
-		err = client.Query(meta.(*Owner).StopContext, &query, variables)
+		err := client.Query(d.client.StopContext, &query, variables)
 		if err != nil {
-			return err
+			resp.Diagnostics.AddError(
+				"Unable to read GitHub organization teams",
+				fmt.Sprintf("Error querying GitHub API: %s", err.Error()),
+			)
+			return
 		}
 
-		additionalTeams := flattenGitHubTeams(query)
-		teams = append(teams, additionalTeams...)
+		teams := d.convertTeamsQueryToModels(ctx, query, summaryOnly)
+		allTeams = append(allTeams, teams...)
 
 		if !query.Organization.Teams.PageInfo.HasNextPage {
 			break
@@ -117,60 +234,90 @@ func dataSourceGithubOrganizationTeamsRead(d *schema.ResourceData, meta any) err
 		variables["cursor"] = githubv4.NewString(query.Organization.Teams.PageInfo.EndCursor)
 	}
 
-	d.SetId(string(query.Organization.ID))
-	err = d.Set("teams", teams)
-	if err != nil {
-		return err
+	// Set the ID to the organization ID
+	data.ID = types.StringValue(string(query.Organization.ID))
+	data.Teams = allTeams
+
+	// Set defaults for optional attributes if not set
+	if data.RootTeamsOnly.IsNull() {
+		data.RootTeamsOnly = types.BoolValue(false)
+	}
+	if data.SummaryOnly.IsNull() {
+		data.SummaryOnly = types.BoolValue(false)
+	}
+	if data.ResultsPerPage.IsNull() {
+		data.ResultsPerPage = types.Int64Value(100)
 	}
 
-	return nil
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func flattenGitHubTeams(tq TeamsQuery) []any {
-	teams := tq.Organization.Teams.Nodes
+func (d *githubOrganizationTeamsDataSource) convertTeamsQueryToModels(ctx context.Context, query TeamsQuery, summaryOnly bool) []githubOrganizationTeamModel {
+	teams := query.Organization.Teams.Nodes
 
 	if len(teams) == 0 {
-		return make([]any, 0)
+		return []githubOrganizationTeamModel{}
 	}
 
-	flatTeams := make([]any, len(teams))
+	models := make([]githubOrganizationTeamModel, len(teams))
 
 	for i, team := range teams {
-		t := make(map[string]any)
-
-		t["id"] = team.DatabaseID
-		t["node_id"] = team.ID
-		t["slug"] = team.Slug
-		t["name"] = team.Name
-		t["description"] = team.Description
-		t["privacy"] = team.Privacy
-		members := team.Members.Nodes
-		flatMembers := make([]string, len(members))
-
-		for i, member := range members {
-			flatMembers[i] = string(member.Login)
+		model := githubOrganizationTeamModel{
+			ID:          types.Int64Value(int64(team.DatabaseID)),
+			NodeID:      types.StringValue(string(team.ID)),
+			Slug:        types.StringValue(string(team.Slug)),
+			Name:        types.StringValue(string(team.Name)),
+			Description: types.StringValue(string(team.Description)),
+			Privacy:     types.StringValue(string(team.Privacy)),
 		}
 
-		t["members"] = flatMembers
-
-		parentTeam := make(map[string]any)
-		parentTeam["id"] = team.Parent.ID
-		parentTeam["slug"] = team.Parent.Slug
-		parentTeam["name"] = team.Parent.Name
-		t["parent"] = parentTeam
-
-		repositories := team.Repositories.Nodes
-
-		flatRepositories := make([]string, len(repositories))
-
-		for i, repository := range repositories {
-			flatRepositories[i] = string(repository.Name)
+		// Handle members (only if not summary only)
+		if !summaryOnly && len(team.Members.Nodes) > 0 {
+			members := make([]string, len(team.Members.Nodes))
+			for j, member := range team.Members.Nodes {
+				members[j] = string(member.Login)
+			}
+			membersList, diags := types.ListValueFrom(ctx, types.StringType, members)
+			if diags.HasError() {
+				tflog.Error(ctx, "Error converting members to list", map[string]interface{}{
+					"diagnostics": diags,
+				})
+			} else {
+				model.Members = membersList
+			}
+		} else {
+			model.Members = types.ListNull(types.StringType)
 		}
 
-		t["repositories"] = flatRepositories
+		// Handle repositories (only if not summary only)
+		if !summaryOnly && len(team.Repositories.Nodes) > 0 {
+			repositories := make([]string, len(team.Repositories.Nodes))
+			for j, repo := range team.Repositories.Nodes {
+				repositories[j] = string(repo.Name)
+			}
+			repositoriesList, diags := types.ListValueFrom(ctx, types.StringType, repositories)
+			if diags.HasError() {
+				tflog.Error(ctx, "Error converting repositories to list", map[string]interface{}{
+					"diagnostics": diags,
+				})
+			} else {
+				model.Repositories = repositoriesList
+			}
+		} else {
+			model.Repositories = types.ListNull(types.StringType)
+		}
 
-		flatTeams[i] = t
+		// Handle parent team
+		if team.Parent.ID != "" {
+			model.Parent = &githubOrganizationTeamParentModel{
+				ID:   types.StringValue(string(team.Parent.ID)),
+				Slug: types.StringValue(string(team.Parent.Slug)),
+				Name: types.StringValue(string(team.Parent.Name)),
+			}
+		}
+
+		models[i] = model
 	}
 
-	return flatTeams
+	return models
 }

@@ -2,297 +2,518 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
 )
 
-func resourceGithubRepositoryEnvironment() *schema.Resource {
-	return &schema.Resource{
+var (
+	_ resource.Resource                = &githubRepositoryEnvironmentResource{}
+	_ resource.ResourceWithConfigure   = &githubRepositoryEnvironmentResource{}
+	_ resource.ResourceWithImportState = &githubRepositoryEnvironmentResource{}
+)
+
+func NewGithubRepositoryEnvironmentResource() resource.Resource {
+	return &githubRepositoryEnvironmentResource{}
+}
+
+type githubRepositoryEnvironmentResource struct {
+	client *Owner
+}
+
+type githubRepositoryEnvironmentResourceModel struct {
+	Repository             types.String `tfsdk:"repository"`
+	Environment            types.String `tfsdk:"environment"`
+	CanAdminsBypass        types.Bool   `tfsdk:"can_admins_bypass"`
+	PreventSelfReview      types.Bool   `tfsdk:"prevent_self_review"`
+	WaitTimer              types.Int64  `tfsdk:"wait_timer"`
+	Reviewers              types.List   `tfsdk:"reviewers"`
+	DeploymentBranchPolicy types.List   `tfsdk:"deployment_branch_policy"`
+
+	// Computed
+	ID types.String `tfsdk:"id"`
+}
+
+type githubRepositoryEnvironmentReviewersModel struct {
+	Teams types.Set `tfsdk:"teams"`
+	Users types.Set `tfsdk:"users"`
+}
+
+type githubRepositoryEnvironmentDeploymentBranchPolicyModel struct {
+	ProtectedBranches    types.Bool `tfsdk:"protected_branches"`
+	CustomBranchPolicies types.Bool `tfsdk:"custom_branch_policies"`
+}
+
+func (r *githubRepositoryEnvironmentResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_repository_environment"
+}
+
+func (r *githubRepositoryEnvironmentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Creates and manages environments for GitHub repositories",
-		Create:      resourceGithubRepositoryEnvironmentCreate,
-		Read:        resourceGithubRepositoryEnvironmentRead,
-		Update:      resourceGithubRepositoryEnvironmentUpdate,
-		Delete:      resourceGithubRepositoryEnvironmentDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the resource in the format 'repository:environment'",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"repository": schema.StringAttribute{
 				Description: "The repository of the environment.",
-			},
-			"environment": {
-				Type:        schema.TypeString,
 				Required:    true,
-				ForceNew:    true,
-				Description: "The name of the environment.",
-			},
-			"can_admins_bypass": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Description: "Can Admins bypass deployment protections",
-			},
-			"prevent_self_review": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Prevent users from approving workflows runs that they triggered.",
-			},
-			"wait_timer": {
-				Type:             schema.TypeInt,
-				Optional:         true,
-				ValidateDiagFunc: toDiagFunc(validation.IntBetween(0, 43200), "wait_timer"),
-				Description:      "Amount of time to delay a job after the job is initially triggered.",
-			},
-			"reviewers": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				MaxItems:    6,
-				Description: "The environment reviewers configuration.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"teams": {
-							Type:        schema.TypeSet,
-							Optional:    true,
-							Elem:        &schema.Schema{Type: schema.TypeInt},
-							Description: "Up to 6 IDs for teams who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
-						},
-						"users": {
-							Type:        schema.TypeSet,
-							Optional:    true,
-							Elem:        &schema.Schema{Type: schema.TypeInt},
-							Description: "Up to 6 IDs for users who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.",
-						},
-					},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"deployment_branch_policy": {
-				Type:        schema.TypeList,
+			"environment": schema.StringAttribute{
+				Description: "The name of the environment.",
+				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"can_admins_bypass": schema.BoolAttribute{
+				Description: "Can Admins bypass deployment protections",
 				Optional:    true,
-				MaxItems:    1,
+				Computed:    true,
+				Default:     booldefault.StaticBool(true),
+			},
+			"prevent_self_review": schema.BoolAttribute{
+				Description: "Prevent users from approving workflows runs that they triggered.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+			},
+			"wait_timer": schema.Int64Attribute{
+				Description: "Amount of time to delay a job after the job is initially triggered.",
+				Optional:    true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, 43200),
+				},
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
+			},
+			"reviewers": schema.ListAttribute{
+				Description: "The environment reviewers configuration.",
+				Optional:    true,
+				Computed:    true,
+				Default:     listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: reviewersAttrTypes()})),
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+				ElementType: types.ObjectType{
+					AttrTypes: reviewersAttrTypes(),
+				},
+			},
+			"deployment_branch_policy": schema.ListAttribute{
 				Description: "The deployment branch policy configuration",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"protected_branches": {
-							Type:        schema.TypeBool,
-							Required:    true,
-							Description: "Whether only branches with branch protection rules can deploy to this environment.",
-						},
-						"custom_branch_policies": {
-							Type:        schema.TypeBool,
-							Required:    true,
-							Description: "Whether only branches that match the specified name patterns can deploy to this environment.",
-						},
-					},
+				Optional:    true,
+				Computed:    true,
+				Default:     listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: deploymentBranchPolicyAttrTypes()})),
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+				ElementType: types.ObjectType{
+					AttrTypes: deploymentBranchPolicyAttrTypes(),
 				},
 			},
 		},
 	}
 }
 
-func resourceGithubRepositoryEnvironmentCreate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
-	updateData := createUpdateEnvironmentData(d, meta)
-
-	ctx := context.Background()
-
-	_, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, escapedEnvName, &updateData)
-
-	if err != nil {
-		return err
+func reviewersAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"teams": types.SetType{ElemType: types.Int64Type},
+		"users": types.SetType{ElemType: types.Int64Type},
 	}
-
-	d.SetId(buildTwoPartID(repoName, envName))
-
-	return resourceGithubRepositoryEnvironmentRead(d, meta)
 }
 
-func resourceGithubRepositoryEnvironmentRead(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
+func deploymentBranchPolicyAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"protected_branches":     types.BoolType,
+		"custom_branch_policies": types.BoolType,
+	}
+}
 
-	owner := meta.(*Owner).name
-	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
-	escapedEnvName := url.PathEscape(envName)
-	if err != nil {
-		return err
+func (r *githubRepositoryEnvironmentResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *github.Owner, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
 
-	env, _, err := client.Repositories.GetEnvironment(ctx, owner, repoName, escapedEnvName)
+	r.client = client
+}
+
+func (r *githubRepositoryEnvironmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan githubRepositoryEnvironmentResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := r.client.Name()
+	repoName := plan.Repository.ValueString()
+	envName := plan.Environment.ValueString()
+	escapedEnvName := url.PathEscape(envName)
+
+	updateData, diags := r.createUpdateEnvironmentData(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, _, err := r.client.V3Client().Repositories.CreateUpdateEnvironment(ctx, owner, repoName, escapedEnvName, &updateData)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating repository environment",
+			fmt.Sprintf("Could not create repository environment %s for repository %s: %s", envName, repoName, err.Error()),
+		)
+		return
+	}
+
+	plan.ID = types.StringValue(fmt.Sprintf("%s:%s", repoName, envName))
+
+	// Read the environment to get the current state
+	r.readEnvironment(ctx, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+func (r *githubRepositoryEnvironmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state githubRepositoryEnvironmentResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	r.readEnvironment(ctx, &state, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+func (r *githubRepositoryEnvironmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan githubRepositoryEnvironmentResourceModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := r.client.Name()
+	repoName := plan.Repository.ValueString()
+	envName := plan.Environment.ValueString()
+	escapedEnvName := url.PathEscape(envName)
+
+	updateData, diags := r.createUpdateEnvironmentData(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resultKey, _, err := r.client.V3Client().Repositories.CreateUpdateEnvironment(ctx, owner, repoName, escapedEnvName, &updateData)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error updating repository environment",
+			fmt.Sprintf("Could not update repository environment %s for repository %s: %s", envName, repoName, err.Error()),
+		)
+		return
+	}
+
+	plan.ID = types.StringValue(fmt.Sprintf("%s:%s", repoName, resultKey.GetName()))
+
+	// Read the environment to get the current state
+	r.readEnvironment(ctx, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+func (r *githubRepositoryEnvironmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state githubRepositoryEnvironmentResourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	owner := r.client.Name()
+	id := state.ID.ValueString()
+	repoName, envName, err := r.parseTwoPartID(id, "repository", "environment")
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing resource ID",
+			fmt.Sprintf("Could not parse resource ID %s: %s", id, err.Error()),
+		)
+		return
+	}
+
+	escapedEnvName := url.PathEscape(envName)
+
+	_, err = r.client.V3Client().Repositories.DeleteEnvironment(ctx, owner, repoName, escapedEnvName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error deleting repository environment",
+			fmt.Sprintf("Could not delete repository environment %s for repository %s: %s", envName, repoName, err.Error()),
+		)
+		return
+	}
+}
+
+func (r *githubRepositoryEnvironmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	repoName, envName, err := r.parseTwoPartID(req.ID, "repository", "environment")
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error importing repository environment",
+			fmt.Sprintf("Could not parse import ID %s: %s", req.ID, err.Error()),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("repository"), repoName)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment"), envName)...)
+}
+
+func (r *githubRepositoryEnvironmentResource) readEnvironment(ctx context.Context, state *githubRepositoryEnvironmentResourceModel, diags *diag.Diagnostics) {
+	owner := r.client.Name()
+	id := state.ID.ValueString()
+	repoName, envName, err := r.parseTwoPartID(id, "repository", "environment")
+	if err != nil {
+		diags.AddError(
+			"Error parsing resource ID",
+			fmt.Sprintf("Could not parse resource ID %s: %s", id, err.Error()),
+		)
+		return
+	}
+
+	escapedEnvName := url.PathEscape(envName)
+
+	env, _, err := r.client.V3Client().Repositories.GetEnvironment(ctx, owner, repoName, escapedEnvName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				log.Printf("[INFO] Removing repository environment %s from state because it no longer exists in GitHub",
-					d.Id())
-				d.SetId("")
-				return nil
+				log.Printf("[INFO] Removing repository environment %s from state because it no longer exists in GitHub", id)
+				state.ID = types.StringValue("")
+				return
 			}
 		}
-		return err
+		diags.AddError(
+			"Error reading repository environment",
+			fmt.Sprintf("Could not read repository environment %s for repository %s: %s", envName, repoName, err.Error()),
+		)
+		return
 	}
 
-	_ = d.Set("repository", repoName)
-	_ = d.Set("environment", envName)
-	_ = d.Set("wait_timer", nil)
-	_ = d.Set("can_admins_bypass", env.CanAdminsBypass)
+	state.Repository = types.StringValue(repoName)
+	state.Environment = types.StringValue(envName)
+	state.CanAdminsBypass = types.BoolValue(env.GetCanAdminsBypass())
+
+	// Reset wait_timer and reviewers - they'll be set below if found in protection rules
+	state.WaitTimer = types.Int64Null()
+	state.Reviewers = types.ListNull(types.ObjectType{AttrTypes: reviewersAttrTypes()})
 
 	for _, pr := range env.ProtectionRules {
-		switch *pr.Type {
+		switch pr.GetType() {
 		case "wait_timer":
-			if err = d.Set("wait_timer", pr.WaitTimer); err != nil {
-				return err
+			if pr.WaitTimer != nil {
+				state.WaitTimer = types.Int64Value(int64(*pr.WaitTimer))
 			}
 
 		case "required_reviewers":
-			teams := make([]int64, 0)
-			users := make([]int64, 0)
+			teams := make([]attr.Value, 0)
+			users := make([]attr.Value, 0)
 
 			for _, r := range pr.Reviewers {
-				switch *r.Type {
+				switch r.GetType() {
 				case "Team":
-					if r.Reviewer.(*github.Team).ID != nil {
-						teams = append(teams, *r.Reviewer.(*github.Team).ID)
+					if team, ok := r.Reviewer.(*github.Team); ok && team.ID != nil {
+						teams = append(teams, types.Int64Value(*team.ID))
 					}
 				case "User":
-					if r.Reviewer.(*github.User).ID != nil {
-						users = append(users, *r.Reviewer.(*github.User).ID)
+					if user, ok := r.Reviewer.(*github.User); ok && user.ID != nil {
+						users = append(users, types.Int64Value(*user.ID))
 					}
 				}
 			}
-			if err = d.Set("reviewers", []any{
-				map[string]any{
-					"teams": teams,
-					"users": users,
-				},
-			}); err != nil {
-				return err
+
+			teamsSet, setDiags := types.SetValue(types.Int64Type, teams)
+			diags.Append(setDiags...)
+			if diags.HasError() {
+				return
 			}
 
-			if err = d.Set("prevent_self_review", pr.PreventSelfReview); err != nil {
-				return err
+			usersSet, setDiags := types.SetValue(types.Int64Type, users)
+			diags.Append(setDiags...)
+			if diags.HasError() {
+				return
+			}
+
+			reviewersObj, objDiags := types.ObjectValue(reviewersAttrTypes(), map[string]attr.Value{
+				"teams": teamsSet,
+				"users": usersSet,
+			})
+			diags.Append(objDiags...)
+			if diags.HasError() {
+				return
+			}
+
+			reviewersList, listDiags := types.ListValue(types.ObjectType{AttrTypes: reviewersAttrTypes()}, []attr.Value{reviewersObj})
+			diags.Append(listDiags...)
+			if diags.HasError() {
+				return
+			}
+
+			state.Reviewers = reviewersList
+
+			if pr.PreventSelfReview != nil {
+				state.PreventSelfReview = types.BoolValue(*pr.PreventSelfReview)
+			} else {
+				state.PreventSelfReview = types.BoolValue(false)
 			}
 		}
 	}
 
 	if env.DeploymentBranchPolicy != nil {
-		if err = d.Set("deployment_branch_policy", []any{
-			map[string]any{
-				"protected_branches":     env.DeploymentBranchPolicy.ProtectedBranches,
-				"custom_branch_policies": env.DeploymentBranchPolicy.CustomBranchPolicies,
-			},
-		}); err != nil {
-			return err
+		policyObj, objDiags := types.ObjectValue(deploymentBranchPolicyAttrTypes(), map[string]attr.Value{
+			"protected_branches":     types.BoolValue(env.DeploymentBranchPolicy.GetProtectedBranches()),
+			"custom_branch_policies": types.BoolValue(env.DeploymentBranchPolicy.GetCustomBranchPolicies()),
+		})
+		diags.Append(objDiags...)
+		if diags.HasError() {
+			return
 		}
+
+		policyList, listDiags := types.ListValue(types.ObjectType{AttrTypes: deploymentBranchPolicyAttrTypes()}, []attr.Value{policyObj})
+		diags.Append(listDiags...)
+		if diags.HasError() {
+			return
+		}
+
+		state.DeploymentBranchPolicy = policyList
 	} else {
-		_ = d.Set("deployment_branch_policy", []any{})
+		state.DeploymentBranchPolicy = types.ListNull(types.ObjectType{AttrTypes: deploymentBranchPolicyAttrTypes()})
 	}
-
-	return nil
 }
 
-func resourceGithubRepositoryEnvironmentUpdate(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	repoName := d.Get("repository").(string)
-	envName := d.Get("environment").(string)
-	escapedEnvName := url.PathEscape(envName)
-	updateData := createUpdateEnvironmentData(d, meta)
-
-	ctx := context.Background()
-
-	resultKey, _, err := client.Repositories.CreateUpdateEnvironment(ctx, owner, repoName, escapedEnvName, &updateData)
-	if err != nil {
-		return err
-	}
-
-	d.SetId(buildTwoPartID(repoName, resultKey.GetName()))
-
-	return resourceGithubRepositoryEnvironmentRead(d, meta)
-}
-
-func resourceGithubRepositoryEnvironmentDelete(d *schema.ResourceData, meta any) error {
-	client := meta.(*Owner).v3client
-
-	owner := meta.(*Owner).name
-	repoName, envName, err := parseTwoPartID(d.Id(), "repository", "environment")
-	escapedEnvName := url.PathEscape(envName)
-	if err != nil {
-		return err
-	}
-
-	ctx := context.WithValue(context.Background(), ctxId, d.Id())
-
-	_, err = client.Repositories.DeleteEnvironment(ctx, owner, repoName, escapedEnvName)
-	return err
-}
-
-func createUpdateEnvironmentData(d *schema.ResourceData, meta any) github.CreateUpdateEnvironment {
+func (r *githubRepositoryEnvironmentResource) createUpdateEnvironmentData(ctx context.Context, plan githubRepositoryEnvironmentResourceModel) (github.CreateUpdateEnvironment, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	data := github.CreateUpdateEnvironment{}
 
-	if v, ok := d.GetOk("wait_timer"); ok {
-		data.WaitTimer = github.Ptr(v.(int))
+	if !plan.WaitTimer.IsNull() && !plan.WaitTimer.IsUnknown() {
+		waitTimer := int(plan.WaitTimer.ValueInt64())
+		data.WaitTimer = &waitTimer
 	}
 
-	data.CanAdminsBypass = github.Ptr(d.Get("can_admins_bypass").(bool))
+	data.CanAdminsBypass = github.Ptr(plan.CanAdminsBypass.ValueBool())
+	data.PreventSelfReview = github.Ptr(plan.PreventSelfReview.ValueBool())
 
-	data.PreventSelfReview = github.Ptr(d.Get("prevent_self_review").(bool))
-
-	if v, ok := d.GetOk("reviewers"); ok {
-		envReviewers := make([]*github.EnvReviewers, 0)
-
-		for _, team := range expandReviewers(v, "teams") {
-			envReviewers = append(envReviewers, &github.EnvReviewers{
-				Type: github.Ptr("Team"),
-				ID:   github.Ptr(team),
-			})
+	if !plan.Reviewers.IsNull() && !plan.Reviewers.IsUnknown() {
+		var reviewers []githubRepositoryEnvironmentReviewersModel
+		diags.Append(plan.Reviewers.ElementsAs(ctx, &reviewers, false)...)
+		if diags.HasError() {
+			return data, diags
 		}
 
-		for _, user := range expandReviewers(v, "users") {
-			envReviewers = append(envReviewers, &github.EnvReviewers{
-				Type: github.Ptr("User"),
-				ID:   github.Ptr(user),
-			})
-		}
+		if len(reviewers) > 0 {
+			envReviewers := make([]*github.EnvReviewers, 0)
+			reviewer := reviewers[0]
 
-		data.Reviewers = envReviewers
+			if !reviewer.Teams.IsNull() && !reviewer.Teams.IsUnknown() {
+				var teams []types.Int64
+				diags.Append(reviewer.Teams.ElementsAs(ctx, &teams, false)...)
+				if diags.HasError() {
+					return data, diags
+				}
+
+				for _, team := range teams {
+					envReviewers = append(envReviewers, &github.EnvReviewers{
+						Type: github.Ptr("Team"),
+						ID:   github.Ptr(team.ValueInt64()),
+					})
+				}
+			}
+
+			if !reviewer.Users.IsNull() && !reviewer.Users.IsUnknown() {
+				var users []types.Int64
+				diags.Append(reviewer.Users.ElementsAs(ctx, &users, false)...)
+				if diags.HasError() {
+					return data, diags
+				}
+
+				for _, user := range users {
+					envReviewers = append(envReviewers, &github.EnvReviewers{
+						Type: github.Ptr("User"),
+						ID:   github.Ptr(user.ValueInt64()),
+					})
+				}
+			}
+
+			data.Reviewers = envReviewers
+		}
 	}
 
-	if v, ok := d.GetOk("deployment_branch_policy"); ok {
-		policy := v.([]any)[0].(map[string]any)
-		data.DeploymentBranchPolicy = &github.BranchPolicy{
-			ProtectedBranches:    github.Ptr(policy["protected_branches"].(bool)),
-			CustomBranchPolicies: github.Ptr(policy["custom_branch_policies"].(bool)),
+	if !plan.DeploymentBranchPolicy.IsNull() && !plan.DeploymentBranchPolicy.IsUnknown() {
+		var policies []githubRepositoryEnvironmentDeploymentBranchPolicyModel
+		diags.Append(plan.DeploymentBranchPolicy.ElementsAs(ctx, &policies, false)...)
+		if diags.HasError() {
+			return data, diags
 		}
-	}
 
-	return data
-}
-
-func expandReviewers(v any, target string) []int64 {
-	res := make([]int64, 0)
-	m := v.([]any)[0]
-	if m != nil {
-		if v, ok := m.(map[string]any)[target]; ok {
-			vL := v.(*schema.Set).List()
-			for _, v := range vL {
-				res = append(res, int64(v.(int)))
+		if len(policies) > 0 {
+			policy := policies[0]
+			data.DeploymentBranchPolicy = &github.BranchPolicy{
+				ProtectedBranches:    github.Ptr(policy.ProtectedBranches.ValueBool()),
+				CustomBranchPolicies: github.Ptr(policy.CustomBranchPolicies.ValueBool()),
 			}
 		}
 	}
-	return res
+
+	return data, diags
+}
+
+func (r *githubRepositoryEnvironmentResource) parseTwoPartID(id, part1, part2 string) (string, string, error) {
+	parts := strings.SplitN(id, ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("expected ID in the format '%s:%s', got: %s", part1, part2, id)
+	}
+	return parts[0], parts[1], nil
 }

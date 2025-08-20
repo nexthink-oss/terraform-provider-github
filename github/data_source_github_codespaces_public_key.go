@@ -2,55 +2,107 @@ package github
 
 import (
 	"context"
-	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 )
 
-func dataSourceGithubCodespacesPublicKey() *schema.Resource {
-	return &schema.Resource{
-		Description: "Get information on a GitHub Codespaces Public Key.",
-		Read:        dataSourceGithubCodespacesPublicKeyRead,
+var (
+	_ datasource.DataSource              = &githubCodespacesPublicKeyDataSource{}
+	_ datasource.DataSourceWithConfigure = &githubCodespacesPublicKeyDataSource{}
+)
 
-		Schema: map[string]*schema.Schema{
-			"repository": {
-				Type:     schema.TypeString,
-				Required: true,
+type githubCodespacesPublicKeyDataSource struct {
+	client *Owner
+}
+
+type githubCodespacesPublicKeyDataSourceModel struct {
+	ID         types.String `tfsdk:"id"`
+	Repository types.String `tfsdk:"repository"`
+	KeyID      types.String `tfsdk:"key_id"`
+	Key        types.String `tfsdk:"key"`
+}
+
+func NewGithubCodespacesPublicKeyDataSource() datasource.DataSource {
+	return &githubCodespacesPublicKeyDataSource{}
+}
+
+func (d *githubCodespacesPublicKeyDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_codespaces_public_key"
+}
+
+func (d *githubCodespacesPublicKeyDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Get information on a GitHub Codespaces Public Key.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ID of the public key.",
+				Computed:    true,
 			},
-			"key_id": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"repository": schema.StringAttribute{
+				Description: "The name of the repository.",
+				Required:    true,
 			},
-			"key": {
-				Type:     schema.TypeString,
-				Computed: true,
+			"key_id": schema.StringAttribute{
+				Description: "The ID of the public key.",
+				Computed:    true,
+			},
+			"key": schema.StringAttribute{
+				Description: "The public key value.",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func dataSourceGithubCodespacesPublicKeyRead(d *schema.ResourceData, meta any) error {
-	repository := d.Get("repository").(string)
-	owner := meta.(*Owner).name
-	log.Printf("[INFO] Refreshing GitHub Codespaces Public Key from: %s/%s", owner, repository)
-
-	client := meta.(*Owner).v3client
-	ctx := context.Background()
-
-	publicKey, _, err := client.Codespaces.GetRepoPublicKey(ctx, owner, repository)
-	if err != nil {
-		return err
+func (d *githubCodespacesPublicKeyDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	d.SetId(publicKey.GetKeyID())
-	err = d.Set("key_id", publicKey.GetKeyID())
-	if err != nil {
-		return err
-	}
-	err = d.Set("key", publicKey.GetKey())
-	if err != nil {
-		return err
+	client, ok := req.ProviderData.(*Owner)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			"Expected *github.Owner, got something else.",
+		)
+		return
 	}
 
-	return nil
+	d.client = client
+}
+
+func (d *githubCodespacesPublicKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data githubCodespacesPublicKeyDataSourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	repository := data.Repository.ValueString()
+	owner := d.client.Name()
+
+	tflog.Debug(ctx, "Reading GitHub Codespaces public key", map[string]interface{}{
+		"owner":      owner,
+		"repository": repository,
+	})
+
+	publicKey, _, err := d.client.V3Client().Codespaces.GetRepoPublicKey(ctx, owner, repository)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Read GitHub Codespaces Public Key",
+			err.Error(),
+		)
+		return
+	}
+
+	data.ID = types.StringValue(publicKey.GetKeyID())
+	data.KeyID = types.StringValue(publicKey.GetKeyID())
+	data.Key = types.StringValue(publicKey.GetKey())
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

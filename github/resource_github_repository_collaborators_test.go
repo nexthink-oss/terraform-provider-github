@@ -8,16 +8,29 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
 )
 
 func TestAccGithubRepositoryCollaborators(t *testing.T) {
 	inOrgUser := os.Getenv("GITHUB_IN_ORG_USER")
 	inOrgUser2 := os.Getenv("GITHUB_IN_ORG_USER2")
 
-	config := Config{BaseURL: "https://api.github.com/", Owner: testOwnerFunc(), Token: testToken}
+	// Get test constants from environment
+	testToken := os.Getenv("GITHUB_TOKEN")
+	testOrganization := os.Getenv("GITHUB_ORGANIZATION")
+	if testOrganization == "" {
+		testOrganization = os.Getenv("GITHUB_TEST_ORGANIZATION")
+	}
+	testOwner := os.Getenv("GITHUB_OWNER")
+	if testOwner == "" {
+		testOwner = os.Getenv("GITHUB_TEST_OWNER")
+	}
+
+	// Use the same pattern as the main test suites
+	config := Config{BaseURL: "https://api.github.com/", Owner: testOrganization, Token: testToken}
 	meta, err := config.Meta()
 	if err != nil {
 		t.Fatalf("failed to return meta without error: %s", err.Error())
@@ -28,12 +41,12 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			t.Skip("set inOrgUser to unskip this test run")
 		}
 
-		if inOrgUser == testOwnerFunc() {
+		if inOrgUser == testOrganization {
 			t.Skip("inOrgUser can't be same as owner")
 		}
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		conn := meta.(*Owner).v3client
+		conn := meta.(*Owner).V3Client()
 		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
 		teamName := fmt.Sprintf("tf-acc-test-team-%s", randomID)
 
@@ -81,8 +94,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 
 		testCase := func(t *testing.T, mode, config string, testCheck func(state *terraform.State) error) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -103,7 +116,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 				resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "user.#", "1"),
 				resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "team.#", "0"),
 				func(state *terraform.State) error {
-					owner := meta.(*Owner).name
+					owner := meta.(*Owner).Name()
 
 					collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
 					for name, val := range collaborators.Attributes {
@@ -142,7 +155,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 				resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "user.#", "1"),
 				resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "team.#", "1"),
 				func(state *terraform.State) error {
-					owner := testOrganizationFunc()
+					owner := testOrganization
 
 					teamAttrs := state.RootModule().Resources["github_team.test"].Primary.Attributes
 					collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
@@ -194,12 +207,12 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			t.Skip("set inOrgUser and inOrgUser2 to unskip this test run")
 		}
 
-		if inOrgUser == testOwnerFunc() || inOrgUser2 == testOwnerFunc() {
+		if inOrgUser == testOrganization || inOrgUser2 == testOrganization {
 			t.Skip("inOrgUser or inOrgUser2 can't be same as owner")
 		}
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		conn := meta.(*Owner).v3client
+		conn := meta.(*Owner).V3Client()
 		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
 		team0Name := fmt.Sprintf("tf-acc-test-team-0-%s", randomID)
 		team1Name := fmt.Sprintf("tf-acc-test-team-1-%s", randomID)
@@ -265,11 +278,11 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					permission = "admin"
 				}
 				team {
-					team_id   = github_team.test.id
+					team_id   = github_team.test_0.id
 					permission = "pull"
 				}
 				team {
-					team_id   = github_team.test2.id
+					team_id   = github_team.test_1.id
 					permission = "pull"
 				}
 			}
@@ -306,8 +319,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 
 		testCase := func(t *testing.T, mode, config, configUpdate string, testCheck func(state *terraform.State) error) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -329,7 +342,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 				resource.TestCheckResourceAttrSet("github_repository_collaborators.test_repo_collaborators", "user.#"),
 				resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "user.#", "1"),
 				func(state *terraform.State) error {
-					owner := meta.(*Owner).name
+					owner := meta.(*Owner).Name()
 
 					collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
 					for name, val := range collaborators.Attributes {
@@ -368,7 +381,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 				resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "user.#", "1"),
 				resource.TestCheckResourceAttr("github_repository_collaborators.test_repo_collaborators", "team.#", "1"),
 				func(state *terraform.State) error {
-					owner := testOrganizationFunc()
+					owner := testOrganization
 
 					teamAttrs := state.RootModule().Resources["github_team.test_0"].Primary.Attributes
 					collaborators := state.RootModule().Resources["github_repository_collaborators.test_repo_collaborators"].Primary
@@ -421,12 +434,12 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 			t.Skip("set inOrgUser and inOrgUser2 to unskip this test run")
 		}
 
-		if inOrgUser == testOwnerFunc() || inOrgUser2 == testOwnerFunc() {
+		if inOrgUser == testOrganization || inOrgUser2 == testOrganization {
 			t.Skip("inOrgUser or inOrgUser2 can't be same as owner")
 		}
 
 		randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
-		conn := meta.(*Owner).v3client
+		conn := meta.(*Owner).V3Client()
 		repoName := fmt.Sprintf("tf-acc-test-%s", randomID)
 		teamName := fmt.Sprintf("tf-acc-test-team-%s", randomID)
 
@@ -498,8 +511,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 
 		testCase := func(t *testing.T, mode, config, configUpdate string, testCheck func(state *terraform.State) error) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -519,7 +532,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		t.Run("with an individual account", func(t *testing.T) {
 			check := resource.ComposeTestCheckFunc(
 				func(state *terraform.State) error {
-					owner := meta.(*Owner).name
+					owner := meta.(*Owner).Name()
 
 					invites, _, err := conn.Repositories.ListInvitations(context.TODO(), owner, repoName, nil)
 					if err != nil {
@@ -537,7 +550,7 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		t.Run("with an organization account", func(t *testing.T) {
 			check := resource.ComposeTestCheckFunc(
 				func(state *terraform.State) error {
-					owner := testOrganizationFunc()
+					owner := testOrganization
 
 					users, _, err := conn.Repositories.ListCollaborators(context.TODO(), owner, repoName, &github.ListCollaboratorsOptions{Affiliation: "direct"})
 					if err != nil {
@@ -597,8 +610,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		`, repoName, team0Name, team1Name)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
-			Providers: testAccProviders,
+			PreCheck:                 func() { skipUnlessMode(t, organization) },
+			ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -608,8 +621,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					),
 				},
 				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
+					Config:   config,
+					PlanOnly: true,
 				},
 			},
 		})
@@ -656,8 +669,8 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 		`, repoName, team0Name, team1Name)
 
 		resource.Test(t, resource.TestCase{
-			PreCheck:  func() { skipUnlessMode(t, organization) },
-			Providers: testAccProviders,
+			PreCheck:                 func() { skipUnlessMode(t, organization) },
+			ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
 				{
 					Config: config,
@@ -667,10 +680,22 @@ func TestAccGithubRepositoryCollaborators(t *testing.T) {
 					),
 				},
 				{
-					Config:             config,
-					ExpectNonEmptyPlan: false,
+					Config:   config,
+					PlanOnly: true,
 				},
 			},
 		})
 	})
+}
+
+// Helper function for permission mapping
+func getPermission(permission string) string {
+	switch permission {
+	case "read":
+		return "pull"
+	case "write":
+		return "push"
+	default:
+		return permission
+	}
 }
