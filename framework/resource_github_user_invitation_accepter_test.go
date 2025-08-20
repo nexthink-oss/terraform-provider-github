@@ -1,0 +1,111 @@
+package framework
+
+import (
+	"fmt"
+	"os"
+	"regexp"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+)
+
+var testCollaborator = os.Getenv("GITHUB_TEST_COLLABORATOR")
+
+// TestGithubUserInvitationAccepterResource tests basic resource creation
+func TestGithubUserInvitationAccepterResource(t *testing.T) {
+	resource := NewGithubUserInvitationAccepterResource()
+	if resource == nil {
+		t.Error("Resource should not be nil")
+	}
+}
+
+func TestAccGithubUserInvitationAccepter_basic(t *testing.T) {
+	rn := "github_repository_collaborator.test"
+	repoName := fmt.Sprintf("tf-acc-test-collab-%s", acctest.RandString(5))
+
+	inviteeToken := os.Getenv("GITHUB_TEST_COLLABORATOR_TOKEN")
+	if inviteeToken == "" {
+		t.Skip("GITHUB_TEST_COLLABORATOR_TOKEN was not provided, skipping test")
+	}
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGithubUserInvitationAccepterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubUserInvitationAccepterConfig(inviteeToken, repoName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "permission", "push"),
+					resource.TestMatchResourceAttr(rn, "invitation_id", regexp.MustCompile(`^[0-9]+$`)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGithubUserInvitationAccepterAllowEmptyId(t *testing.T) {
+	rn := "github_user_invitation_accepter.test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t, individual) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckGithubUserInvitationAccepterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccGithubUserInvitationAccepterAllowEmptyId(),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(rn, "invitation_id", ""),
+					resource.TestCheckResourceAttr(rn, "allow_empty_id", "true"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckGithubUserInvitationAccepterDestroy(s *terraform.State) error {
+	return nil
+}
+
+func testAccGithubUserInvitationAccepterConfig(inviteeToken, repoName string) string {
+	return fmt.Sprintf(`
+provider "github" {
+  alias = "main"
+}
+
+provider "github" {
+  alias = "invitee"
+  token = "%s"
+}
+
+resource "github_repository" "test" {
+  provider = "github.main"
+  name     = "%s"
+}
+
+resource "github_repository_collaborator" "test" {
+  provider   = "github.main"
+  repository = "${github_repository.test.name}"
+  username   = "%s"
+  permission = "push"
+}
+
+resource "github_user_invitation_accepter" "test" {
+  provider      = "github.invitee"
+  invitation_id = "${github_repository_collaborator.test.invitation_id}"
+}
+`, inviteeToken, repoName, testCollaborator)
+}
+
+func testAccGithubUserInvitationAccepterAllowEmptyId() string {
+	return `
+provider "github" {}
+
+resource "github_user_invitation_accepter" "test" {
+  invitation_id  = ""
+  allow_empty_id = true
+}
+`
+}

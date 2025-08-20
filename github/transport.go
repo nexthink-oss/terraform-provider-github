@@ -14,6 +14,9 @@ import (
 const (
 	ctxEtag = ctxEtagType("etag")
 	ctxId   = ctxIdType("id")
+	// Exported context keys for use in framework package
+	CtxEtag = ctxEtag
+	CtxId   = ctxId
 )
 
 // ctxIdType is used to avoid collisions between packages using context

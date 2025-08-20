@@ -20,14 +20,17 @@ func TestAccGithubDependabotPublicKeyDataSource(t *testing.T) {
 				auto_init = true
 			}
 
-			data "github_actions_public_key" "test" {
+			data "github_dependabot_public_key" "test" {
 				repository = github_repository.test.name
 			}
 		`, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttrSet(
-				"data.github_actions_public_key.test", "key",
+				"data.github_dependabot_public_key.test", "key",
+			),
+			resource.TestCheckResourceAttrSet(
+				"data.github_dependabot_public_key.test", "key_id",
 			),
 		)
 
