@@ -98,7 +98,7 @@ func (d *githubRestApiDataSource) Read(ctx context.Context, req datasource.ReadR
 
 	endpoint := data.Endpoint.ValueString()
 
-	tflog.Debug(ctx, "Making GitHub REST API request", map[string]interface{}{
+	tflog.Debug(ctx, "Making GitHub REST API request", map[string]any{
 		"endpoint": endpoint,
 	})
 
@@ -151,7 +151,7 @@ func (d *githubRestApiDataSource) Read(ctx context.Context, req datasource.ReadR
 	data.Body = types.StringValue(string(body))
 	data.ID = types.StringValue(apiResp.Header.Get("x-github-request-id"))
 
-	tflog.Debug(ctx, "Successfully read GitHub REST API response", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub REST API response", map[string]any{
 		"endpoint":    endpoint,
 		"status_code": apiResp.StatusCode,
 		"request_id":  apiResp.Header.Get("x-github-request-id"),

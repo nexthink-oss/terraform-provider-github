@@ -117,7 +117,7 @@ func (d *githubExternalGroupsDataSource) Read(ctx context.Context, req datasourc
 	client := d.client.V3Client()
 	orgName := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub external groups", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub external groups", map[string]any{
 		"organization": orgName,
 	})
 
@@ -174,7 +174,7 @@ func (d *githubExternalGroupsDataSource) Read(ctx context.Context, req datasourc
 	data.ID = types.StringValue(fmt.Sprintf("/orgs/%s/external-groups", orgName))
 	data.ExternalGroups = externalGroupModels
 
-	tflog.Debug(ctx, "Successfully read GitHub external groups", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub external groups", map[string]any{
 		"organization": orgName,
 		"groups_count": len(externalGroupModels),
 	})

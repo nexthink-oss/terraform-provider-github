@@ -85,7 +85,7 @@ func (d *githubActionsPublicKeyDataSource) Read(ctx context.Context, req datasou
 	repository := data.Repository.ValueString()
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Actions public key", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Actions public key", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})

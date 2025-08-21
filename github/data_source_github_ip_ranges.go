@@ -157,7 +157,7 @@ func (d *githubIpRangesDataSource) Read(ctx context.Context, req datasource.Read
 		}
 	}
 
-	tflog.Debug(ctx, "Fetching IP ranges from URL", map[string]interface{}{
+	tflog.Debug(ctx, "Fetching IP ranges from URL", map[string]any{
 		"url": metaURL,
 	})
 
@@ -236,7 +236,7 @@ func (d *githubIpRangesDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	tflog.Debug(ctx, "Successfully read GitHub IP ranges", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub IP ranges", map[string]any{
 		"hooks_count":                      len(metaResponse.Hooks),
 		"web_count":                        len(metaResponse.Web),
 		"api_count":                        len(metaResponse.API),

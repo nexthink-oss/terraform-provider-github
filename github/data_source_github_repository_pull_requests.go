@@ -355,7 +355,7 @@ func (d *githubRepositoryPullRequestsDataSource) Read(ctx context.Context, req d
 		data.Owner = types.StringValue(owner)
 	}
 
-	tflog.Debug(ctx, "Read GitHub repository pull requests", map[string]interface{}{
+	tflog.Debug(ctx, "Read GitHub repository pull requests", map[string]any{
 		"owner":           owner,
 		"base_repository": baseRepository,
 		"results_count":   len(results),

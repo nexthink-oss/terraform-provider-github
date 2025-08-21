@@ -116,7 +116,7 @@ func (d *githubOrganizationIpAllowListDataSource) Read(ctx context.Context, req 
 	v4client := d.client.V4Client()
 	orgName := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub organization IP allow list", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub organization IP allow list", map[string]any{
 		"organization": orgName,
 	})
 
@@ -215,7 +215,7 @@ func (d *githubOrganizationIpAllowListDataSource) Read(ctx context.Context, req 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
-	tflog.Debug(ctx, "Successfully read GitHub organization IP allow list", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub organization IP allow list", map[string]any{
 		"organization": orgName,
 		"entries":      len(ipAllowListEntries),
 	})

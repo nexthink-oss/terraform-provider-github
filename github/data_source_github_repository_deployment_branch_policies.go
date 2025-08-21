@@ -106,7 +106,7 @@ func (d *githubRepositoryDeploymentBranchPoliciesDataSource) Read(ctx context.Co
 	repository := data.Repository.ValueString()
 	environmentName := data.EnvironmentName.ValueString()
 
-	tflog.Debug(ctx, "Reading GitHub repository deployment branch policies", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub repository deployment branch policies", map[string]any{
 		"owner":            owner,
 		"repository":       repository,
 		"environment_name": environmentName,
@@ -117,7 +117,7 @@ func (d *githubRepositoryDeploymentBranchPoliciesDataSource) Read(ctx context.Co
 		// Note: The SDKv2 implementation returns nil on error, which might be intentional
 		// for handling cases where the environment doesn't exist or has no policies.
 		// We'll follow the same pattern but with proper error handling.
-		tflog.Warn(ctx, "Error reading deployment branch policies", map[string]interface{}{
+		tflog.Warn(ctx, "Error reading deployment branch policies", map[string]any{
 			"error": err.Error(),
 		})
 

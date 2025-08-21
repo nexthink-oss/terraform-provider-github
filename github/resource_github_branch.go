@@ -177,7 +177,7 @@ func (r *githubBranchResource) Create(ctx context.Context, req resource.CreateRe
 
 	data.ID = types.StringValue(r.buildTwoPartID(repoName, branchName))
 
-	tflog.Debug(ctx, "created GitHub branch", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub branch", map[string]any{
 		"repository": data.Repository.ValueString(),
 		"branch":     data.Branch.ValueString(),
 		"source_sha": data.SourceSha.ValueString(),
@@ -245,7 +245,7 @@ func (r *githubBranchResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub branch", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub branch", map[string]any{
 		"repository": repoName,
 		"branch":     branchName,
 	})
@@ -334,7 +334,7 @@ func (r *githubBranchResource) readGithubBranch(ctx context.Context, data *githu
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "GitHub branch not found, removing from state", map[string]interface{}{
+				tflog.Info(ctx, "GitHub branch not found, removing from state", map[string]any{
 					"repository": repoName,
 					"branch":     branchName,
 				})
@@ -357,7 +357,7 @@ func (r *githubBranchResource) readGithubBranch(ctx context.Context, data *githu
 	data.Ref = types.StringValue(*ref.Ref)
 	data.Sha = types.StringValue(*ref.Object.SHA)
 
-	tflog.Debug(ctx, "successfully read GitHub branch", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub branch", map[string]any{
 		"repository": data.Repository.ValueString(),
 		"branch":     data.Branch.ValueString(),
 		"sha":        data.Sha.ValueString(),

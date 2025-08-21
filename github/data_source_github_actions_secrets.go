@@ -161,7 +161,7 @@ func (d *githubActionsSecretsDataSource) Read(ctx context.Context, req datasourc
 		repoName = data.Name.ValueString()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub Actions secrets", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Actions secrets", map[string]any{
 		"owner":      owner,
 		"repository": repoName,
 	})

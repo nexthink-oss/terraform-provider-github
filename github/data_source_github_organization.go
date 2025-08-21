@@ -223,7 +223,7 @@ func (d *githubOrganizationDataSource) Read(ctx context.Context, req datasource.
 
 	name := data.Name.ValueString()
 
-	tflog.Debug(ctx, "Reading GitHub organization", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub organization", map[string]any{
 		"name": name,
 	})
 
@@ -396,7 +396,7 @@ func (d *githubOrganizationDataSource) Read(ctx context.Context, req datasource.
 		data.SecretScanningPushProtectionEnabledForNewRepositories = types.BoolValue(organization.GetSecretScanningPushProtectionEnabledForNewRepos())
 	}
 
-	tflog.Debug(ctx, "Successfully read GitHub organization", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub organization", map[string]any{
 		"name":         name,
 		"id":           data.ID.ValueString(),
 		"login":        data.Login.ValueString(),

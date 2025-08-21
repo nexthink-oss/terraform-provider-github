@@ -165,7 +165,7 @@ func (r *githubIssueLabelResource) Delete(ctx context.Context, req resource.Dele
 	repoName := data.Repository.ValueString()
 	name := data.Name.ValueString()
 
-	tflog.Debug(ctx, "deleting GitHub issue label", map[string]interface{}{
+	tflog.Debug(ctx, "deleting GitHub issue label", map[string]any{
 		"repository": repoName,
 		"name":       name,
 		"owner":      orgName,
@@ -181,7 +181,7 @@ func (r *githubIssueLabelResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub issue label", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub issue label", map[string]any{
 		"repository": repoName,
 		"name":       name,
 	})
@@ -258,7 +258,7 @@ func (r *githubIssueLabelResource) createOrUpdateGithubIssueLabel(ctx context.Co
 		originalName = parts[1]
 	}
 
-	tflog.Debug(ctx, "checking if GitHub issue label exists", map[string]interface{}{
+	tflog.Debug(ctx, "checking if GitHub issue label exists", map[string]any{
 		"repository":    repoName,
 		"original_name": originalName,
 		"owner":         orgName,
@@ -280,7 +280,7 @@ func (r *githubIssueLabelResource) createOrUpdateGithubIssueLabel(ctx context.Co
 			label.Description = github.Ptr(data.Description.ValueString())
 		}
 
-		tflog.Debug(ctx, "updating existing GitHub issue label", map[string]interface{}{
+		tflog.Debug(ctx, "updating existing GitHub issue label", map[string]any{
 			"repository":    repoName,
 			"original_name": originalName,
 			"new_name":      name,
@@ -302,7 +302,7 @@ func (r *githubIssueLabelResource) createOrUpdateGithubIssueLabel(ctx context.Co
 			label.Description = github.Ptr(data.Description.ValueString())
 		}
 
-		tflog.Debug(ctx, "creating new GitHub issue label", map[string]interface{}{
+		tflog.Debug(ctx, "creating new GitHub issue label", map[string]any{
 			"repository": repoName,
 			"name":       name,
 			"owner":      orgName,
@@ -322,7 +322,7 @@ func (r *githubIssueLabelResource) createOrUpdateGithubIssueLabel(ctx context.Co
 	// Set the ID
 	data.ID = types.StringValue(fmt.Sprintf("%s:%s", repoName, name))
 
-	tflog.Debug(ctx, "GitHub issue label operation completed", map[string]interface{}{
+	tflog.Debug(ctx, "GitHub issue label operation completed", map[string]any{
 		"id":   data.ID.ValueString(),
 		"name": name,
 	})
@@ -343,7 +343,7 @@ func (r *githubIssueLabelResource) readGithubIssueLabel(ctx context.Context, dat
 	}
 	reqCtx = context.WithValue(reqCtx, CtxId, data.ID.ValueString())
 
-	tflog.Debug(ctx, "reading GitHub issue label", map[string]interface{}{
+	tflog.Debug(ctx, "reading GitHub issue label", map[string]any{
 		"repository": repoName,
 		"name":       name,
 		"owner":      orgName,
@@ -357,7 +357,7 @@ func (r *githubIssueLabelResource) readGithubIssueLabel(ctx context.Context, dat
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "GitHub issue label not found, removing from state", map[string]interface{}{
+				tflog.Info(ctx, "GitHub issue label not found, removing from state", map[string]any{
 					"id":         data.ID.ValueString(),
 					"repository": repoName,
 					"name":       name,
@@ -387,7 +387,7 @@ func (r *githubIssueLabelResource) readGithubIssueLabel(ctx context.Context, dat
 		data.Description = types.StringNull()
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub issue label", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub issue label", map[string]any{
 		"id":         data.ID.ValueString(),
 		"name":       data.Name.ValueString(),
 		"repository": repoName,

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"net/url"
 	"path"
@@ -82,9 +83,27 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
 	)
-	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
+	// Create base client with optional insecure TLS configuration
+	var baseClient *http.Client
+	if c.Insecure {
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+		client := oauth2.NewClient(ctx, ts)
+		// Replace the transport with our insecure one while preserving oauth2 functionality
+		client.Transport = &oauth2.Transport{
+			Source: ts,
+			Base:   transport,
+		}
+		baseClient = client
+	} else {
+		baseClient = oauth2.NewClient(ctx, ts)
+	}
+
+	return RateLimitedHTTPClient(baseClient, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) Anonymous() bool {
@@ -92,7 +111,18 @@ func (c *Config) Anonymous() bool {
 }
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
-	client := &http.Client{Transport: &http.Transport{}}
+	var transport *http.Transport
+	if c.Insecure {
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+	} else {
+		transport = &http.Transport{}
+	}
+
+	client := &http.Client{Transport: transport}
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 

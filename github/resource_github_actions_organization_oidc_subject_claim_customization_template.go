@@ -120,7 +120,7 @@ func (r *githubActionsOrganizationOIDCSubjectClaimCustomizationTemplateResource)
 	// Set the ID
 	data.ID = types.StringValue(orgName)
 
-	tflog.Debug(ctx, "created GitHub actions organization OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub actions organization OIDC subject claim customization template", map[string]any{
 		"id":                 data.ID.ValueString(),
 		"owner":              orgName,
 		"include_claim_keys": includeClaimKeys,
@@ -190,7 +190,7 @@ func (r *githubActionsOrganizationOIDCSubjectClaimCustomizationTemplateResource)
 		return
 	}
 
-	tflog.Debug(ctx, "updated GitHub actions organization OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub actions organization OIDC subject claim customization template", map[string]any{
 		"id":                 data.ID.ValueString(),
 		"owner":              orgName,
 		"include_claim_keys": includeClaimKeys,
@@ -238,7 +238,7 @@ func (r *githubActionsOrganizationOIDCSubjectClaimCustomizationTemplateResource)
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub actions organization OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub actions organization OIDC subject claim customization template", map[string]any{
 		"id":    data.ID.ValueString(),
 		"owner": orgName,
 	})
@@ -258,7 +258,7 @@ func (r *githubActionsOrganizationOIDCSubjectClaimCustomizationTemplateResource)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing organization OIDC subject claim customization template from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing organization OIDC subject claim customization template from state because it no longer exists in GitHub", map[string]any{
 					"owner": orgName,
 				})
 				data.ID = types.StringNull()
@@ -286,7 +286,7 @@ func (r *githubActionsOrganizationOIDCSubjectClaimCustomizationTemplateResource)
 
 	data.IncludeClaimKeys = includeClaimKeysList
 
-	tflog.Debug(ctx, "successfully read GitHub actions organization OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub actions organization OIDC subject claim customization template", map[string]any{
 		"id":                 data.ID.ValueString(),
 		"owner":              orgName,
 		"include_claim_keys": template.IncludeClaimKeys,

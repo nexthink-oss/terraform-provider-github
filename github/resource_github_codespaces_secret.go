@@ -194,7 +194,7 @@ func (r *githubCodespacesSecretResource) Create(ctx context.Context, req resourc
 	// Set the ID and read the created resource
 	data.ID = types.StringValue(fmt.Sprintf("%s:%s", repo, secretName))
 
-	tflog.Debug(ctx, "created GitHub codespaces secret", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub codespaces secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repo,
 		"secret_name": secretName,
@@ -262,7 +262,7 @@ func (r *githubCodespacesSecretResource) Delete(ctx context.Context, req resourc
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub codespaces secret", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub codespaces secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"secret_name": secretName,
@@ -305,7 +305,7 @@ func (r *githubCodespacesSecretResource) ImportState(ctx context.Context, req re
 
 	// Note: encrypted_value or plaintext_value cannot be imported as they are not retrievable
 
-	tflog.Debug(ctx, "imported GitHub codespaces secret", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub codespaces secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"secret_name": secretName,
@@ -344,7 +344,7 @@ func (r *githubCodespacesSecretResource) readGithubCodespacesSecret(ctx context.
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing codespaces secret from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing codespaces secret from state because it no longer exists in GitHub", map[string]any{
 					"owner":       owner,
 					"repository":  repoName,
 					"secret_name": secretName,
@@ -383,7 +383,7 @@ func (r *githubCodespacesSecretResource) readGithubCodespacesSecret(ctx context.
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if !data.UpdatedAt.IsNull() && !data.UpdatedAt.IsUnknown() && data.UpdatedAt.ValueString() != secret.UpdatedAt.String() {
-		tflog.Info(ctx, "the secret has been externally updated in GitHub", map[string]interface{}{
+		tflog.Info(ctx, "the secret has been externally updated in GitHub", map[string]any{
 			"id":                data.ID.ValueString(),
 			"state_updated_at":  data.UpdatedAt.ValueString(),
 			"github_updated_at": secret.UpdatedAt.String(),
@@ -393,7 +393,7 @@ func (r *githubCodespacesSecretResource) readGithubCodespacesSecret(ctx context.
 		data.UpdatedAt = types.StringValue(secret.UpdatedAt.String())
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub codespaces secret", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub codespaces secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"secret_name": secretName,

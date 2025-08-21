@@ -103,7 +103,7 @@ func (d *githubRepositoryCustomPropertiesDataSource) Read(ctx context.Context, r
 	repositoryName := data.Repository.ValueString()
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub repository custom properties", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub repository custom properties", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 	})
@@ -130,7 +130,7 @@ func (d *githubRepositoryCustomPropertiesDataSource) Read(ctx context.Context, r
 	data.Repository = types.StringValue(repositoryName)
 	data.Property = properties
 
-	tflog.Debug(ctx, "Successfully read GitHub repository custom properties", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub repository custom properties", map[string]any{
 		"owner":            owner,
 		"repository":       repositoryName,
 		"properties_count": len(allCustomProperties),

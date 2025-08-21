@@ -253,7 +253,7 @@ func (r *githubReleaseResource) Create(ctx context.Context, req resource.CreateR
 
 	r.populateResourceData(ctx, &data, createdRelease)
 
-	tflog.Debug(ctx, "created GitHub release", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub release", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 		"tag_name":   tagName,
@@ -336,7 +336,7 @@ func (r *githubReleaseResource) Update(ctx context.Context, req resource.UpdateR
 
 	r.populateResourceData(ctx, &plan, updatedRelease)
 
-	tflog.Debug(ctx, "updated GitHub release", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub release", map[string]any{
 		"id":         plan.ID.ValueString(),
 		"repository": repoName,
 		"tag_name":   plan.TagName.ValueString(),
@@ -375,7 +375,7 @@ func (r *githubReleaseResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub release", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub release", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 	})
@@ -434,7 +434,7 @@ func (r *githubReleaseResource) ImportState(ctx context.Context, req resource.Im
 
 	r.populateResourceData(ctx, data, release)
 
-	tflog.Debug(ctx, "imported GitHub release", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub release", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": *repository.Name,
 		"tag_name":   release.GetTagName(),
@@ -463,7 +463,7 @@ func (r *githubReleaseResource) readGithubRelease(ctx context.Context, data *git
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing release from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing release from state because it no longer exists in GitHub", map[string]any{
 					"owner":      owner,
 					"repository": repository,
 					"release_id": releaseID,
@@ -485,7 +485,7 @@ func (r *githubReleaseResource) readGithubRelease(ctx context.Context, data *git
 
 	r.populateResourceData(ctx, data, release)
 
-	tflog.Debug(ctx, "successfully read GitHub release", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub release", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repository,
 		"tag_name":   release.GetTagName(),

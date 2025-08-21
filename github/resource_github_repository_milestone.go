@@ -190,7 +190,7 @@ func (r *githubRepositoryMilestoneResource) Create(ctx context.Context, req reso
 	data.ID = types.StringValue(fmt.Sprintf("%s/%s/%d", owner, repoName, resultMilestone.GetNumber()))
 	data.Number = types.Int64Value(int64(resultMilestone.GetNumber()))
 
-	tflog.Debug(ctx, "created GitHub repository milestone", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository milestone", map[string]any{
 		"id":         data.ID.ValueString(),
 		"owner":      owner,
 		"repository": repoName,
@@ -292,7 +292,7 @@ func (r *githubRepositoryMilestoneResource) Update(ctx context.Context, req reso
 		return
 	}
 
-	tflog.Debug(ctx, "updated GitHub repository milestone", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub repository milestone", map[string]any{
 		"id":         data.ID.ValueString(),
 		"owner":      owner,
 		"repository": repoName,
@@ -337,7 +337,7 @@ func (r *githubRepositoryMilestoneResource) Delete(ctx context.Context, req reso
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository milestone", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository milestone", map[string]any{
 		"id":         data.ID.ValueString(),
 		"owner":      owner,
 		"repository": repoName,
@@ -403,7 +403,7 @@ func (r *githubRepositoryMilestoneResource) ImportState(ctx context.Context, req
 		data.DueDate = types.StringNull()
 	}
 
-	tflog.Debug(ctx, "imported GitHub repository milestone", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub repository milestone", map[string]any{
 		"id":         data.ID.ValueString(),
 		"owner":      owner,
 		"repository": repository,
@@ -449,7 +449,7 @@ func (r *githubRepositoryMilestoneResource) readGithubRepositoryMilestone(ctx co
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing milestone from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing milestone from state because it no longer exists in GitHub", map[string]any{
 					"owner":      owner,
 					"repository": repoName,
 					"number":     number,
@@ -483,7 +483,7 @@ func (r *githubRepositoryMilestoneResource) readGithubRepositoryMilestone(ctx co
 		data.DueDate = types.StringNull()
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub repository milestone", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository milestone", map[string]any{
 		"id":         data.ID.ValueString(),
 		"owner":      owner,
 		"repository": repoName,

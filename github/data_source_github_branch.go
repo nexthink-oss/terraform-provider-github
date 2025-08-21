@@ -96,7 +96,7 @@ func (d *githubBranchDataSource) Read(ctx context.Context, req datasource.ReadRe
 	branchName := data.Branch.ValueString()
 	branchRefName := "refs/heads/" + branchName
 
-	tflog.Debug(ctx, "Reading GitHub branch", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub branch", map[string]any{
 		"repository": repoName,
 		"branch":     branchName,
 		"ref":        branchRefName,
@@ -106,7 +106,7 @@ func (d *githubBranchDataSource) Read(ctx context.Context, req datasource.ReadRe
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Debug(ctx, "Branch not found", map[string]interface{}{
+				tflog.Debug(ctx, "Branch not found", map[string]any{
 					"repository": repoName,
 					"branch":     branchName,
 				})
@@ -131,7 +131,7 @@ func (d *githubBranchDataSource) Read(ctx context.Context, req datasource.ReadRe
 	data.Ref = types.StringValue(*ref.Ref)
 	data.Sha = types.StringValue(*ref.Object.SHA)
 
-	tflog.Debug(ctx, "Successfully read GitHub branch", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub branch", map[string]any{
 		"repository": repoName,
 		"branch":     branchName,
 		"ref":        data.Ref.ValueString(),

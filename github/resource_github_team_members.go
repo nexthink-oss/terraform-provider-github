@@ -34,6 +34,7 @@ type githubTeamMembersResource struct {
 }
 
 type githubTeamMembersResourceModel struct {
+	ID      types.String `tfsdk:"id"`
 	TeamID  types.String `tfsdk:"team_id"`
 	Members types.Set    `tfsdk:"members"`
 }
@@ -59,6 +60,13 @@ func (r *githubTeamMembersResource) Schema(ctx context.Context, req resource.Sch
 	resp.Schema = schema.Schema{
 		Description: "Provides an authoritative GitHub team members resource.",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The team ID.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"team_id": schema.StringAttribute{
 				Description: "The GitHub team id or slug",
 				Required:    true,
@@ -140,7 +148,7 @@ func (r *githubTeamMembersResource) Create(ctx context.Context, req resource.Cre
 		username := member.Username.ValueString()
 		role := member.Role.ValueString()
 
-		tflog.Debug(ctx, "Creating team membership", map[string]interface{}{
+		tflog.Debug(ctx, "Creating team membership", map[string]any{
 			"team_id":  teamIdString,
 			"username": username,
 			"role":     role,
@@ -163,7 +171,8 @@ func (r *githubTeamMembersResource) Create(ctx context.Context, req resource.Cre
 		}
 	}
 
-	// Set the ID
+	// Set the ID to the team ID
+	plan.ID = types.StringValue(teamIdString)
 	plan.TeamID = types.StringValue(teamIdString)
 
 	// Read the current state
@@ -264,7 +273,7 @@ func (r *githubTeamMembersResource) Update(ctx context.Context, req resource.Upd
 		}
 
 		if delete {
-			tflog.Debug(ctx, "Deleting team membership", map[string]interface{}{
+			tflog.Debug(ctx, "Deleting team membership", map[string]any{
 				"team_id":  teamIdString,
 				"username": username,
 			})
@@ -282,7 +291,7 @@ func (r *githubTeamMembersResource) Update(ctx context.Context, req resource.Upd
 		if create {
 			role := change.New["role"].(string)
 
-			tflog.Debug(ctx, "Creating team membership", map[string]interface{}{
+			tflog.Debug(ctx, "Creating team membership", map[string]any{
 				"team_id":  teamIdString,
 				"username": username,
 				"role":     role,
@@ -347,7 +356,7 @@ func (r *githubTeamMembersResource) Delete(ctx context.Context, req resource.Del
 	for _, member := range members {
 		username := member.Username.ValueString()
 
-		tflog.Debug(ctx, "Deleting team membership", map[string]interface{}{
+		tflog.Debug(ctx, "Deleting team membership", map[string]any{
 			"team_id":  teamIdString,
 			"username": username,
 		})
@@ -373,8 +382,10 @@ func (r *githubTeamMembersResource) ImportState(ctx context.Context, req resourc
 		return
 	}
 
-	// Set the ID to the team ID
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_id"), strconv.FormatInt(teamId, 10))...)
+	// Set the ID to the team ID string
+	teamIdString := strconv.FormatInt(teamId, 10)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(teamIdString))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_id"), types.StringValue(teamIdString))...)
 }
 
 func (r *githubTeamMembersResource) read(ctx context.Context, state *githubTeamMembersResourceModel, diags *diag.Diagnostics) {
@@ -396,7 +407,7 @@ func (r *githubTeamMembersResource) read(ctx context.Context, state *githubTeamM
 	client := r.client.V4Client()
 	orgName := r.client.Name()
 
-	tflog.Debug(ctx, "Reading team members", map[string]interface{}{
+	tflog.Debug(ctx, "Reading team members", map[string]any{
 		"team_id": teamIdString,
 	})
 
@@ -475,6 +486,7 @@ func (r *githubTeamMembersResource) read(ctx context.Context, state *githubTeamM
 		return
 	}
 
+	state.ID = types.StringValue(teamIdString)
 	state.Members = membersSet
 }
 

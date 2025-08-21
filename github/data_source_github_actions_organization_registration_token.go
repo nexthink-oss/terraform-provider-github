@@ -81,7 +81,7 @@ func (d *githubActionsOrganizationRegistrationTokenDataSource) Read(ctx context.
 
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Creating GitHub Actions organization registration token", map[string]interface{}{
+	tflog.Debug(ctx, "Creating GitHub Actions organization registration token", map[string]any{
 		"owner": owner,
 	})
 
@@ -99,7 +99,7 @@ func (d *githubActionsOrganizationRegistrationTokenDataSource) Read(ctx context.
 	data.Token = types.StringValue(token.GetToken())
 	data.ExpiresAt = types.Int64Value(token.GetExpiresAt().Unix())
 
-	tflog.Debug(ctx, "Successfully created GitHub Actions organization registration token", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully created GitHub Actions organization registration token", map[string]any{
 		"owner":      owner,
 		"expires_at": token.GetExpiresAt().Unix(),
 	})

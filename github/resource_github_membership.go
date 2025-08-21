@@ -125,7 +125,7 @@ func (r *githubMembershipResource) Create(ctx context.Context, req resource.Crea
 	username := plan.Username.ValueString()
 	roleName := plan.Role.ValueString()
 
-	tflog.Debug(ctx, "Creating GitHub membership", map[string]interface{}{
+	tflog.Debug(ctx, "Creating GitHub membership", map[string]any{
 		"org":      orgName,
 		"username": username,
 		"role":     roleName,
@@ -194,7 +194,7 @@ func (r *githubMembershipResource) Update(ctx context.Context, req resource.Upda
 	username := plan.Username.ValueString()
 	roleName := plan.Role.ValueString()
 
-	tflog.Debug(ctx, "Updating GitHub membership", map[string]interface{}{
+	tflog.Debug(ctx, "Updating GitHub membership", map[string]any{
 		"org":      orgName,
 		"username": username,
 		"role":     roleName,
@@ -246,7 +246,7 @@ func (r *githubMembershipResource) Delete(ctx context.Context, req resource.Dele
 	downgradeTo := "member"
 
 	if downgradeOnDestroy {
-		tflog.Info(ctx, "Downgrading membership instead of removing", map[string]interface{}{
+		tflog.Info(ctx, "Downgrading membership instead of removing", map[string]any{
 			"org":         orgName,
 			"username":    username,
 			"downgradeTo": downgradeTo,
@@ -258,7 +258,7 @@ func (r *githubMembershipResource) Delete(ctx context.Context, req resource.Dele
 		if err != nil {
 			if ghErr, ok := err.(*github.ErrorResponse); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
-					tflog.Info(ctx, "Not downgrading membership because user is not a member of the org anymore", map[string]interface{}{
+					tflog.Info(ctx, "Not downgrading membership because user is not a member of the org anymore", map[string]any{
 						"org":      orgName,
 						"username": username,
 					})
@@ -274,7 +274,7 @@ func (r *githubMembershipResource) Delete(ctx context.Context, req resource.Dele
 		}
 
 		if membership.GetRole() == downgradeTo {
-			tflog.Info(ctx, "Not downgrading membership because user is already at target role", map[string]interface{}{
+			tflog.Info(ctx, "Not downgrading membership because user is already at target role", map[string]any{
 				"org":      orgName,
 				"username": username,
 				"role":     downgradeTo,
@@ -293,7 +293,7 @@ func (r *githubMembershipResource) Delete(ctx context.Context, req resource.Dele
 			return
 		}
 	} else {
-		tflog.Info(ctx, "Removing membership from organization", map[string]interface{}{
+		tflog.Info(ctx, "Removing membership from organization", map[string]any{
 			"org":      orgName,
 			"username": username,
 		})
@@ -366,7 +366,7 @@ func (r *githubMembershipResource) readMembership(ctx context.Context, model *gi
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Removing membership from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "Removing membership from state because it no longer exists in GitHub", map[string]any{
 					"id": id,
 				})
 				// Set ID to null to indicate resource should be removed from state

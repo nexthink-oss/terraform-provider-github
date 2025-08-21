@@ -148,7 +148,7 @@ func (r *githubTeamMembershipResource) Create(ctx context.Context, req resource.
 	// Set ID using the same format as SDKv2 version
 	plan.ID = types.StringValue(fmt.Sprintf("%s:%s", teamIDString, username))
 
-	tflog.Trace(ctx, "Created team membership", map[string]interface{}{
+	tflog.Trace(ctx, "Created team membership", map[string]any{
 		"team_id":  teamIDString,
 		"username": username,
 		"role":     role,
@@ -215,7 +215,7 @@ func (r *githubTeamMembershipResource) Update(ctx context.Context, req resource.
 		return
 	}
 
-	tflog.Trace(ctx, "Updated team membership", map[string]interface{}{
+	tflog.Trace(ctx, "Updated team membership", map[string]any{
 		"team_id":  teamIDString,
 		"username": username,
 		"role":     role,
@@ -259,7 +259,7 @@ func (r *githubTeamMembershipResource) Delete(ctx context.Context, req resource.
 		return
 	}
 
-	tflog.Trace(ctx, "Deleted team membership", map[string]interface{}{
+	tflog.Trace(ctx, "Deleted team membership", map[string]any{
 		"team_id":  teamIDString,
 		"username": username,
 	})
@@ -331,7 +331,7 @@ func (r *githubTeamMembershipResource) read(ctx context.Context, state *githubTe
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Team membership not found, removing from state", map[string]interface{}{
+				tflog.Info(ctx, "Team membership not found, removing from state", map[string]any{
 					"team_id":  teamIDString,
 					"username": username,
 				})
@@ -358,7 +358,7 @@ func (r *githubTeamMembershipResource) read(ctx context.Context, state *githubTe
 		state.Role = types.StringValue("member")
 	}
 
-	tflog.Trace(ctx, "Read team membership", map[string]interface{}{
+	tflog.Trace(ctx, "Read team membership", map[string]any{
 		"team_id":  teamIDString,
 		"username": username,
 		"role":     state.Role.ValueString(),

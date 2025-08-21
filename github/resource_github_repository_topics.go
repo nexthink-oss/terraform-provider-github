@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -30,6 +31,7 @@ type githubRepositoryTopicsResource struct {
 }
 
 type githubRepositoryTopicsResourceModel struct {
+	ID         types.String `tfsdk:"id"`
 	Repository types.String `tfsdk:"repository"`
 	Topics     types.Set    `tfsdk:"topics"`
 }
@@ -46,6 +48,13 @@ func (r *githubRepositoryTopicsResource) Schema(ctx context.Context, req resourc
 	resp.Schema = schema.Schema{
 		Description: "Creates and manages the topics on a repository",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The repository name.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"repository": schema.StringAttribute{
 				Description: "The name of the repository. The name is not case sensitive.",
 				Required:    true,
@@ -123,10 +132,13 @@ func (r *githubRepositoryTopicsResource) Create(ctx context.Context, req resourc
 		return
 	}
 
-	tflog.Debug(ctx, "created GitHub repository topics", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository topics", map[string]any{
 		"repository": repoName,
 		"topics":     topics,
 	})
+
+	// Set the ID to the repository name
+	data.ID = types.StringValue(repoName)
 
 	// Read the created resource to populate all computed fields
 	r.readGithubRepositoryTopics(ctx, &data, &resp.Diagnostics)
@@ -182,7 +194,7 @@ func (r *githubRepositoryTopicsResource) Update(ctx context.Context, req resourc
 		return
 	}
 
-	tflog.Debug(ctx, "updated GitHub repository topics", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub repository topics", map[string]any{
 		"repository": repoName,
 		"topics":     topics,
 	})
@@ -219,22 +231,15 @@ func (r *githubRepositoryTopicsResource) Delete(ctx context.Context, req resourc
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository topics", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository topics", map[string]any{
 		"repository": repoName,
 	})
 }
 
 func (r *githubRepositoryTopicsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	data := &githubRepositoryTopicsResourceModel{
-		Repository: types.StringValue(req.ID),
-	}
-
-	r.readGithubRepositoryTopics(ctx, data, &resp.Diagnostics)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+	// Set the ID and repository name
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(req.ID))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("repository"), types.StringValue(req.ID))...)
 }
 
 // Helper functions
@@ -256,7 +261,7 @@ func (r *githubRepositoryTopicsResource) readGithubRepositoryTopics(ctx context.
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "GitHub repository not found, removing topics from state", map[string]interface{}{
+				tflog.Info(ctx, "GitHub repository not found, removing topics from state", map[string]any{
 					"repository": repoName,
 				})
 				data.Repository = types.StringNull()
@@ -277,9 +282,10 @@ func (r *githubRepositoryTopicsResource) readGithubRepositoryTopics(ctx context.
 		return
 	}
 
+	data.ID = types.StringValue(repoName)
 	data.Topics = topicsSet
 
-	tflog.Debug(ctx, "successfully read GitHub repository topics", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository topics", map[string]any{
 		"repository": repoName,
 		"topics":     topics,
 	})

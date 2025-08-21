@@ -123,7 +123,7 @@ func (d *githubRepositoryBranchesDataSource) Read(ctx context.Context, req datas
 	onlyProtectedBranches := data.OnlyProtectedBranches.ValueBool()
 	onlyNonProtectedBranches := data.OnlyNonProtectedBranches.ValueBool()
 
-	tflog.Debug(ctx, "Reading repository branches", map[string]interface{}{
+	tflog.Debug(ctx, "Reading repository branches", map[string]any{
 		"repository":                  repository,
 		"only_protected_branches":     onlyProtectedBranches,
 		"only_non_protected_branches": onlyNonProtectedBranches,

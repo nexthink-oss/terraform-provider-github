@@ -140,7 +140,7 @@ func (r *githubActionsVariableResource) Create(ctx context.Context, req resource
 	// Set the ID and read the created resource
 	data.ID = types.StringValue(fmt.Sprintf("%s:%s", repo, variableName))
 
-	tflog.Debug(ctx, "created GitHub actions variable", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub actions variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repo,
 		"variable_name": variableName,
@@ -201,7 +201,7 @@ func (r *githubActionsVariableResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	tflog.Debug(ctx, "updated GitHub actions variable", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub actions variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repo,
 		"variable_name": variableName,
@@ -245,7 +245,7 @@ func (r *githubActionsVariableResource) Delete(ctx context.Context, req resource
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub actions variable", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub actions variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"variable_name": variableName,
@@ -299,7 +299,7 @@ func (r *githubActionsVariableResource) ImportState(ctx context.Context, req res
 		UpdatedAt:    types.StringValue(variable.UpdatedAt.String()),
 	}
 
-	tflog.Debug(ctx, "imported GitHub actions variable", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub actions variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"variable_name": variableName,
@@ -336,7 +336,7 @@ func (r *githubActionsVariableResource) readGithubActionsVariable(ctx context.Co
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing actions variable from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing actions variable from state because it no longer exists in GitHub", map[string]any{
 					"owner":         owner,
 					"repository":    repoName,
 					"variable_name": variableName,
@@ -358,7 +358,7 @@ func (r *githubActionsVariableResource) readGithubActionsVariable(ctx context.Co
 	data.CreatedAt = types.StringValue(variable.CreatedAt.String())
 	data.UpdatedAt = types.StringValue(variable.UpdatedAt.String())
 
-	tflog.Debug(ctx, "successfully read GitHub actions variable", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub actions variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"variable_name": variableName,

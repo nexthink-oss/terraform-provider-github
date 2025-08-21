@@ -3,6 +3,8 @@ package github
 import (
 	"context"
 	"os"
+	"regexp"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -14,9 +16,16 @@ import (
 type githubProvider struct{}
 
 type githubProviderModel struct {
-	Token   types.String `tfsdk:"token"`
-	Owner   types.String `tfsdk:"owner"`
-	BaseURL types.String `tfsdk:"base_url"`
+	Token            types.String `tfsdk:"token"`
+	Owner            types.String `tfsdk:"owner"`
+	BaseURL          types.String `tfsdk:"base_url"`
+	ParallelRequests types.Bool   `tfsdk:"parallel_requests"`
+	ReadDelayMS      types.Int64  `tfsdk:"read_delay_ms"`
+	WriteDelayMS     types.Int64  `tfsdk:"write_delay_ms"`
+	RetryDelayMS     types.Int64  `tfsdk:"retry_delay_ms"`
+	MaxRetries       types.Int64  `tfsdk:"max_retries"`
+	RetryableErrors  types.List   `tfsdk:"retryable_errors"`
+	Insecure         types.Bool   `tfsdk:"insecure"`
 }
 
 func New() provider.Provider {
@@ -42,6 +51,35 @@ func (p *githubProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 			},
 			"base_url": schema.StringAttribute{
 				Description: "The GitHub base API URL",
+				Optional:    true,
+			},
+			"parallel_requests": schema.BoolAttribute{
+				Description: "Allow the provider to make parallel API calls to GitHub. You may want to set it to true when you have a private Github Enterprise without strict rate limits. Although, it is not possible to enable this setting on github.com because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits. Defaults to false if not set.",
+				Optional:    true,
+			},
+			"read_delay_ms": schema.Int64Attribute{
+				Description: "Amount of time in milliseconds to sleep in between non-write requests to GitHub API. Defaults to 0ms if not set.",
+				Optional:    true,
+			},
+			"write_delay_ms": schema.Int64Attribute{
+				Description: "Amount of time in milliseconds to sleep in between writes to GitHub API. Defaults to 1000ms or 1s if not set.",
+				Optional:    true,
+			},
+			"retry_delay_ms": schema.Int64Attribute{
+				Description: "Amount of time in milliseconds to sleep in between requests to GitHub API after an error response. Defaults to 1000ms or 1s if not set, the max_retries must be set to greater than zero.",
+				Optional:    true,
+			},
+			"max_retries": schema.Int64Attribute{
+				Description: "Number of times to retry a request after receiving an error status code. Defaults to 3.",
+				Optional:    true,
+			},
+			"retryable_errors": schema.ListAttribute{
+				Description: "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work. Defaults to [500, 502, 503, 504].",
+				ElementType: types.Int64Type,
+				Optional:    true,
+			},
+			"insecure": schema.BoolAttribute{
+				Description: "Enable insecure mode for testing purposes.",
 				Optional:    true,
 			},
 		},
@@ -73,26 +111,128 @@ func (p *githubProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		baseURL = config.BaseURL.ValueString()
 	}
 
-	// Create GitHub configuration with basic defaults
+	// Get parallel_requests setting
+	parallelRequests := false // Default to false for github.com safety
+	if !config.ParallelRequests.IsNull() && !config.ParallelRequests.IsUnknown() {
+		parallelRequests = config.ParallelRequests.ValueBool()
+	}
+
+	// Get read_delay_ms setting
+	readDelayMS := int64(0) // Default to 0ms
+	if !config.ReadDelayMS.IsNull() && !config.ReadDelayMS.IsUnknown() {
+		readDelayMS = config.ReadDelayMS.ValueInt64()
+	}
+
+	// Get write_delay_ms setting
+	writeDelayMS := int64(1000) // Default to 1000ms
+	if !config.WriteDelayMS.IsNull() && !config.WriteDelayMS.IsUnknown() {
+		writeDelayMS = config.WriteDelayMS.ValueInt64()
+	}
+
+	// Get retry_delay_ms setting
+	retryDelayMS := int64(1000) // Default to 1000ms
+	if !config.RetryDelayMS.IsNull() && !config.RetryDelayMS.IsUnknown() {
+		retryDelayMS = config.RetryDelayMS.ValueInt64()
+	}
+
+	// Get max_retries setting
+	maxRetries := int64(3) // Default to 3
+	if !config.MaxRetries.IsNull() && !config.MaxRetries.IsUnknown() {
+		maxRetries = config.MaxRetries.ValueInt64()
+	}
+
+	// Get insecure setting
+	insecure := false // Default to false
+	if !config.Insecure.IsNull() && !config.Insecure.IsUnknown() {
+		insecure = config.Insecure.ValueBool()
+	}
+
+	// Get retryable_errors setting
+	retryableErrorsSlice := []int64{500, 502, 503, 504} // Default values
+	if !config.RetryableErrors.IsNull() && !config.RetryableErrors.IsUnknown() {
+		diags := config.RetryableErrors.ElementsAs(ctx, &retryableErrorsSlice, false)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	// Check if this is github.com to enforce parallel_requests safety
+	isGithubDotCom, err := regexp.MatchString("^"+regexp.QuoteMeta("https://api.github.com"), baseURL)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid Base URL",
+			"An unexpected error occurred when validating the base URL: "+err.Error(),
+		)
+		return
+	}
+
+	if parallelRequests && isGithubDotCom {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"parallel_requests cannot be true when connecting to public github.com due to rate limiting restrictions",
+		)
+		return
+	}
+
+	// Validate delay settings are not negative
+	if readDelayMS < 0 {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"read_delay_ms must be greater than or equal to 0",
+		)
+		return
+	}
+
+	if writeDelayMS <= 0 {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"write_delay_ms must be greater than 0ms",
+		)
+		return
+	}
+
+	if retryDelayMS < 0 {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"retry_delay_ms must be greater than or equal to 0ms",
+		)
+		return
+	}
+
+	if maxRetries < 0 {
+		resp.Diagnostics.AddError(
+			"Invalid Configuration",
+			"max_retries must be greater than or equal to 0",
+		)
+		return
+	}
+
+	// Convert retryable errors to map
+	retryableErrors := make(map[int]bool)
+	if maxRetries > 0 {
+		for _, statusCode := range retryableErrorsSlice {
+			retryableErrors[int(statusCode)] = true
+		}
+	}
+
+	// Create GitHub configuration with all settings
 	githubConfig := &Config{
 		Token:            token,
 		Owner:            owner,
 		BaseURL:          baseURL,
-		MaxRetries:       3,
-		ParallelRequests: true,
+		Insecure:         insecure,
+		MaxRetries:       int(maxRetries),
+		ParallelRequests: parallelRequests,
+		ReadDelay:        time.Duration(readDelayMS) * time.Millisecond,
+		WriteDelay:       time.Duration(writeDelayMS) * time.Millisecond,
+		RetryDelay:       time.Duration(retryDelayMS) * time.Millisecond,
+		RetryableErrors:  retryableErrors,
 	}
 
 	// Set BaseURL default if empty
 	if githubConfig.BaseURL == "" {
 		githubConfig.BaseURL = "https://api.github.com/"
-	}
-
-	// Initialize retryable errors with default values
-	githubConfig.RetryableErrors = map[int]bool{
-		500: true,
-		502: true,
-		503: true,
-		504: true,
 	}
 
 	// Initialize the client using the Meta method

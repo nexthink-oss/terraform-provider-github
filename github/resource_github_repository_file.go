@@ -195,7 +195,7 @@ func (r *githubRepositoryFileResource) Create(ctx context.Context, req resource.
 	// Handle branch checking and autocreate logic
 	if !data.Branch.IsNull() && !data.Branch.IsUnknown() {
 		branch := data.Branch.ValueString()
-		tflog.Debug(ctx, "using explicitly set branch", map[string]interface{}{
+		tflog.Debug(ctx, "using explicitly set branch", map[string]any{
 			"branch": branch,
 		})
 
@@ -233,7 +233,7 @@ func (r *githubRepositoryFileResource) Create(ctx context.Context, req resource.
 		opts.Message = &m
 	}
 
-	tflog.Debug(ctx, "checking if overwriting a repository file", map[string]interface{}{
+	tflog.Debug(ctx, "checking if overwriting a repository file", map[string]any{
 		"owner":      owner,
 		"repository": repo,
 		"file":       file,
@@ -288,7 +288,7 @@ func (r *githubRepositoryFileResource) Create(ctx context.Context, req resource.
 	data.ID = types.StringValue(fmt.Sprintf("%s/%s", repo, file))
 	data.CommitSha = types.StringValue(create.GetSHA())
 
-	tflog.Debug(ctx, "created GitHub repository file", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository file", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repo,
 		"file":       file,
@@ -337,7 +337,7 @@ func (r *githubRepositoryFileResource) Update(ctx context.Context, req resource.
 	// Handle branch checking and autocreate logic
 	if !data.Branch.IsNull() && !data.Branch.IsUnknown() {
 		branch := data.Branch.ValueString()
-		tflog.Debug(ctx, "using explicitly set branch", map[string]interface{}{
+		tflog.Debug(ctx, "using explicitly set branch", map[string]any{
 			"branch": branch,
 		})
 
@@ -385,7 +385,7 @@ func (r *githubRepositoryFileResource) Update(ctx context.Context, req resource.
 
 	data.CommitSha = types.StringValue(create.GetSHA())
 
-	tflog.Debug(ctx, "updated GitHub repository file", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub repository file", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repo,
 		"file":       file,
@@ -430,7 +430,7 @@ func (r *githubRepositoryFileResource) Delete(ctx context.Context, req resource.
 
 	if !data.Branch.IsNull() && !data.Branch.IsUnknown() {
 		branch = data.Branch.ValueString()
-		tflog.Debug(ctx, "using explicitly set branch", map[string]interface{}{
+		tflog.Debug(ctx, "using explicitly set branch", map[string]any{
 			"branch": branch,
 		})
 
@@ -463,7 +463,7 @@ func (r *githubRepositoryFileResource) Delete(ctx context.Context, req resource.
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository file", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository file", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repo,
 		"file":       file,
@@ -682,7 +682,7 @@ func (r *githubRepositoryFileResource) readGithubRepositoryFile(ctx context.Cont
 
 	if !data.Branch.IsNull() && !data.Branch.IsUnknown() {
 		branch := data.Branch.ValueString()
-		tflog.Debug(ctx, "using explicitly set branch", map[string]interface{}{
+		tflog.Debug(ctx, "using explicitly set branch", map[string]any{
 			"branch": branch,
 		})
 
@@ -690,7 +690,7 @@ func (r *githubRepositoryFileResource) readGithubRepositoryFile(ctx context.Cont
 			if data.AutocreateBranch.ValueBool() {
 				branch = data.AutocreateBranchSourceBranch.ValueString()
 			} else {
-				tflog.Info(ctx, "removing repository path from state because the branch no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing repository path from state because the branch no longer exists in GitHub", map[string]any{
 					"owner":      owner,
 					"repository": repo,
 					"file":       file,
@@ -714,7 +714,7 @@ func (r *githubRepositoryFileResource) readGithubRepositoryFile(ctx context.Cont
 		}
 
 		if errors.As(err, &errorResponse) && errorResponse.Response.StatusCode == http.StatusNotFound {
-			tflog.Info(ctx, "removing repository path from state because it no longer exists in GitHub", map[string]interface{}{
+			tflog.Info(ctx, "removing repository path from state because it no longer exists in GitHub", map[string]any{
 				"owner":      owner,
 				"repository": repo,
 				"file":       file,
@@ -731,7 +731,7 @@ func (r *githubRepositoryFileResource) readGithubRepositoryFile(ctx context.Cont
 	}
 
 	if fc == nil {
-		tflog.Info(ctx, "removing repository path from state because it no longer exists in GitHub", map[string]interface{}{
+		tflog.Info(ctx, "removing repository path from state because it no longer exists in GitHub", map[string]any{
 			"owner":      owner,
 			"repository": repo,
 			"file":       file,
@@ -778,19 +778,19 @@ func (r *githubRepositoryFileResource) readGithubRepositoryFile(ctx context.Cont
 	// Use the SHA to lookup the commit info if we know it, otherwise loop through commits
 	if !data.CommitSha.IsNull() && !data.CommitSha.IsUnknown() {
 		sha := data.CommitSha.ValueString()
-		tflog.Debug(ctx, "using known commit SHA", map[string]interface{}{
+		tflog.Debug(ctx, "using known commit SHA", map[string]any{
 			"sha": sha,
 		})
 		commit, _, err = client.Repositories.GetCommit(ctx, owner, repo, sha, nil)
 	} else {
-		tflog.Debug(ctx, "commit SHA unknown for file, looking for commit", map[string]interface{}{
+		tflog.Debug(ctx, "commit SHA unknown for file, looking for commit", map[string]any{
 			"owner":      owner,
 			"repository": repo,
 			"file":       file,
 		})
 		commit, err = r.getFileCommit(ctx, client, owner, repo, file, ref)
 		if commit != nil {
-			tflog.Debug(ctx, "found file in commit", map[string]interface{}{
+			tflog.Debug(ctx, "found file in commit", map[string]any{
 				"owner":      owner,
 				"repository": repo,
 				"file":       file,
@@ -821,7 +821,7 @@ func (r *githubRepositoryFileResource) readGithubRepositoryFile(ctx context.Cont
 	}
 	data.CommitMessage = types.StringValue(commit.GetCommit().GetMessage())
 
-	tflog.Debug(ctx, "successfully read GitHub repository file", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository file", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repo,
 		"file":       file,

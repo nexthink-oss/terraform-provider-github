@@ -102,7 +102,7 @@ func (d *githubEnterpriseDataSource) Read(ctx context.Context, req datasource.Re
 
 	slug := data.Slug.ValueString()
 
-	tflog.Debug(ctx, "Reading GitHub enterprise", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub enterprise", map[string]any{
 		"slug": slug,
 	})
 
@@ -146,7 +146,7 @@ func (d *githubEnterpriseDataSource) Read(ctx context.Context, req datasource.Re
 	data.CreatedAt = types.StringValue(string(query.Enterprise.CreatedAt))
 	data.URL = types.StringValue(string(query.Enterprise.Url))
 
-	tflog.Debug(ctx, "Successfully read GitHub enterprise", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub enterprise", map[string]any{
 		"slug":        slug,
 		"id":          data.ID.ValueString(),
 		"database_id": data.DatabaseID.ValueInt64(),

@@ -254,7 +254,7 @@ func (r *githubAppInstallationRepositoryResource) ImportState(ctx context.Contex
 		return
 	}
 
-	tflog.Debug(ctx, "imported GitHub app installation repository", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub app installation repository", map[string]any{
 		"id":              data.ID.ValueString(),
 		"installation_id": installationIDString,
 		"repository":      repoName,
@@ -332,7 +332,7 @@ func (r *githubAppInstallationRepositoryResource) readGithubAppInstallationRepos
 				data.Repository = types.StringValue(repoName)
 				data.RepoID = types.Int64Value(r.GetID())
 
-				tflog.Debug(ctx, "successfully read GitHub app installation repository", map[string]interface{}{
+				tflog.Debug(ctx, "successfully read GitHub app installation repository", map[string]any{
 					"id":              data.ID.ValueString(),
 					"installation_id": installationIDString,
 					"repository":      repoName,
@@ -348,7 +348,7 @@ func (r *githubAppInstallationRepositoryResource) readGithubAppInstallationRepos
 		opt.Page = resp.NextPage
 	}
 
-	tflog.Info(ctx, "removing app installation repository association from state because it no longer exists in GitHub", map[string]interface{}{
+	tflog.Info(ctx, "removing app installation repository association from state because it no longer exists in GitHub", map[string]any{
 		"id": data.ID.ValueString(),
 	})
 	data.ID = types.StringNull()

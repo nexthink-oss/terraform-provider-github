@@ -109,7 +109,7 @@ func (d *githubRepositoryMilestoneDataSource) Read(ctx context.Context, req data
 	repository := data.Repository.ValueString()
 	number := int(data.Number.ValueInt64())
 
-	tflog.Debug(ctx, "Reading GitHub repository milestone", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub repository milestone", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 		"number":     number,
@@ -138,7 +138,7 @@ func (d *githubRepositoryMilestoneDataSource) Read(ctx context.Context, req data
 	data.State = types.StringValue(milestone.GetState())
 	data.Title = types.StringValue(milestone.GetTitle())
 
-	tflog.Debug(ctx, "Successfully read GitHub repository milestone", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub repository milestone", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 		"number":     number,

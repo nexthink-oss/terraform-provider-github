@@ -109,7 +109,7 @@ func (d *githubActionsOrganizationVariablesDataSource) Read(ctx context.Context,
 
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Actions organization variables", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Actions organization variables", map[string]any{
 		"organization": owner,
 	})
 

@@ -185,7 +185,7 @@ func (r *githubIssueResource) Create(ctx context.Context, req resource.CreateReq
 		}
 	}
 
-	tflog.Debug(ctx, "creating GitHub issue", map[string]interface{}{
+	tflog.Debug(ctx, "creating GitHub issue", map[string]any{
 		"repository": repoName,
 		"title":      title,
 		"owner":      orgName,
@@ -201,7 +201,7 @@ func (r *githubIssueResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 	if httpResp != nil {
-		tflog.Debug(ctx, "GitHub API response", map[string]interface{}{
+		tflog.Debug(ctx, "GitHub API response", map[string]any{
 			"status": httpResp.Status,
 		})
 	}
@@ -211,7 +211,7 @@ func (r *githubIssueResource) Create(ctx context.Context, req resource.CreateReq
 	data.Number = types.Int64Value(int64(issue.GetNumber()))
 	data.IssueID = types.Int64Value(issue.GetID())
 
-	tflog.Debug(ctx, "created GitHub issue", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub issue", map[string]any{
 		"id":     data.ID.ValueString(),
 		"number": data.Number.ValueInt64(),
 		"title":  title,
@@ -301,7 +301,7 @@ func (r *githubIssueResource) Update(ctx context.Context, req resource.UpdateReq
 		}
 	}
 
-	tflog.Debug(ctx, "updating GitHub issue", map[string]interface{}{
+	tflog.Debug(ctx, "updating GitHub issue", map[string]any{
 		"repository": repoName,
 		"number":     number,
 		"title":      title,
@@ -318,14 +318,14 @@ func (r *githubIssueResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 	if httpResp != nil {
-		tflog.Debug(ctx, "GitHub API response", map[string]interface{}{
+		tflog.Debug(ctx, "GitHub API response", map[string]any{
 			"status": httpResp.Status,
 		})
 	}
 
 	data.IssueID = types.Int64Value(issue.GetID())
 
-	tflog.Debug(ctx, "updated GitHub issue", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub issue", map[string]any{
 		"id":     data.ID.ValueString(),
 		"number": number,
 		"title":  title,
@@ -357,7 +357,7 @@ func (r *githubIssueResource) Delete(ctx context.Context, req resource.DeleteReq
 		State: github.Ptr("closed"),
 	}
 
-	tflog.Debug(ctx, "closing GitHub issue", map[string]interface{}{
+	tflog.Debug(ctx, "closing GitHub issue", map[string]any{
 		"repository": repoName,
 		"number":     number,
 		"owner":      orgName,
@@ -373,7 +373,7 @@ func (r *githubIssueResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	tflog.Debug(ctx, "closed GitHub issue", map[string]interface{}{
+	tflog.Debug(ctx, "closed GitHub issue", map[string]any{
 		"id":     data.ID.ValueString(),
 		"number": number,
 	})
@@ -428,7 +428,7 @@ func (r *githubIssueResource) readGithubIssue(ctx context.Context, data *githubI
 	}
 	reqCtx = context.WithValue(reqCtx, CtxId, data.ID.ValueString())
 
-	tflog.Debug(ctx, "reading GitHub issue", map[string]interface{}{
+	tflog.Debug(ctx, "reading GitHub issue", map[string]any{
 		"repository": repoName,
 		"number":     number,
 		"owner":      orgName,
@@ -442,7 +442,7 @@ func (r *githubIssueResource) readGithubIssue(ctx context.Context, data *githubI
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "GitHub issue not found, removing from state", map[string]interface{}{
+				tflog.Info(ctx, "GitHub issue not found, removing from state", map[string]any{
 					"id":         data.ID.ValueString(),
 					"repository": repoName,
 					"number":     number,
@@ -508,7 +508,7 @@ func (r *githubIssueResource) readGithubIssue(ctx context.Context, data *githubI
 		data.Assignees = types.SetNull(types.StringType)
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub issue", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub issue", map[string]any{
 		"id":         data.ID.ValueString(),
 		"title":      data.Title.ValueString(),
 		"repository": repoName,

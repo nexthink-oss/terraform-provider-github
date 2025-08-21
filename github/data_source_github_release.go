@@ -241,7 +241,7 @@ func (d *githubReleaseDataSource) Read(ctx context.Context, req datasource.ReadR
 	owner := data.Owner.ValueString()
 	retrieveBy := strings.ToLower(data.RetrieveBy.ValueString())
 
-	tflog.Debug(ctx, "Reading GitHub release", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub release", map[string]any{
 		"repository":  repository,
 		"owner":       owner,
 		"retrieve_by": retrieveBy,
@@ -330,7 +330,7 @@ func (d *githubReleaseDataSource) Read(ctx context.Context, req datasource.ReadR
 	}
 	data.Assets = assets
 
-	tflog.Debug(ctx, "Successfully read GitHub release", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub release", map[string]any{
 		"repository": repository,
 		"owner":      owner,
 		"id":         strconv.FormatInt(release.GetID(), 10),

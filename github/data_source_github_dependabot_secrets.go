@@ -161,7 +161,7 @@ func (d *githubDependabotSecretsDataSource) Read(ctx context.Context, req dataso
 		repoName = data.Name.ValueString()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub Dependabot secrets", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Dependabot secrets", map[string]any{
 		"owner":      owner,
 		"repository": repoName,
 	})

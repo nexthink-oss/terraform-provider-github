@@ -228,7 +228,7 @@ func (r *githubTeamRepositoryResource) read(ctx context.Context, state *githubTe
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Removing team repository association from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "Removing team repository association from state because it no longer exists in GitHub", map[string]any{
 					"id": state.ID.ValueString(),
 				})
 				state.ID = types.StringNull()
@@ -367,7 +367,7 @@ func (r *githubTeamRepositoryResource) Delete(ctx context.Context, req resource.
 	deleteResp, err := client.Teams.RemoveTeamRepoBySlug(ctx, orgName, teamSlug, orgName, repoName)
 
 	if deleteResp != nil && deleteResp.StatusCode == 404 {
-		tflog.Debug(ctx, "Failed to find team to delete for repo", map[string]interface{}{
+		tflog.Debug(ctx, "Failed to find team to delete for repo", map[string]any{
 			"team_id":    teamIdString,
 			"repository": repoName,
 		})
@@ -382,7 +382,7 @@ func (r *githubTeamRepositoryResource) Delete(ctx context.Context, req resource.
 		}
 		newRepoName := repo.GetName()
 		if newRepoName != repoName {
-			tflog.Info(ctx, "Repository name has changed, trying delete again", map[string]interface{}{
+			tflog.Info(ctx, "Repository name has changed, trying delete again", map[string]any{
 				"old_name": repoName,
 				"new_name": newRepoName,
 			})

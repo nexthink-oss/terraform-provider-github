@@ -150,7 +150,7 @@ func (r *githubActionsEnvironmentVariableResource) Create(ctx context.Context, r
 	// Set the ID and read the created resource
 	data.ID = types.StringValue(fmt.Sprintf("%s:%s:%s", repo, environment, variableName))
 
-	tflog.Debug(ctx, "created GitHub actions environment variable", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub actions environment variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repo,
 		"environment":   environment,
@@ -214,7 +214,7 @@ func (r *githubActionsEnvironmentVariableResource) Update(ctx context.Context, r
 		return
 	}
 
-	tflog.Debug(ctx, "updated GitHub actions environment variable", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub actions environment variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repo,
 		"environment":   environment,
@@ -261,7 +261,7 @@ func (r *githubActionsEnvironmentVariableResource) Delete(ctx context.Context, r
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub actions environment variable", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub actions environment variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"environment":   envName,
@@ -307,7 +307,7 @@ func (r *githubActionsEnvironmentVariableResource) ImportState(ctx context.Conte
 		UpdatedAt:    types.StringValue(variable.UpdatedAt.String()),
 	}
 
-	tflog.Debug(ctx, "imported GitHub actions environment variable", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub actions environment variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"environment":   envName,
@@ -347,7 +347,7 @@ func (r *githubActionsEnvironmentVariableResource) readGithubActionsEnvironmentV
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing actions environment variable from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing actions environment variable from state because it no longer exists in GitHub", map[string]any{
 					"owner":         owner,
 					"repository":    repoName,
 					"environment":   envName,
@@ -371,7 +371,7 @@ func (r *githubActionsEnvironmentVariableResource) readGithubActionsEnvironmentV
 	data.CreatedAt = types.StringValue(variable.CreatedAt.String())
 	data.UpdatedAt = types.StringValue(variable.UpdatedAt.String())
 
-	tflog.Debug(ctx, "successfully read GitHub actions environment variable", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub actions environment variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"environment":   envName,

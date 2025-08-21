@@ -18,8 +18,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -35,6 +37,9 @@ type githubRepositoryResource struct {
 }
 
 type githubRepositoryResourceModel struct {
+	// Computed attributes
+	ID types.String `tfsdk:"id"`
+
 	// Required/Basic attributes
 	Name types.String `tfsdk:"name"`
 
@@ -141,6 +146,13 @@ func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.Sche
 	resp.Schema = schema.Schema{
 		Description: "Creates and manages repositories within GitHub organizations or personal accounts",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The repository name.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"name": schema.StringAttribute{
 				Description: "The name of the repository.",
 				Required:    true,
@@ -650,8 +662,9 @@ func (r *githubRepositoryResource) Create(ctx context.Context, req resource.Crea
 		}
 	}
 
-	// Set the resource ID
-	resp.State.SetAttribute(ctx, path.Root("name"), types.StringValue(repoName))
+	// Set the resource ID and name
+	plan.ID = types.StringValue(repoName)
+	plan.Name = types.StringValue(repoName)
 
 	// Perform an update to apply remaining settings
 	r.performUpdate(ctx, plan, resp.Diagnostics)
@@ -768,7 +781,8 @@ func (r *githubRepositoryResource) Delete(ctx context.Context, req resource.Dele
 }
 
 func (r *githubRepositoryResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Set the resource ID to the repository name
+	// Set the resource ID and name to the repository name
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(req.ID))...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), types.StringValue(req.ID))...)
 
 	// Set auto_init to false for imported repositories (matches SDKv2 behavior)
@@ -995,6 +1009,7 @@ func (r *githubRepositoryResource) readRepository(ctx context.Context, state *gi
 
 	// Update state with repository data
 	state.ETag = types.StringValue(resp.Header.Get("ETag"))
+	state.ID = types.StringValue(repoName)
 	state.Name = types.StringValue(repoName)
 	state.Description = types.StringValue(repo.GetDescription())
 	state.PrimaryLanguage = types.StringValue(repo.GetLanguage())

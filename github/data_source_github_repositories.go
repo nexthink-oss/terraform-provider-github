@@ -136,7 +136,7 @@ func (d *githubRepositoriesDataSource) Read(ctx context.Context, req datasource.
 	includeRepoID := data.IncludeRepoID.ValueBool()
 	resultsPerPage := int(data.ResultsPerPage.ValueInt64())
 
-	tflog.Debug(ctx, "Searching GitHub repositories", map[string]interface{}{
+	tflog.Debug(ctx, "Searching GitHub repositories", map[string]any{
 		"query":            query,
 		"sort":             sort,
 		"include_repo_id":  includeRepoID,
@@ -192,7 +192,7 @@ func (d *githubRepositoriesDataSource) Read(ctx context.Context, req datasource.
 		data.RepoIDs = types.ListNull(types.Int64Type)
 	}
 
-	tflog.Debug(ctx, "Successfully searched GitHub repositories", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully searched GitHub repositories", map[string]any{
 		"query":              query,
 		"found_repositories": len(fullNames),
 		"full_names":         fullNames,

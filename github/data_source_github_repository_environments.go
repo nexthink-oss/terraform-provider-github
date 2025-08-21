@@ -100,7 +100,7 @@ func (d *githubRepositoryEnvironmentsDataSource) Read(ctx context.Context, req d
 	orgName := d.client.Name()
 	repoName := data.Repository.ValueString()
 
-	tflog.Debug(ctx, "Reading repository environments", map[string]interface{}{
+	tflog.Debug(ctx, "Reading repository environments", map[string]any{
 		"org":  orgName,
 		"repo": repoName,
 	})

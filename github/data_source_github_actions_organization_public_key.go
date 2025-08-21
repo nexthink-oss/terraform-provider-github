@@ -97,7 +97,7 @@ func (d *githubActionsOrganizationPublicKeyDataSource) Read(ctx context.Context,
 
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Actions organization public key", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Actions organization public key", map[string]any{
 		"owner": owner,
 	})
 

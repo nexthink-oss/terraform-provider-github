@@ -126,7 +126,7 @@ func (r *githubUserSshKeyResource) Create(ctx context.Context, req resource.Crea
 
 	data.ID = types.StringValue(strconv.FormatInt(*userKey.ID, 10))
 
-	tflog.Debug(ctx, "created GitHub user SSH key", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub user SSH key", map[string]any{
 		"id":    data.ID.ValueString(),
 		"title": data.Title.ValueString(),
 	})
@@ -192,7 +192,7 @@ func (r *githubUserSshKeyResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub user SSH key", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub user SSH key", map[string]any{
 		"id": data.ID.ValueString(),
 	})
 }
@@ -235,7 +235,7 @@ func (r *githubUserSshKeyResource) readGithubUserSshKey(ctx context.Context, dat
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "GitHub user SSH key not found, removing from state", map[string]interface{}{
+				tflog.Info(ctx, "GitHub user SSH key not found, removing from state", map[string]any{
 					"id": data.ID.ValueString(),
 				})
 				data.ID = types.StringNull()
@@ -259,7 +259,7 @@ func (r *githubUserSshKeyResource) readGithubUserSshKey(ctx context.Context, dat
 
 	data.URL = types.StringValue(key.GetURL())
 
-	tflog.Debug(ctx, "successfully read GitHub user SSH key", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub user SSH key", map[string]any{
 		"id":    data.ID.ValueString(),
 		"title": data.Title.ValueString(),
 		"url":   data.URL.ValueString(),

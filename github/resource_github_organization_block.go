@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -26,6 +27,7 @@ type githubOrganizationBlockResource struct {
 }
 
 type githubOrganizationBlockResourceModel struct {
+	ID       types.String `tfsdk:"id"`
 	Username types.String `tfsdk:"username"`
 	Etag     types.String `tfsdk:"etag"`
 }
@@ -42,6 +44,13 @@ func (r *githubOrganizationBlockResource) Schema(ctx context.Context, req resour
 	resp.Schema = schema.Schema{
 		Description: "Provides a GitHub organization block resource.",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The username of the blocked user.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"username": schema.StringAttribute{
 				Description: "The name of the user to block.",
 				Required:    true,
@@ -107,10 +116,13 @@ func (r *githubOrganizationBlockResource) Create(ctx context.Context, req resour
 		return
 	}
 
-	tflog.Debug(ctx, "blocked user from organization", map[string]interface{}{
+	tflog.Debug(ctx, "blocked user from organization", map[string]any{
 		"organization": orgName,
 		"username":     username,
 	})
+
+	// Set the ID to the username
+	data.ID = types.StringValue(username)
 
 	// Read the created resource to populate all computed fields
 	r.readGithubOrganizationBlock(ctx, &data, &resp.Diagnostics, false)
@@ -169,29 +181,16 @@ func (r *githubOrganizationBlockResource) Delete(ctx context.Context, req resour
 		return
 	}
 
-	tflog.Debug(ctx, "unblocked user from organization", map[string]interface{}{
+	tflog.Debug(ctx, "unblocked user from organization", map[string]any{
 		"organization": orgName,
 		"username":     username,
 	})
 }
 
 func (r *githubOrganizationBlockResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// The import ID is the username
-	username := req.ID
-
-	// Create a model with the username
-	data := githubOrganizationBlockResourceModel{
-		Username: types.StringValue(username),
-		Etag:     types.StringNull(),
-	}
-
-	// Read the resource to populate computed fields
-	r.readGithubOrganizationBlock(ctx, &data, &resp.Diagnostics, false)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	// Set the ID and username
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(req.ID))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("username"), types.StringValue(req.ID))...)
 }
 
 func (r *githubOrganizationBlockResource) readGithubOrganizationBlock(ctx context.Context, data *githubOrganizationBlockResourceModel, diags *diag.Diagnostics, useEtag bool) {
@@ -214,7 +213,7 @@ func (r *githubOrganizationBlockResource) readGithubOrganizationBlock(ctx contex
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "organization block not found, removing from state", map[string]interface{}{
+				tflog.Info(ctx, "organization block not found, removing from state", map[string]any{
 					"organization": orgName,
 					"username":     username,
 				})
@@ -232,7 +231,7 @@ func (r *githubOrganizationBlockResource) readGithubOrganizationBlock(ctx contex
 	}
 
 	if !blocked {
-		tflog.Info(ctx, "user is not blocked, removing from state", map[string]interface{}{
+		tflog.Info(ctx, "user is not blocked, removing from state", map[string]any{
 			"organization": orgName,
 			"username":     username,
 		})
@@ -242,6 +241,7 @@ func (r *githubOrganizationBlockResource) readGithubOrganizationBlock(ctx contex
 	}
 
 	// Update the model with current values
+	data.ID = types.StringValue(username)
 	data.Username = types.StringValue(username)
 	if resp != nil && resp.Header.Get("ETag") != "" {
 		data.Etag = types.StringValue(resp.Header.Get("ETag"))
@@ -249,7 +249,7 @@ func (r *githubOrganizationBlockResource) readGithubOrganizationBlock(ctx contex
 		data.Etag = types.StringNull()
 	}
 
-	tflog.Debug(ctx, "read organization block", map[string]interface{}{
+	tflog.Debug(ctx, "read organization block", map[string]any{
 		"organization": orgName,
 		"username":     username,
 		"etag":         data.Etag.ValueString(),

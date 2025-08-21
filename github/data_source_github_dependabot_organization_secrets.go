@@ -104,7 +104,7 @@ func (d *githubDependabotOrganizationSecretsDataSource) Read(ctx context.Context
 
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Dependabot organization secrets", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Dependabot organization secrets", map[string]any{
 		"organization": owner,
 	})
 

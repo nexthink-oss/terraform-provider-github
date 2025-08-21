@@ -87,7 +87,7 @@ func (d *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSource)
 	repositoryName := data.Name.ValueString()
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":      owner,
 		"repository": repositoryName,
 	})
@@ -119,7 +119,7 @@ func (d *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateDataSource)
 
 	data.IncludeClaimKeys = includeClaimKeysList
 
-	tflog.Debug(ctx, "Successfully read GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":              owner,
 		"repository":         repositoryName,
 		"use_default":        template.UseDefault,

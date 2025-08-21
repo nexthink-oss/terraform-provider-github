@@ -102,7 +102,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) C
 	owner := r.client.Name()
 	useDefault := data.UseDefault.ValueBool()
 
-	tflog.Debug(ctx, "Creating GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Creating GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":       owner,
 		"repository":  repository,
 		"use_default": useDefault,
@@ -141,7 +141,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) C
 
 	data.ID = types.StringValue(repository)
 
-	tflog.Debug(ctx, "Successfully created GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully created GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})
@@ -172,7 +172,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) R
 	repository := data.ID.ValueString()
 	owner := r.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})
@@ -180,7 +180,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) R
 	template, response, err := r.client.V3Client().Actions.GetRepoOIDCSubjectClaimCustomTemplate(ctx, owner, repository)
 	if err != nil {
 		if response != nil && response.StatusCode == http.StatusNotFound {
-			tflog.Debug(ctx, "GitHub Actions repository OIDC subject claim customization template not found, removing from state", map[string]interface{}{
+			tflog.Debug(ctx, "GitHub Actions repository OIDC subject claim customization template not found, removing from state", map[string]any{
 				"owner":      owner,
 				"repository": repository,
 			})
@@ -210,7 +210,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) R
 		data.IncludeClaimKeys = types.ListNull(types.StringType)
 	}
 
-	tflog.Debug(ctx, "Successfully read GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":              owner,
 		"repository":         repository,
 		"use_default":        template.UseDefault,
@@ -232,7 +232,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) U
 	owner := r.client.Name()
 	useDefault := data.UseDefault.ValueBool()
 
-	tflog.Debug(ctx, "Updating GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Updating GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":       owner,
 		"repository":  repository,
 		"use_default": useDefault,
@@ -269,7 +269,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) U
 		return
 	}
 
-	tflog.Debug(ctx, "Successfully updated GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully updated GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})
@@ -300,7 +300,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) D
 	repository := data.Repository.ValueString()
 	owner := r.client.Name()
 
-	tflog.Debug(ctx, "Deleting GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Deleting GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})
@@ -320,7 +320,7 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) D
 		return
 	}
 
-	tflog.Debug(ctx, "Successfully deleted GitHub Actions repository OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully deleted GitHub Actions repository OIDC subject claim customization template", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})

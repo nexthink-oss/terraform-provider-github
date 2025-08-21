@@ -147,7 +147,7 @@ func (d *githubOrganizationExternalIdentitiesDataSource) Read(ctx context.Contex
 	orgName := d.client.Name()
 	client4 := d.client.V4Client()
 
-	tflog.Debug(ctx, "Reading GitHub organization external identities", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub organization external identities", map[string]any{
 		"organization": orgName,
 	})
 
@@ -160,7 +160,7 @@ func (d *githubOrganizationExternalIdentitiesDataSource) Read(ctx context.Contex
 		} `graphql:"organization(login: $login)"`
 	}
 
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"login": githubv4.String(orgName),
 		"after": (*githubv4.String)(nil),
 	}
@@ -230,7 +230,7 @@ func (d *githubOrganizationExternalIdentitiesDataSource) Read(ctx context.Contex
 	data.ID = types.StringValue(orgName)
 	data.Identities = identityModels
 
-	tflog.Debug(ctx, "Successfully read GitHub organization external identities", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub organization external identities", map[string]any{
 		"organization":     orgName,
 		"identities_count": len(identityModels),
 	})

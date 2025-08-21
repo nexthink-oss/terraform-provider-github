@@ -109,7 +109,7 @@ func (d *githubUsersDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	tflog.Debug(ctx, "Reading GitHub users", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub users", map[string]any{
 		"usernames_count": len(usernames),
 		"usernames":       usernames,
 	})
@@ -193,7 +193,7 @@ func (d *githubUsersDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 	data.UnknownLogins = unknownLoginsList
 
-	tflog.Debug(ctx, "Successfully read GitHub users", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub users", map[string]any{
 		"usernames_count":     len(usernames),
 		"found_users_count":   len(logins),
 		"unknown_users_count": len(unknownLogins),

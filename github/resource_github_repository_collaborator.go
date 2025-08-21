@@ -145,7 +145,7 @@ func (r *githubRepositoryCollaboratorResource) Create(ctx context.Context, req r
 
 	data.ID = types.StringValue(r.buildTwoPartID(repoName, username))
 
-	tflog.Debug(ctx, "created GitHub repository collaborator", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository collaborator", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 		"username":   username,
@@ -235,7 +235,7 @@ func (r *githubRepositoryCollaboratorResource) Delete(ctx context.Context, req r
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository collaborator", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository collaborator", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 		"username":   username,
@@ -350,7 +350,7 @@ func (r *githubRepositoryCollaboratorResource) readGithubRepositoryCollaborator(
 			if ghErr.Response.StatusCode == http.StatusNotFound {
 				// this short circuits the rest of the code because if the
 				// repo is 404, no reason to try to list existing collaborators
-				tflog.Info(ctx, "removing repository collaborator from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing repository collaborator from state because it no longer exists in GitHub", map[string]any{
 					"owner":      owner,
 					"repository": repoName,
 					"username":   username,
@@ -410,7 +410,7 @@ func (r *githubRepositoryCollaboratorResource) readGithubRepositoryCollaborator(
 	}
 
 	// The user is neither invited nor a collaborator
-	tflog.Info(ctx, "removing repository collaborator from state because it no longer exists in GitHub", map[string]interface{}{
+	tflog.Info(ctx, "removing repository collaborator from state because it no longer exists in GitHub", map[string]any{
 		"username":   username,
 		"owner":      owner,
 		"repository": repoName,

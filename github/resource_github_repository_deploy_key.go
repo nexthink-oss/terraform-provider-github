@@ -148,7 +148,7 @@ func (r *githubRepositoryDeployKeyResource) Create(ctx context.Context, req reso
 	keyID := strconv.FormatInt(resultKey.GetID(), 10)
 	data.ID = types.StringValue(r.buildTwoPartID(repoName, keyID))
 
-	tflog.Debug(ctx, "created GitHub repository deploy key", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository deploy key", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 		"title":      title,
@@ -226,7 +226,7 @@ func (r *githubRepositoryDeployKeyResource) Delete(ctx context.Context, req reso
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository deploy key", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository deploy key", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 		"key_id":     keyIDString,
@@ -274,7 +274,7 @@ func (r *githubRepositoryDeployKeyResource) ImportState(ctx context.Context, req
 		ReadOnly:   types.BoolValue(key.GetReadOnly()),
 	}
 
-	tflog.Debug(ctx, "imported GitHub repository deploy key", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub repository deploy key", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 		"key_id":     keyIDString,
@@ -337,7 +337,7 @@ func (r *githubRepositoryDeployKeyResource) readGithubRepositoryDeployKey(ctx co
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing repository deploy key from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing repository deploy key from state because it no longer exists in GitHub", map[string]any{
 					"owner":      owner,
 					"repository": repoName,
 					"key_id":     keyIDString,
@@ -364,7 +364,7 @@ func (r *githubRepositoryDeployKeyResource) readGithubRepositoryDeployKey(ctx co
 		data.Etag = types.StringValue(resp.Header.Get("ETag"))
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub repository deploy key", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository deploy key", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 		"key_id":     keyIDString,

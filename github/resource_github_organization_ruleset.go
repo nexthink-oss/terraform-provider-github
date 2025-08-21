@@ -11,11 +11,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -36,6 +39,7 @@ type githubOrganizationRulesetResource struct {
 
 // Organization Ruleset Resource Model
 type githubOrganizationRulesetResourceModel struct {
+	ID           types.String `tfsdk:"id"`
 	Name         types.String `tfsdk:"name"`
 	Target       types.String `tfsdk:"target"`
 	Enforcement  types.String `tfsdk:"enforcement"`
@@ -73,6 +77,13 @@ func (r *githubOrganizationRulesetResource) Schema(_ context.Context, _ resource
 		Description: "Creates a GitHub organization ruleset.",
 
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ruleset ID.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the ruleset.",
@@ -587,6 +598,7 @@ func (r *githubOrganizationRulesetResource) Create(ctx context.Context, req reso
 	}
 
 	plan.RulesetID = types.Int64Value(*createdRuleset.ID)
+	plan.ID = types.StringValue(strconv.FormatInt(*createdRuleset.ID, 10))
 	plan.NodeID = types.StringValue(createdRuleset.GetNodeID())
 
 	// Read the ruleset back to get all computed values
@@ -643,6 +655,7 @@ func (r *githubOrganizationRulesetResource) Update(ctx context.Context, req reso
 	}
 
 	plan.RulesetID = types.Int64Value(*updatedRuleset.ID)
+	plan.ID = types.StringValue(strconv.FormatInt(*updatedRuleset.ID, 10))
 	plan.NodeID = types.StringValue(updatedRuleset.GetNodeID())
 
 	// Read the ruleset back to get all computed values
@@ -697,11 +710,15 @@ func (r *githubOrganizationRulesetResource) ImportState(ctx context.Context, req
 
 	var state githubOrganizationRulesetResourceModel
 	state.RulesetID = types.Int64Value(rulesetID)
+	state.ID = types.StringValue(strconv.FormatInt(rulesetID, 10))
 
 	r.readRuleset(ctx, &state, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Set the ID attribute for ImportState
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(strconv.FormatInt(rulesetID, 10)))...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -738,6 +755,9 @@ func (r *githubOrganizationRulesetResource) readRuleset(ctx context.Context, sta
 	if response != nil && response.Header.Get("ETag") != "" {
 		state.ETag = types.StringValue(response.Header.Get("ETag"))
 	}
+
+	// Set ID to the ruleset ID
+	state.ID = types.StringValue(strconv.FormatInt(rulesetID, 10))
 
 	// Convert API response to Framework model
 	r.apiToFrameworkRuleset(ctx, ruleset, state, diags)

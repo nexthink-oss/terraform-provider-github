@@ -13,11 +13,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -34,6 +37,7 @@ type githubRepositoryRulesetResource struct {
 
 // Main resource model
 type githubRepositoryRulesetResourceModel struct {
+	ID           types.String `tfsdk:"id"`
 	Name         types.String `tfsdk:"name"`
 	Target       types.String `tfsdk:"target"`
 	Repository   types.String `tfsdk:"repository"`
@@ -157,6 +161,13 @@ func (r *githubRepositoryRulesetResource) Schema(_ context.Context, _ resource.S
 		Description: "Creates a GitHub repository ruleset.",
 
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The ruleset ID.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the ruleset.",
@@ -705,6 +716,7 @@ func (r *githubRepositoryRulesetResource) Create(ctx context.Context, req resour
 	}
 
 	plan.RulesetID = types.Int64Value(*ruleset.ID)
+	plan.ID = types.StringValue(strconv.FormatInt(*ruleset.ID, 10))
 
 	// Read the created resource to get all computed values
 	state, diags := r.readRuleset(ctx, plan.Repository.ValueString(), *ruleset.ID)
@@ -771,6 +783,7 @@ func (r *githubRepositoryRulesetResource) Update(ctx context.Context, req resour
 	}
 
 	plan.RulesetID = types.Int64Value(*ruleset.ID)
+	plan.ID = types.StringValue(strconv.FormatInt(*ruleset.ID, 10))
 
 	// Read the updated resource to get all computed values
 	state, diags := r.readRuleset(ctx, plan.Repository.ValueString(), *ruleset.ID)
@@ -864,6 +877,9 @@ func (r *githubRepositoryRulesetResource) ImportState(ctx context.Context, req r
 		return
 	}
 
+	// Set the ID attribute for ImportState
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(strconv.FormatInt(rulesetID, 10)))...)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -894,6 +910,9 @@ func (r *githubRepositoryRulesetResource) readRuleset(ctx context.Context, repoN
 	if diags.HasError() {
 		return nil, diags
 	}
+
+	// Set ID to the ruleset ID
+	state.ID = types.StringValue(strconv.FormatInt(rulesetID, 10))
 
 	// Set ETag
 	if resp != nil {

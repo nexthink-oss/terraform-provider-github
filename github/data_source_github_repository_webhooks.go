@@ -115,7 +115,7 @@ func (d *githubRepositoryWebhooksDataSource) Read(ctx context.Context, req datas
 	owner := d.client.Name()
 	repository := data.Repository.ValueString()
 
-	tflog.Debug(ctx, "Reading GitHub repository webhooks", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub repository webhooks", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})

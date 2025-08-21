@@ -130,13 +130,13 @@ func (d *githubRepositoryFileDataSource) Read(ctx context.Context, req datasourc
 	// split and replace owner and repo
 	parts := strings.Split(repo, "/")
 	if len(parts) == 2 {
-		tflog.Debug(ctx, "repo has a slash, extracting owner", map[string]interface{}{
+		tflog.Debug(ctx, "repo has a slash, extracting owner", map[string]any{
 			"repo": repo,
 		})
 		owner = parts[0]
 		repo = parts[1]
 
-		tflog.Debug(ctx, "extracted owner and repo", map[string]interface{}{
+		tflog.Debug(ctx, "extracted owner and repo", map[string]any{
 			"owner": owner,
 			"repo":  repo,
 		})
@@ -153,7 +153,7 @@ func (d *githubRepositoryFileDataSource) Read(ctx context.Context, req datasourc
 	if err != nil {
 		if err, ok := err.(*github.ErrorResponse); ok {
 			if err.Response.StatusCode == http.StatusNotFound {
-				tflog.Debug(ctx, "Missing GitHub repository file", map[string]interface{}{
+				tflog.Debug(ctx, "Missing GitHub repository file", map[string]any{
 					"owner": owner,
 					"repo":  repo,
 					"file":  file,
@@ -213,7 +213,7 @@ func (d *githubRepositoryFileDataSource) Read(ctx context.Context, req datasourc
 		ref := parsedQuery["ref"][0]
 		data.Ref = types.StringValue(ref)
 
-		tflog.Debug(ctx, "Data Source fetching commit info for repository file", map[string]interface{}{
+		tflog.Debug(ctx, "Data Source fetching commit info for repository file", map[string]any{
 			"owner": owner,
 			"repo":  repo,
 			"file":  file,
@@ -227,7 +227,7 @@ func (d *githubRepositoryFileDataSource) Read(ctx context.Context, req datasourc
 			return
 		}
 
-		tflog.Debug(ctx, "Found file", map[string]interface{}{
+		tflog.Debug(ctx, "Found file", map[string]any{
 			"owner":      owner,
 			"repo":       repo,
 			"file":       file,

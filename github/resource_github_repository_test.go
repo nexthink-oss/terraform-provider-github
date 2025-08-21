@@ -18,6 +18,7 @@ func TestAccGithubRepositoryResource_basic(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfig_basic(randomID),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository.test", "id", fmt.Sprintf("tf-acc-test-basic-%s", randomID)),
 					resource.TestCheckResourceAttr("github_repository.test", "name", fmt.Sprintf("tf-acc-test-basic-%s", randomID)),
 					resource.TestCheckResourceAttr("github_repository.test", "description", fmt.Sprintf("Terraform acceptance test %s", randomID)),
 					resource.TestCheckResourceAttr("github_repository.test", "visibility", "private"),
@@ -53,6 +54,7 @@ func TestAccGithubRepositoryResource_update(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfig_withDescription(randomID, initialDescription),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository.test", "id", fmt.Sprintf("tf-acc-test-update-%s", randomID)),
 					resource.TestCheckResourceAttr("github_repository.test", "description", initialDescription),
 					resource.TestCheckResourceAttr("github_repository.test", "has_issues", "false"),
 				),
@@ -60,6 +62,7 @@ func TestAccGithubRepositoryResource_update(t *testing.T) {
 			{
 				Config: testAccGithubRepositoryConfig_withDescription(randomID, updatedDescription),
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("github_repository.test", "id", fmt.Sprintf("tf-acc-test-update-%s", randomID)),
 					resource.TestCheckResourceAttr("github_repository.test", "description", updatedDescription),
 					resource.TestCheckResourceAttr("github_repository.test", "has_issues", "false"),
 				),

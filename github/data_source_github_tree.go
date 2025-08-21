@@ -128,7 +128,7 @@ func (d *githubTreeDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		recursive = data.Recursive.ValueBool()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub tree", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub tree", map[string]any{
 		"repository": repoName,
 		"tree_sha":   treeSha,
 		"recursive":  recursive,
@@ -138,7 +138,7 @@ func (d *githubTreeDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Debug(ctx, "Tree not found", map[string]interface{}{
+				tflog.Debug(ctx, "Tree not found", map[string]any{
 					"repository": repoName,
 					"tree_sha":   treeSha,
 				})
@@ -184,7 +184,7 @@ func (d *githubTreeDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		data.Recursive = types.BoolValue(false)
 	}
 
-	tflog.Debug(ctx, "Successfully read GitHub tree", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub tree", map[string]any{
 		"repository":  repoName,
 		"tree_sha":    treeSha,
 		"recursive":   recursive,

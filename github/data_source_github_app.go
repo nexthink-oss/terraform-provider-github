@@ -92,7 +92,7 @@ func (d *githubAppDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	slug := data.Slug.ValueString()
 
-	tflog.Debug(ctx, "Reading GitHub app", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub app", map[string]any{
 		"slug": slug,
 	})
 
@@ -111,7 +111,7 @@ func (d *githubAppDataSource) Read(ctx context.Context, req datasource.ReadReque
 	data.Name = types.StringValue(app.GetName())
 	data.NodeID = types.StringValue(app.GetNodeID())
 
-	tflog.Debug(ctx, "Successfully read GitHub app", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub app", map[string]any{
 		"slug":        slug,
 		"id":          data.ID.ValueString(),
 		"name":        data.Name.ValueString(),

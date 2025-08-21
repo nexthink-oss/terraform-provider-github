@@ -307,7 +307,7 @@ func (r *githubRepositoryCollaboratorsResource) Create(ctx context.Context, req 
 
 	data.ID = types.StringValue(repoName)
 
-	tflog.Debug(ctx, "created GitHub repository collaborators", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository collaborators", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 	})
@@ -409,7 +409,7 @@ func (r *githubRepositoryCollaboratorsResource) Update(ctx context.Context, req 
 		return
 	}
 
-	tflog.Debug(ctx, "updated GitHub repository collaborators", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub repository collaborators", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 	})
@@ -475,7 +475,7 @@ func (r *githubRepositoryCollaboratorsResource) Delete(ctx context.Context, req 
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository collaborators", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository collaborators", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 	})
@@ -672,7 +672,7 @@ func (r *githubRepositoryCollaboratorsResource) readGithubRepositoryCollaborator
 	userCollaborators, invitedCollaborators, teamCollaborators, err := r.listAllCollaborators(ctx, client, isOrg, owner, repoName, ignoreTeamIds)
 	if err != nil {
 		if r.is404Error(err) {
-			tflog.Info(ctx, "removing repository collaborators from state because repository no longer exists", map[string]interface{}{
+			tflog.Info(ctx, "removing repository collaborators from state because repository no longer exists", map[string]any{
 				"owner":      owner,
 				"repository": repoName,
 			})
@@ -728,7 +728,7 @@ func (r *githubRepositoryCollaboratorsResource) readGithubRepositoryCollaborator
 	}
 	data.Team = teamSet
 
-	tflog.Debug(ctx, "successfully read GitHub repository collaborators", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository collaborators", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 		"users":      len(userElements),
@@ -1116,10 +1116,8 @@ func (v *permissionValidator) ValidateString(ctx context.Context, req validator.
 	value := req.ConfigValue.ValueString()
 	validPermissions := []string{"pull", "push", "maintain", "triage", "admin"}
 
-	for _, perm := range validPermissions {
-		if value == perm {
-			return
-		}
+	if slices.Contains(validPermissions, value) {
+		return
 	}
 
 	resp.Diagnostics.AddAttributeError(

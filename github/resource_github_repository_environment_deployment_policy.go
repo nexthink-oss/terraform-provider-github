@@ -161,7 +161,7 @@ func (r *githubRepositoryEnvironmentDeploymentPolicyResource) Create(ctx context
 
 	data.ID = types.StringValue(buildThreePartID(repository, escapedEnvName, strconv.FormatInt(policy.GetID(), 10)))
 
-	tflog.Debug(ctx, "created GitHub repository environment deployment policy", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository environment deployment policy", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repository,
 		"environment": environment,
@@ -250,7 +250,7 @@ func (r *githubRepositoryEnvironmentDeploymentPolicyResource) Update(ctx context
 
 	data.ID = types.StringValue(buildThreePartID(repository, envName, strconv.FormatInt(resultKey.GetID(), 10)))
 
-	tflog.Debug(ctx, "updated GitHub repository environment deployment policy", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub repository environment deployment policy", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repository,
 		"environment": envName,
@@ -304,7 +304,7 @@ func (r *githubRepositoryEnvironmentDeploymentPolicyResource) Delete(ctx context
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository environment deployment policy", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository environment deployment policy", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repository,
 		"environment": envName,
@@ -374,7 +374,7 @@ func (r *githubRepositoryEnvironmentDeploymentPolicyResource) readGithubReposito
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing deployment policy from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing deployment policy from state because it no longer exists in GitHub", map[string]any{
 					"repository":  repository,
 					"environment": envName,
 					"policy_id":   branchPolicyId,
@@ -401,7 +401,7 @@ func (r *githubRepositoryEnvironmentDeploymentPolicyResource) readGithubReposito
 		data.BranchPattern = types.StringNull()
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub repository environment deployment policy", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository environment deployment policy", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repository,
 		"environment": envName,

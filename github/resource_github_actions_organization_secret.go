@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/go-github/v74/github"
@@ -235,7 +236,7 @@ func (r *githubActionsOrganizationSecretResource) Create(ctx context.Context, re
 	// Set the ID
 	data.ID = types.StringValue(secretName)
 
-	tflog.Debug(ctx, "created GitHub actions organization secret", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub actions organization secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,
@@ -296,7 +297,7 @@ func (r *githubActionsOrganizationSecretResource) Delete(ctx context.Context, re
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub actions organization secret", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub actions organization secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,
@@ -363,7 +364,7 @@ func (r *githubActionsOrganizationSecretResource) ImportState(ctx context.Contex
 
 	// Note: encrypted_value or plaintext_value cannot be imported as they are not retrievable
 
-	tflog.Debug(ctx, "imported GitHub actions organization secret", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub actions organization secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,
@@ -417,7 +418,7 @@ func (r *githubActionsOrganizationSecretResource) readGithubActionsOrganizationS
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing actions organization secret from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing actions organization secret from state because it no longer exists in GitHub", map[string]any{
 					"owner":       owner,
 					"secret_name": secretName,
 				})
@@ -488,7 +489,7 @@ func (r *githubActionsOrganizationSecretResource) readGithubActionsOrganizationS
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if !data.UpdatedAt.IsNull() && !data.UpdatedAt.IsUnknown() && data.UpdatedAt.ValueString() != secret.UpdatedAt.String() {
-		tflog.Info(ctx, "the organization secret has been externally updated in GitHub", map[string]interface{}{
+		tflog.Info(ctx, "the organization secret has been externally updated in GitHub", map[string]any{
 			"id":                data.ID.ValueString(),
 			"state_updated_at":  data.UpdatedAt.ValueString(),
 			"github_updated_at": secret.UpdatedAt.String(),
@@ -498,7 +499,7 @@ func (r *githubActionsOrganizationSecretResource) readGithubActionsOrganizationS
 		data.UpdatedAt = types.StringValue(secret.UpdatedAt.String())
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub actions organization secret", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub actions organization secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,
@@ -628,10 +629,8 @@ func (v *organizationSecretVisibilityValidator) ValidateString(ctx context.Conte
 	value := req.ConfigValue.ValueString()
 	allowedValues := []string{"all", "private", "selected"}
 
-	for _, allowed := range allowedValues {
-		if value == allowed {
-			return
-		}
+	if slices.Contains(allowedValues, value) {
+		return
 	}
 
 	resp.Diagnostics.AddAttributeError(

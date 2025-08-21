@@ -101,7 +101,7 @@ func (d *githubOrganizationCustomRoleDataSource) Read(ctx context.Context, req d
 
 	orgName := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub organization custom role", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub organization custom role", map[string]any{
 		"org":  orgName,
 		"name": data.Name.ValueString(),
 	})
@@ -162,7 +162,7 @@ func (d *githubOrganizationCustomRoleDataSource) Read(ctx context.Context, req d
 	}
 	data.Permissions = permissionsSet
 
-	tflog.Debug(ctx, "Successfully read GitHub organization custom role", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub organization custom role", map[string]any{
 		"org":  orgName,
 		"name": data.Name.ValueString(),
 		"id":   data.ID.ValueString(),

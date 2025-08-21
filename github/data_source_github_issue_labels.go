@@ -146,7 +146,7 @@ func (d *githubIssueLabelsDataSource) Read(ctx context.Context, req datasource.R
 	data.Labels = allLabels
 	data.ID = types.StringValue(repository)
 
-	tflog.Debug(ctx, "Read GitHub issue labels", map[string]interface{}{
+	tflog.Debug(ctx, "Read GitHub issue labels", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 		"count":      len(allLabels),

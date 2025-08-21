@@ -94,7 +94,7 @@ func (d *githubUserExternalIdentityDataSource) Read(ctx context.Context, req dat
 
 	username := data.Username.ValueString()
 
-	tflog.Debug(ctx, "Reading GitHub user external identity", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub user external identity", map[string]any{
 		"username": username,
 	})
 
@@ -169,7 +169,7 @@ func (d *githubUserExternalIdentityDataSource) Read(ctx context.Context, req dat
 	data.SamlIdentity = samlIdentityValue
 	data.ScimIdentity = scimIdentityValue
 
-	tflog.Debug(ctx, "Successfully read GitHub user external identity", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub user external identity", map[string]any{
 		"username": username,
 		"login":    login,
 		"id":       data.ID.ValueString(),

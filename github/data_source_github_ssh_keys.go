@@ -96,7 +96,7 @@ func (d *githubSshKeysDataSource) Read(ctx context.Context, req datasource.ReadR
 	data.ID = types.StringValue("github-ssh-keys")
 	data.Keys = keysList
 
-	tflog.Debug(ctx, "Successfully read GitHub SSH keys", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub SSH keys", map[string]any{
 		"keys_count": len(api.SSHKeys),
 	})
 

@@ -127,7 +127,7 @@ func (r *githubRepositoryDeploymentBranchPolicyResource) Create(ctx context.Cont
 
 	data.ID = types.StringValue(strconv.FormatInt(*policy.ID, 10))
 
-	tflog.Debug(ctx, "created GitHub deployment branch policy", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub deployment branch policy", map[string]any{
 		"id":               data.ID.ValueString(),
 		"repository":       repository,
 		"environment_name": environmentName,
@@ -194,7 +194,7 @@ func (r *githubRepositoryDeploymentBranchPolicyResource) Update(ctx context.Cont
 		return
 	}
 
-	tflog.Debug(ctx, "updated GitHub deployment branch policy", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub deployment branch policy", map[string]any{
 		"id":               data.ID.ValueString(),
 		"repository":       repository,
 		"environment_name": environmentName,
@@ -242,7 +242,7 @@ func (r *githubRepositoryDeploymentBranchPolicyResource) Delete(ctx context.Cont
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub deployment branch policy", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub deployment branch policy", map[string]any{
 		"id":               data.ID.ValueString(),
 		"repository":       repository,
 		"environment_name": environmentName,
@@ -310,7 +310,7 @@ func (r *githubRepositoryDeploymentBranchPolicyResource) readGithubRepositoryDep
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing deployment branch policy from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing deployment branch policy from state because it no longer exists in GitHub", map[string]any{
 					"repository":       repository,
 					"environment_name": environmentName,
 					"id":               data.ID.ValueString(),
@@ -331,7 +331,7 @@ func (r *githubRepositoryDeploymentBranchPolicyResource) readGithubRepositoryDep
 	data.Name = types.StringValue(policy.GetName())
 	data.Etag = types.StringValue(resp.Header.Get("ETag"))
 
-	tflog.Debug(ctx, "successfully read GitHub deployment branch policy", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub deployment branch policy", map[string]any{
 		"id":               data.ID.ValueString(),
 		"repository":       repository,
 		"environment_name": environmentName,

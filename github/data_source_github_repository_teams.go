@@ -152,7 +152,7 @@ func (d *githubRepositoryTeamsDataSource) Read(ctx context.Context, req datasour
 		return
 	}
 
-	tflog.Debug(ctx, "Reading GitHub repository teams", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub repository teams", map[string]any{
 		"owner": owner,
 		"repo":  repoName,
 	})

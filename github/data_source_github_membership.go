@@ -102,7 +102,7 @@ func (d *githubMembershipDataSource) Read(ctx context.Context, req datasource.Re
 		orgName = data.Organization.ValueString()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub membership", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub membership", map[string]any{
 		"username":     username,
 		"organization": orgName,
 	})
@@ -126,7 +126,7 @@ func (d *githubMembershipDataSource) Read(ctx context.Context, req datasource.Re
 	data.Etag = types.StringValue(resp_api.Header.Get("ETag"))
 	data.State = types.StringValue(membership.GetState())
 
-	tflog.Debug(ctx, "Successfully read GitHub membership", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub membership", map[string]any{
 		"username":     username,
 		"organization": orgName,
 		"id":           data.ID.ValueString(),

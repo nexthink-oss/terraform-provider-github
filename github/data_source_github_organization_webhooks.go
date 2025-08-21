@@ -110,7 +110,7 @@ func (d *githubOrganizationWebhooksDataSource) Read(ctx context.Context, req dat
 	owner := d.client.Name()
 	client := d.client.V3Client()
 
-	tflog.Debug(ctx, "Reading GitHub organization webhooks", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub organization webhooks", map[string]any{
 		"organization": owner,
 	})
 

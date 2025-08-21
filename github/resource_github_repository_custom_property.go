@@ -194,7 +194,7 @@ func (r *githubRepositoryCustomPropertyResource) Create(ctx context.Context, req
 
 	data.ID = types.StringValue(fmt.Sprintf("%s/%s/%s", owner, repoName, propertyName))
 
-	tflog.Debug(ctx, "created GitHub repository custom property", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository custom property", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"property_name": propertyName,
@@ -268,7 +268,7 @@ func (r *githubRepositoryCustomPropertyResource) Delete(ctx context.Context, req
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository custom property", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository custom property", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"property_name": propertyName,
@@ -362,7 +362,7 @@ func (r *githubRepositoryCustomPropertyResource) parseRepositoryCustomPropertyVa
 		return []string{value}, nil
 	case []string:
 		return value, nil
-	case []interface{}:
+	case []any:
 		result := make([]string, len(value))
 		for i, v := range value {
 			if str, ok := v.(string); ok {
@@ -436,7 +436,7 @@ func (r *githubRepositoryCustomPropertyResource) readGithubRepositoryCustomPrope
 	data.PropertyType = types.StringValue(propertyType)
 	data.PropertyValue = propertyValueSet
 
-	tflog.Debug(ctx, "successfully read GitHub repository custom property", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository custom property", map[string]any{
 		"id":            data.ID.ValueString(),
 		"repository":    repoName,
 		"property_name": propertyName,

@@ -90,7 +90,7 @@ func (d *githubAppTokenDataSource) Read(ctx context.Context, req datasource.Read
 	installationID := data.InstallationID.ValueString()
 	pemFile := data.PemFile.ValueString()
 
-	tflog.Debug(ctx, "Generating GitHub App token", map[string]interface{}{
+	tflog.Debug(ctx, "Generating GitHub App token", map[string]any{
 		"app_id":          appID,
 		"installation_id": installationID,
 	})
@@ -118,7 +118,7 @@ func (d *githubAppTokenDataSource) Read(ctx context.Context, req datasource.Read
 	// Set the computed values
 	data.Token = types.StringValue(token)
 
-	tflog.Debug(ctx, "Successfully generated GitHub App token", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully generated GitHub App token", map[string]any{
 		"app_id":          appID,
 		"installation_id": installationID,
 	})

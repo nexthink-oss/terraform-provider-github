@@ -181,7 +181,7 @@ func (d *githubTeamDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		membershipType = data.MembershipType.ValueString()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub team", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub team", map[string]any{
 		"slug":             slug,
 		"summary_only":     summaryOnly,
 		"results_per_page": resultsPerPage,
@@ -339,7 +339,7 @@ func (d *githubTeamDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		data.ResultsPerPage = types.Int64Value(100)
 	}
 
-	tflog.Debug(ctx, "Successfully read GitHub team", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub team", map[string]any{
 		"slug":          slug,
 		"id":            data.ID.ValueString(),
 		"name":          data.Name.ValueString(),

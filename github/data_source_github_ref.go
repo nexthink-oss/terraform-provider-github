@@ -101,7 +101,7 @@ func (d *githubRefDataSource) Read(ctx context.Context, req datasource.ReadReque
 		owner = data.Owner.ValueString()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub ref", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub ref", map[string]any{
 		"repository": repoName,
 		"ref":        refName,
 		"owner":      owner,
@@ -111,7 +111,7 @@ func (d *githubRefDataSource) Read(ctx context.Context, req datasource.ReadReque
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Debug(ctx, "Ref not found", map[string]interface{}{
+				tflog.Debug(ctx, "Ref not found", map[string]any{
 					"repository": repoName,
 					"ref":        refName,
 					"owner":      owner,
@@ -138,7 +138,7 @@ func (d *githubRefDataSource) Read(ctx context.Context, req datasource.ReadReque
 	// Update owner in case it was determined from client
 	data.Owner = types.StringValue(owner)
 
-	tflog.Debug(ctx, "Successfully read GitHub ref", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub ref", map[string]any{
 		"repository": repoName,
 		"ref":        refName,
 		"owner":      owner,

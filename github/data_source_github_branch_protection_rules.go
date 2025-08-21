@@ -92,7 +92,7 @@ func (d *githubBranchProtectionRulesDataSource) Read(ctx context.Context, req da
 	repoName := data.Repository.ValueString()
 	orgName := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub branch protection rules", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub branch protection rules", map[string]any{
 		"repository": repoName,
 		"owner":      orgName,
 	})
@@ -146,7 +146,7 @@ func (d *githubBranchProtectionRulesDataSource) Read(ctx context.Context, req da
 	// Set the repository ID as the data source ID
 	data.Rules = rules
 
-	tflog.Debug(ctx, "Successfully read GitHub branch protection rules", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub branch protection rules", map[string]any{
 		"repository":  repoName,
 		"rules_count": len(rules),
 	})

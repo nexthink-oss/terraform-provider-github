@@ -155,7 +155,7 @@ func (r *githubRepositoryAutolinkReferenceResource) Create(ctx context.Context, 
 
 	data.ID = types.StringValue(strconv.FormatInt(autolinkRef.GetID(), 10))
 
-	tflog.Debug(ctx, "created GitHub repository autolink reference", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository autolink reference", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 	})
@@ -223,7 +223,7 @@ func (r *githubRepositoryAutolinkReferenceResource) Delete(ctx context.Context, 
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub repository autolink reference", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub repository autolink reference", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 	})
@@ -301,7 +301,7 @@ func (r *githubRepositoryAutolinkReferenceResource) readGithubRepositoryAutolink
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing autolink reference from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing autolink reference from state because it no longer exists in GitHub", map[string]any{
 					"owner":      owner,
 					"repository": repoName,
 					"id":         data.ID.ValueString(),
@@ -331,7 +331,7 @@ func (r *githubRepositoryAutolinkReferenceResource) readGithubRepositoryAutolink
 		}
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub repository autolink reference", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository autolink reference", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repoName,
 	})

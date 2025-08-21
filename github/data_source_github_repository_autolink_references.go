@@ -105,7 +105,7 @@ func (d *githubRepositoryAutolinkReferencesDataSource) Read(ctx context.Context,
 	owner := d.client.Name()
 	repository := data.Repository.ValueString()
 
-	tflog.Debug(ctx, "Reading GitHub repository autolink references", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub repository autolink references", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})

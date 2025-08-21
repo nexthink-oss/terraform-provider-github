@@ -211,7 +211,7 @@ func (r *githubRepositoryPullRequestResource) Create(ctx context.Context, req re
 
 	data.ID = types.StringValue(r.buildThreePartID(baseOwner, baseRepository, strconv.Itoa(pullRequest.GetNumber())))
 
-	tflog.Debug(ctx, "created GitHub repository pull request", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub repository pull request", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": baseRepository,
 		"number":     pullRequest.GetNumber(),
@@ -321,7 +321,7 @@ func (r *githubRepositoryPullRequestResource) Delete(ctx context.Context, req re
 	// it's already closed or merged. Merging it feels intuitively wrong in what
 	// effectively is a destructor.
 	if !data.State.IsNull() && !data.State.IsUnknown() && data.State.ValueString() != "open" {
-		tflog.Debug(ctx, "pull request is not open, skipping close operation", map[string]interface{}{
+		tflog.Debug(ctx, "pull request is not open, skipping close operation", map[string]any{
 			"id":    data.ID.ValueString(),
 			"state": data.State.ValueString(),
 		})
@@ -348,7 +348,7 @@ func (r *githubRepositoryPullRequestResource) Delete(ctx context.Context, req re
 		return
 	}
 
-	tflog.Debug(ctx, "closed GitHub repository pull request", map[string]interface{}{
+	tflog.Debug(ctx, "closed GitHub repository pull request", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repository,
 		"number":     number,
@@ -432,7 +432,7 @@ func (r *githubRepositoryPullRequestResource) readGithubRepositoryPullRequest(ct
 		data.HeadSha = types.StringValue(head.GetSHA())
 	} else {
 		// Totally unexpected condition. Better do that than segfault, I guess?
-		tflog.Warn(ctx, "Head branch missing", map[string]interface{}{
+		tflog.Warn(ctx, "Head branch missing", map[string]any{
 			"expected_head_ref": data.HeadRef.ValueString(),
 		})
 		data.ID = types.StringNull()
@@ -444,7 +444,7 @@ func (r *githubRepositoryPullRequestResource) readGithubRepositoryPullRequest(ct
 		data.BaseSha = types.StringValue(base.GetSHA())
 	} else {
 		// Same logic as with the missing head branch.
-		tflog.Warn(ctx, "Base branch missing", map[string]interface{}{
+		tflog.Warn(ctx, "Base branch missing", map[string]any{
 			"expected_base_ref": data.BaseRef.ValueString(),
 		})
 		data.ID = types.StringNull()
@@ -471,7 +471,7 @@ func (r *githubRepositoryPullRequestResource) readGithubRepositoryPullRequest(ct
 	diagnostics.Append(diag...)
 	data.Labels = labelList
 
-	tflog.Debug(ctx, "successfully read GitHub repository pull request", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub repository pull request", map[string]any{
 		"id":         data.ID.ValueString(),
 		"repository": repository,
 		"number":     data.Number.ValueInt64(),

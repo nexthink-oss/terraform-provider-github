@@ -230,7 +230,7 @@ func (r *githubTeamResource) Create(ctx context.Context, req resource.CreateRequ
 	// Handle default maintainer removal
 	createDefaultMaintainer := plan.CreateDefaultMaintainer.ValueBool()
 	if !createDefaultMaintainer {
-		tflog.Debug(ctx, "Removing default maintainer from team", map[string]interface{}{
+		tflog.Debug(ctx, "Removing default maintainer from team", map[string]any{
 			"team_name": name,
 			"owner":     ownerName,
 		})
@@ -391,7 +391,7 @@ func (r *githubTeamResource) Delete(ctx context.Context, req resource.DeleteRequ
 			if ghErr, ok := checkErr.(*github.ErrorResponse); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
 					// Team already deleted, remove from state
-					tflog.Warn(ctx, "Team no longer exists, removing from state", map[string]interface{}{"team_id": state.ID.ValueString()})
+					tflog.Warn(ctx, "Team no longer exists, removing from state", map[string]any{"team_id": state.ID.ValueString()})
 					return
 				}
 			}
@@ -455,7 +455,7 @@ func (r *githubTeamResource) readTeam(ctx context.Context, model *githubTeamReso
 				return // No changes
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Team no longer exists, removing from state", map[string]interface{}{"team_id": model.ID.ValueString()})
+				tflog.Info(ctx, "Team no longer exists, removing from state", map[string]any{"team_id": model.ID.ValueString()})
 				model.ID = types.StringNull()
 				return
 			}

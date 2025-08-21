@@ -221,7 +221,7 @@ func (d *githubCollaboratorsDataSource) Read(ctx context.Context, req datasource
 		permission = data.Permission.ValueString()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub collaborators", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub collaborators", map[string]any{
 		"owner":       owner,
 		"repository":  repo,
 		"affiliation": affiliation,
@@ -295,7 +295,7 @@ func (d *githubCollaboratorsDataSource) Read(ctx context.Context, req datasource
 	data.Permission = types.StringValue(permission)
 	data.Collaborator = totalCollaborators
 
-	tflog.Debug(ctx, "Successfully read GitHub collaborators", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub collaborators", map[string]any{
 		"owner":               owner,
 		"repository":          repo,
 		"affiliation":         affiliation,

@@ -216,7 +216,7 @@ func (r *githubActionsEnvironmentSecretResource) Create(ctx context.Context, req
 	// Set the ID and read the created resource
 	data.ID = types.StringValue(fmt.Sprintf("%s:%s:%s", repo, environment, secretName))
 
-	tflog.Debug(ctx, "created GitHub actions environment secret", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub actions environment secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repo,
 		"environment": environment,
@@ -295,7 +295,7 @@ func (r *githubActionsEnvironmentSecretResource) Delete(ctx context.Context, req
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub actions environment secret", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub actions environment secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"environment": envName,
@@ -352,7 +352,7 @@ func (r *githubActionsEnvironmentSecretResource) ImportState(ctx context.Context
 
 	// Note: encrypted_value or plaintext_value cannot be imported as they are not retrievable
 
-	tflog.Debug(ctx, "imported GitHub actions environment secret", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub actions environment secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"environment": envName,
@@ -403,7 +403,7 @@ func (r *githubActionsEnvironmentSecretResource) readGithubActionsEnvironmentSec
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing actions environment secret from state because repository no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing actions environment secret from state because repository no longer exists in GitHub", map[string]any{
 					"owner":       owner,
 					"repository":  repoName,
 					"environment": envName,
@@ -424,7 +424,7 @@ func (r *githubActionsEnvironmentSecretResource) readGithubActionsEnvironmentSec
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing actions environment secret from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing actions environment secret from state because it no longer exists in GitHub", map[string]any{
 					"owner":       owner,
 					"repository":  repoName,
 					"environment": envName,
@@ -465,7 +465,7 @@ func (r *githubActionsEnvironmentSecretResource) readGithubActionsEnvironmentSec
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if !data.UpdatedAt.IsNull() && !data.UpdatedAt.IsUnknown() && data.UpdatedAt.ValueString() != secret.UpdatedAt.String() {
-		tflog.Info(ctx, "the environment secret has been externally updated in GitHub", map[string]interface{}{
+		tflog.Info(ctx, "the environment secret has been externally updated in GitHub", map[string]any{
 			"id":                data.ID.ValueString(),
 			"state_updated_at":  data.UpdatedAt.ValueString(),
 			"github_updated_at": secret.UpdatedAt.String(),
@@ -475,7 +475,7 @@ func (r *githubActionsEnvironmentSecretResource) readGithubActionsEnvironmentSec
 		data.UpdatedAt = types.StringValue(secret.UpdatedAt.String())
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub actions environment secret", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub actions environment secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"environment": envName,

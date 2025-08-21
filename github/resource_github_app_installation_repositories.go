@@ -131,7 +131,7 @@ func (r *githubAppInstallationRepositoriesResource) Create(ctx context.Context, 
 				return
 			}
 			repoID := repo.GetID()
-			tflog.Debug(ctx, "adding repository to app installation", map[string]interface{}{
+			tflog.Debug(ctx, "adding repository to app installation", map[string]any{
 				"repository_name": repoName,
 				"repository_id":   repoID,
 				"installation_id": instID,
@@ -153,7 +153,7 @@ func (r *githubAppInstallationRepositoriesResource) Create(ctx context.Context, 
 	// as there is no current API endpoint for [un]installation. Ensure there is at least one repository remaining.
 	if len(selectedRepositoryNames) >= 1 {
 		for repoName, repoID := range currentReposNameIDs {
-			tflog.Debug(ctx, "removing repository from app installation", map[string]interface{}{
+			tflog.Debug(ctx, "removing repository from app installation", map[string]any{
 				"repository_name": repoName,
 				"repository_id":   repoID,
 				"installation_id": instID,
@@ -239,7 +239,7 @@ func (r *githubAppInstallationRepositoriesResource) Update(ctx context.Context, 
 				return
 			}
 			repoID := repo.GetID()
-			tflog.Debug(ctx, "adding repository to app installation", map[string]interface{}{
+			tflog.Debug(ctx, "adding repository to app installation", map[string]any{
 				"repository_name": repoName,
 				"repository_id":   repoID,
 				"installation_id": instID,
@@ -261,7 +261,7 @@ func (r *githubAppInstallationRepositoriesResource) Update(ctx context.Context, 
 	// as there is no current API endpoint for [un]installation. Ensure there is at least one repository remaining.
 	if len(selectedRepositoryNames) >= 1 {
 		for repoName, repoID := range currentReposNameIDs {
-			tflog.Debug(ctx, "removing repository from app installation", map[string]interface{}{
+			tflog.Debug(ctx, "removing repository from app installation", map[string]any{
 				"repository_name": repoName,
 				"repository_id":   repoID,
 				"installation_id": instID,
@@ -315,7 +315,7 @@ func (r *githubAppInstallationRepositoriesResource) Delete(ctx context.Context, 
 	for repoName, repoID := range reposNameIDs {
 		if first {
 			first = false
-			tflog.Warn(ctx, "cannot remove last repository from app installation", map[string]interface{}{
+			tflog.Warn(ctx, "cannot remove last repository from app installation", map[string]any{
 				"repository_name": repoName,
 				"repository_id":   repoID,
 				"installation_id": instID,
@@ -324,7 +324,7 @@ func (r *githubAppInstallationRepositoriesResource) Delete(ctx context.Context, 
 			continue
 		} else {
 			_, err = client.Apps.RemoveRepository(ctx, instID, repoID)
-			tflog.Debug(ctx, "removing repository from app installation", map[string]interface{}{
+			tflog.Debug(ctx, "removing repository from app installation", map[string]any{
 				"repository_name": repoName,
 				"repository_id":   repoID,
 				"installation_id": instID,
@@ -374,7 +374,7 @@ func (r *githubAppInstallationRepositoriesResource) ImportState(ctx context.Cont
 		return
 	}
 
-	tflog.Debug(ctx, "imported GitHub app installation repositories", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub app installation repositories", map[string]any{
 		"id":              data.ID.ValueString(),
 		"installation_id": installationIDString,
 	})
@@ -445,7 +445,7 @@ func (r *githubAppInstallationRepositoriesResource) readGithubAppInstallationRep
 		}
 		data.SelectedRepositories = repoSet
 
-		tflog.Debug(ctx, "successfully read GitHub app installation repositories", map[string]interface{}{
+		tflog.Debug(ctx, "successfully read GitHub app installation repositories", map[string]any{
 			"id":                    data.ID.ValueString(),
 			"installation_id":       installationIDString,
 			"selected_repositories": len(repoNames),
@@ -453,7 +453,7 @@ func (r *githubAppInstallationRepositoriesResource) readGithubAppInstallationRep
 		return
 	}
 
-	tflog.Info(ctx, "removing app installation repository association from state because it no longer exists in GitHub", map[string]interface{}{
+	tflog.Info(ctx, "removing app installation repository association from state because it no longer exists in GitHub", map[string]any{
 		"id": data.ID.ValueString(),
 	})
 	data.ID = types.StringNull()

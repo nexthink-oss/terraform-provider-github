@@ -168,7 +168,7 @@ func (r *githubIssueLabelsResource) Delete(ctx context.Context, req resource.Del
 	orgName := r.client.Name()
 	repository := data.Repository.ValueString()
 
-	tflog.Debug(ctx, "deleting all GitHub issue labels", map[string]interface{}{
+	tflog.Debug(ctx, "deleting all GitHub issue labels", map[string]any{
 		"repository": repository,
 		"owner":      orgName,
 	})
@@ -186,7 +186,7 @@ func (r *githubIssueLabelsResource) Delete(ctx context.Context, req resource.Del
 		for _, label := range labels {
 			name := label.Name.ValueString()
 
-			tflog.Debug(ctx, "deleting GitHub issue label", map[string]interface{}{
+			tflog.Debug(ctx, "deleting GitHub issue label", map[string]any{
 				"repository": repository,
 				"name":       name,
 				"owner":      orgName,
@@ -203,7 +203,7 @@ func (r *githubIssueLabelsResource) Delete(ctx context.Context, req resource.Del
 		}
 	}
 
-	tflog.Debug(ctx, "deleted all GitHub issue labels", map[string]interface{}{
+	tflog.Debug(ctx, "deleted all GitHub issue labels", map[string]any{
 		"repository": repository,
 	})
 }
@@ -230,7 +230,7 @@ func (r *githubIssueLabelsResource) readGithubIssueLabels(ctx context.Context, d
 
 	reqCtx := context.WithValue(ctx, CtxId, repository)
 
-	tflog.Debug(ctx, "reading GitHub issue labels", map[string]interface{}{
+	tflog.Debug(ctx, "reading GitHub issue labels", map[string]any{
 		"repository": repository,
 		"owner":      orgName,
 	})
@@ -246,7 +246,7 @@ func (r *githubIssueLabelsResource) readGithubIssueLabels(ctx context.Context, d
 		if err != nil {
 			if ghErr, ok := err.(*github.ErrorResponse); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
-					tflog.Info(ctx, "GitHub repository not found, removing from state", map[string]interface{}{
+					tflog.Info(ctx, "GitHub repository not found, removing from state", map[string]any{
 						"id":         data.ID.ValueString(),
 						"repository": repository,
 					})
@@ -283,7 +283,7 @@ func (r *githubIssueLabelsResource) readGithubIssueLabels(ctx context.Context, d
 		options.Page = resp.NextPage
 	}
 
-	tflog.Debug(ctx, "found GitHub issue labels", map[string]interface{}{
+	tflog.Debug(ctx, "found GitHub issue labels", map[string]any{
 		"repository":  repository,
 		"label_count": len(labels),
 	})
@@ -314,7 +314,7 @@ func (r *githubIssueLabelsResource) createOrUpdateGithubIssueLabels(ctx context.
 
 	reqCtx := context.WithValue(ctx, CtxId, repository)
 
-	tflog.Debug(ctx, "updating GitHub issue labels", map[string]interface{}{
+	tflog.Debug(ctx, "updating GitHub issue labels", map[string]any{
 		"repository": repository,
 		"owner":      orgName,
 	})
@@ -366,7 +366,7 @@ func (r *githubIssueLabelsResource) createOrUpdateGithubIssueLabels(ctx context.
 	// Create new labels
 	for name, newLabel := range newLabels {
 		if _, exists := oldLabels[name]; !exists {
-			tflog.Debug(ctx, "creating GitHub issue label", map[string]interface{}{
+			tflog.Debug(ctx, "creating GitHub issue label", map[string]any{
 				"repository": repository,
 				"name":       newLabel.Name.ValueString(),
 				"owner":      orgName,
@@ -409,7 +409,7 @@ func (r *githubIssueLabelsResource) createOrUpdateGithubIssueLabels(ctx context.
 	// Delete removed labels
 	for name, oldLabel := range oldLabels {
 		if _, exists := newLabels[name]; !exists {
-			tflog.Debug(ctx, "deleting GitHub issue label", map[string]interface{}{
+			tflog.Debug(ctx, "deleting GitHub issue label", map[string]any{
 				"repository": repository,
 				"name":       oldLabel.Name.ValueString(),
 				"owner":      orgName,
@@ -434,7 +434,7 @@ func (r *githubIssueLabelsResource) createOrUpdateGithubIssueLabels(ctx context.
 				!oldLabel.Description.Equal(newLabel.Description)
 
 			if needsUpdate {
-				tflog.Debug(ctx, "updating GitHub issue label", map[string]interface{}{
+				tflog.Debug(ctx, "updating GitHub issue label", map[string]any{
 					"repository": repository,
 					"old_name":   oldLabel.Name.ValueString(),
 					"new_name":   newLabel.Name.ValueString(),
@@ -499,7 +499,7 @@ func (r *githubIssueLabelsResource) createOrUpdateGithubIssueLabels(ctx context.
 		data.Label = types.SetValueMust(labelObjectType, []attr.Value{})
 	}
 
-	tflog.Debug(ctx, "GitHub issue labels operation completed", map[string]interface{}{
+	tflog.Debug(ctx, "GitHub issue labels operation completed", map[string]any{
 		"repository":  repository,
 		"label_count": len(resultLabels),
 	})

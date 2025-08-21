@@ -194,7 +194,7 @@ func (d *githubOrganizationTeamsDataSource) Read(ctx context.Context, req dataso
 		resultsPerPage = int(data.ResultsPerPage.ValueInt64())
 	}
 
-	tflog.Debug(ctx, "Reading GitHub organization teams", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub organization teams", map[string]any{
 		"root_teams_only":  rootTeamsOnly,
 		"summary_only":     summaryOnly,
 		"results_per_page": resultsPerPage,
@@ -278,7 +278,7 @@ func (d *githubOrganizationTeamsDataSource) convertTeamsQueryToModels(ctx contex
 			}
 			membersList, diags := types.ListValueFrom(ctx, types.StringType, members)
 			if diags.HasError() {
-				tflog.Error(ctx, "Error converting members to list", map[string]interface{}{
+				tflog.Error(ctx, "Error converting members to list", map[string]any{
 					"diagnostics": diags,
 				})
 			} else {
@@ -296,7 +296,7 @@ func (d *githubOrganizationTeamsDataSource) convertTeamsQueryToModels(ctx contex
 			}
 			repositoriesList, diags := types.ListValueFrom(ctx, types.StringType, repositories)
 			if diags.HasError() {
-				tflog.Error(ctx, "Error converting repositories to list", map[string]interface{}{
+				tflog.Error(ctx, "Error converting repositories to list", map[string]any{
 					"diagnostics": diags,
 				})
 			} else {

@@ -287,7 +287,7 @@ func (r *githubTeamSyncGroupMappingResource) Delete(ctx context.Context, req res
 		return
 	}
 
-	tflog.Info(ctx, "Team sync group mapping deleted", map[string]interface{}{
+	tflog.Info(ctx, "Team sync group mapping deleted", map[string]any{
 		"team_slug": teamSlug,
 	})
 }
@@ -323,7 +323,7 @@ func (r *githubTeamSyncGroupMappingResource) readTeamSyncGroupMapping(ctx contex
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "Team sync group mapping not found, removing from state", map[string]interface{}{
+				tflog.Info(ctx, "Team sync group mapping not found, removing from state", map[string]any{
 					"team_slug": teamSlug,
 				})
 				state.ID = types.StringNull()

@@ -524,7 +524,7 @@ func (d *githubRepositoryDataSource) Read(ctx context.Context, req datasource.Re
 		owner = d.client.Name()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub repository", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub repository", map[string]any{
 		"owner": owner,
 		"name":  repoName,
 	})

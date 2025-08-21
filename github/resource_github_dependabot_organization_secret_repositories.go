@@ -133,7 +133,7 @@ func (r *githubDependabotOrganizationSecretRepositoriesResource) Create(ctx cont
 	// Set the ID
 	data.ID = types.StringValue(secretName)
 
-	tflog.Debug(ctx, "set selected repositories for GitHub dependabot organization secret", map[string]interface{}{
+	tflog.Debug(ctx, "set selected repositories for GitHub dependabot organization secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,
@@ -204,7 +204,7 @@ func (r *githubDependabotOrganizationSecretRepositoriesResource) Update(ctx cont
 		return
 	}
 
-	tflog.Debug(ctx, "updated selected repositories for GitHub dependabot organization secret", map[string]interface{}{
+	tflog.Debug(ctx, "updated selected repositories for GitHub dependabot organization secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,
@@ -253,7 +253,7 @@ func (r *githubDependabotOrganizationSecretRepositoriesResource) Delete(ctx cont
 		return
 	}
 
-	tflog.Debug(ctx, "cleared selected repositories for GitHub dependabot organization secret", map[string]interface{}{
+	tflog.Debug(ctx, "cleared selected repositories for GitHub dependabot organization secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,
@@ -297,7 +297,7 @@ func (r *githubDependabotOrganizationSecretRepositoriesResource) ImportState(ctx
 		return
 	}
 
-	tflog.Debug(ctx, "imported GitHub dependabot organization secret repositories", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub dependabot organization secret repositories", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,
@@ -330,7 +330,7 @@ func (r *githubDependabotOrganizationSecretRepositoriesResource) readGithubDepen
 		if err != nil {
 			if ghErr, ok := err.(*github.ErrorResponse); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
-					tflog.Info(ctx, "removing dependabot organization secret repositories from state because it no longer exists in GitHub", map[string]interface{}{
+					tflog.Info(ctx, "removing dependabot organization secret repositories from state because it no longer exists in GitHub", map[string]any{
 						"owner":       owner,
 						"secret_name": secretName,
 					})
@@ -363,7 +363,7 @@ func (r *githubDependabotOrganizationSecretRepositoriesResource) readGithubDepen
 	}
 	data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, selectedRepositoryIDAttrs)
 
-	tflog.Debug(ctx, "successfully read GitHub dependabot organization secret repositories", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub dependabot organization secret repositories", map[string]any{
 		"id":          data.ID.ValueString(),
 		"owner":       owner,
 		"secret_name": secretName,

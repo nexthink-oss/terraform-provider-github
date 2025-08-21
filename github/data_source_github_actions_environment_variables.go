@@ -175,7 +175,7 @@ func (d *githubActionsEnvironmentVariablesDataSource) Read(ctx context.Context, 
 		repoName = data.Name.ValueString()
 	}
 
-	tflog.Debug(ctx, "Reading GitHub Actions environment variables", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Actions environment variables", map[string]any{
 		"owner":       owner,
 		"repository":  repoName,
 		"environment": envName,

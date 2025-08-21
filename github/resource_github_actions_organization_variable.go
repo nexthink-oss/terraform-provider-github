@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/go-github/v74/github"
@@ -182,7 +183,7 @@ func (r *githubActionsOrganizationVariableResource) Create(ctx context.Context, 
 	// Set the ID
 	data.ID = types.StringValue(variableName)
 
-	tflog.Debug(ctx, "created GitHub actions organization variable", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub actions organization variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"owner":         owner,
 		"variable_name": variableName,
@@ -270,7 +271,7 @@ func (r *githubActionsOrganizationVariableResource) Update(ctx context.Context, 
 		return
 	}
 
-	tflog.Debug(ctx, "updated GitHub actions organization variable", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub actions organization variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"owner":         owner,
 		"variable_name": variableName,
@@ -307,7 +308,7 @@ func (r *githubActionsOrganizationVariableResource) Delete(ctx context.Context, 
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub actions organization variable", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub actions organization variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"owner":         owner,
 		"variable_name": variableName,
@@ -373,7 +374,7 @@ func (r *githubActionsOrganizationVariableResource) ImportState(ctx context.Cont
 		data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, []attr.Value{})
 	}
 
-	tflog.Debug(ctx, "imported GitHub actions organization variable", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub actions organization variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"owner":         owner,
 		"variable_name": variableName,
@@ -393,7 +394,7 @@ func (r *githubActionsOrganizationVariableResource) readGithubActionsOrganizatio
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing actions organization variable from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing actions organization variable from state because it no longer exists in GitHub", map[string]any{
 					"owner":         owner,
 					"variable_name": variableName,
 				})
@@ -447,7 +448,7 @@ func (r *githubActionsOrganizationVariableResource) readGithubActionsOrganizatio
 	}
 	data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, selectedRepositoryIDAttrs)
 
-	tflog.Debug(ctx, "successfully read GitHub actions organization variable", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub actions organization variable", map[string]any{
 		"id":            data.ID.ValueString(),
 		"owner":         owner,
 		"variable_name": variableName,
@@ -515,10 +516,8 @@ func (v *organizationVariableVisibilityValidator) ValidateString(ctx context.Con
 	value := req.ConfigValue.ValueString()
 	allowedValues := []string{"all", "private", "selected"}
 
-	for _, allowed := range allowedValues {
-		if value == allowed {
-			return
-		}
+	if slices.Contains(allowedValues, value) {
+		return
 	}
 
 	resp.Diagnostics.AddAttributeError(

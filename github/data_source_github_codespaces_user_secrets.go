@@ -103,7 +103,7 @@ func (d *githubCodespacesUserSecretsDataSource) Read(ctx context.Context, req da
 
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Codespaces user secrets", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Codespaces user secrets", map[string]any{
 		"owner": owner,
 	})
 

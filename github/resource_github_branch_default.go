@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -27,6 +28,7 @@ type githubBranchDefaultResource struct {
 }
 
 type githubBranchDefaultResourceModel struct {
+	ID         types.String `tfsdk:"id"`
 	Branch     types.String `tfsdk:"branch"`
 	Repository types.String `tfsdk:"repository"`
 	Rename     types.Bool   `tfsdk:"rename"`
@@ -45,6 +47,13 @@ func (r *githubBranchDefaultResource) Schema(ctx context.Context, req resource.S
 	resp.Schema = schema.Schema{
 		Description: "Provides a GitHub branch default for a given repository.",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "The repository name.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"branch": schema.StringAttribute{
 				Description: "The branch (e.g. 'main').",
 				Required:    true,
@@ -136,11 +145,14 @@ func (r *githubBranchDefaultResource) Create(ctx context.Context, req resource.C
 		}
 	}
 
-	tflog.Debug(ctx, "created GitHub branch default", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub branch default", map[string]any{
 		"repository": data.Repository.ValueString(),
 		"branch":     data.Branch.ValueString(),
 		"rename":     data.Rename.ValueBool(),
 	})
+
+	// Set the ID to the repository name
+	data.ID = types.StringValue(repoName)
 
 	// Read the created resource to populate all computed fields
 	r.readGithubBranchDefault(ctx, &data, &resp.Diagnostics, false)
@@ -214,7 +226,7 @@ func (r *githubBranchDefaultResource) Update(ctx context.Context, req resource.U
 		}
 	}
 
-	tflog.Debug(ctx, "updated GitHub branch default", map[string]interface{}{
+	tflog.Debug(ctx, "updated GitHub branch default", map[string]any{
 		"repository": data.Repository.ValueString(),
 		"branch":     data.Branch.ValueString(),
 		"rename":     data.Rename.ValueBool(),
@@ -254,22 +266,15 @@ func (r *githubBranchDefaultResource) Delete(ctx context.Context, req resource.D
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub branch default", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub branch default", map[string]any{
 		"repository": data.Repository.ValueString(),
 	})
 }
 
 func (r *githubBranchDefaultResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	data := &githubBranchDefaultResourceModel{
-		Repository: types.StringValue(req.ID),
-	}
-
-	r.readGithubBranchDefault(ctx, data, &resp.Diagnostics, false)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+	// Set the ID and repository name
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(req.ID))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("repository"), types.StringValue(req.ID))...)
 }
 
 func (r *githubBranchDefaultResource) readGithubBranchDefault(ctx context.Context, data *githubBranchDefaultResourceModel, diags *diag.Diagnostics, useEtag bool) {
@@ -291,7 +296,7 @@ func (r *githubBranchDefaultResource) readGithubBranchDefault(ctx context.Contex
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "GitHub repository not found, removing branch default from state", map[string]interface{}{
+				tflog.Info(ctx, "GitHub repository not found, removing branch default from state", map[string]any{
 					"repository": repoName,
 				})
 				data.Repository = types.StringNull()
@@ -307,18 +312,19 @@ func (r *githubBranchDefaultResource) readGithubBranchDefault(ctx context.Contex
 	}
 
 	if repository.DefaultBranch == nil {
-		tflog.Info(ctx, "GitHub repository has no default branch, removing from state", map[string]interface{}{
+		tflog.Info(ctx, "GitHub repository has no default branch, removing from state", map[string]any{
 			"repository": repoName,
 		})
 		data.Repository = types.StringNull()
 		return
 	}
 
+	data.ID = types.StringValue(repoName)
 	data.Etag = types.StringValue(resp.Header.Get("ETag"))
 	data.Branch = types.StringValue(*repository.DefaultBranch)
 	data.Repository = types.StringValue(*repository.Name)
 
-	tflog.Debug(ctx, "successfully read GitHub branch default", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub branch default", map[string]any{
 		"repository": data.Repository.ValueString(),
 		"branch":     data.Branch.ValueString(),
 	})

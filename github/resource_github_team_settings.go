@@ -322,7 +322,7 @@ func (r *githubTeamSettingsResource) Delete(ctx context.Context, req resource.De
 		return
 	}
 
-	tflog.Info(ctx, "Team settings deleted", map[string]interface{}{
+	tflog.Info(ctx, "Team settings deleted", map[string]any{
 		"team_id": teamID,
 	})
 }
@@ -380,7 +380,7 @@ func (r *githubTeamSettingsResource) readTeamSettings(ctx context.Context, state
 	teamSlug := state.TeamSlug.ValueString()
 
 	var query QueryTeamSettings
-	variables := map[string]interface{}{
+	variables := map[string]any{
 		"slug":  githubv4.String(teamSlug),
 		"login": githubv4.String(orgName),
 	}

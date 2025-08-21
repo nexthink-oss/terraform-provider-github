@@ -179,7 +179,7 @@ func (d *githubUserDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	username := data.Username.ValueString()
 
-	tflog.Debug(ctx, "Reading GitHub user", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub user", map[string]any{
 		"username": username,
 	})
 
@@ -260,7 +260,7 @@ func (d *githubUserDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 	data.SSHKeys = sshList
 
-	tflog.Debug(ctx, "Successfully read GitHub user", map[string]interface{}{
+	tflog.Debug(ctx, "Successfully read GitHub user", map[string]any{
 		"username":     username,
 		"id":           data.ID.ValueString(),
 		"login":        data.Login.ValueString(),

@@ -105,7 +105,7 @@ func (r *githubUserInvitationAccepterResource) Create(ctx context.Context, req r
 			// We're setting a random UUID as resource ID since every resource needs an ID
 			// and we can't destroy the resource while we create it.
 			data.ID = types.StringValue(uuid.NewString())
-			tflog.Debug(ctx, "skipping invitation acceptance due to empty invitation_id with allow_empty_id=true", map[string]interface{}{
+			tflog.Debug(ctx, "skipping invitation acceptance due to empty invitation_id with allow_empty_id=true", map[string]any{
 				"id": data.ID.ValueString(),
 			})
 			resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -140,7 +140,7 @@ func (r *githubUserInvitationAccepterResource) Create(ctx context.Context, req r
 
 	data.ID = types.StringValue(invitationIDString)
 
-	tflog.Debug(ctx, "accepted GitHub user invitation", map[string]interface{}{
+	tflog.Debug(ctx, "accepted GitHub user invitation", map[string]any{
 		"id":            data.ID.ValueString(),
 		"invitation_id": invitationIDString,
 	})
@@ -180,7 +180,7 @@ func (r *githubUserInvitationAccepterResource) Delete(ctx context.Context, req r
 	}
 
 	// Nothing to remove as invitation is removed after it's accepted
-	tflog.Debug(ctx, "removing GitHub user invitation accepter from state", map[string]interface{}{
+	tflog.Debug(ctx, "removing GitHub user invitation accepter from state", map[string]any{
 		"id": data.ID.ValueString(),
 	})
 }

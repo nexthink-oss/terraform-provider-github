@@ -100,7 +100,7 @@ func (d *githubOrganizationTeamSyncGroupsDataSource) Read(ctx context.Context, r
 	client := d.client.V3Client()
 	orgName := d.client.Name()
 
-	tflog.Debug(ctx, "Getting team sync groups for organization", map[string]interface{}{
+	tflog.Debug(ctx, "Getting team sync groups for organization", map[string]any{
 		"org": orgName,
 	})
 
@@ -144,7 +144,7 @@ func (d *githubOrganizationTeamSyncGroupsDataSource) Read(ctx context.Context, r
 	data.ID = types.StringValue(fmt.Sprintf("%s/github-org-team-sync-groups", orgName))
 	data.Groups = allGroups
 
-	tflog.Debug(ctx, "Found team sync groups", map[string]interface{}{
+	tflog.Debug(ctx, "Found team sync groups", map[string]any{
 		"org":   orgName,
 		"count": len(allGroups),
 	})

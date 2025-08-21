@@ -93,7 +93,7 @@ func (d *githubActionsOrganizationOIDCSubjectClaimCustomizationTemplateDataSourc
 
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Actions organization OIDC subject claim customization template", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Actions organization OIDC subject claim customization template", map[string]any{
 		"owner": owner,
 	})
 

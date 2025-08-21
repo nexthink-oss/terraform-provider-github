@@ -112,7 +112,7 @@ func (r *githubUserGpgKeyResource) Create(ctx context.Context, req resource.Crea
 
 	data.ID = types.StringValue(strconv.FormatInt(key.GetID(), 10))
 
-	tflog.Debug(ctx, "created GitHub user GPG key", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub user GPG key", map[string]any{
 		"id":     data.ID.ValueString(),
 		"key_id": key.GetKeyID(),
 	})
@@ -178,7 +178,7 @@ func (r *githubUserGpgKeyResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub user GPG key", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub user GPG key", map[string]any{
 		"id": data.ID.ValueString(),
 	})
 }
@@ -221,7 +221,7 @@ func (r *githubUserGpgKeyResource) readGithubUserGpgKey(ctx context.Context, dat
 				return
 			}
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "GitHub user GPG key not found, removing from state", map[string]interface{}{
+				tflog.Info(ctx, "GitHub user GPG key not found, removing from state", map[string]any{
 					"id": data.ID.ValueString(),
 				})
 				data.ID = types.StringNull()
@@ -239,7 +239,7 @@ func (r *githubUserGpgKeyResource) readGithubUserGpgKey(ctx context.Context, dat
 	data.Etag = types.StringValue(resp.Header.Get("ETag"))
 	data.KeyID = types.StringValue(key.GetKeyID())
 
-	tflog.Debug(ctx, "successfully read GitHub user GPG key", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub user GPG key", map[string]any{
 		"id":     data.ID.ValueString(),
 		"key_id": data.KeyID.ValueString(),
 	})

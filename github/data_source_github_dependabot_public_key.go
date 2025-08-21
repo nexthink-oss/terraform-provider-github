@@ -85,7 +85,7 @@ func (d *githubDependabotPublicKeyDataSource) Read(ctx context.Context, req data
 	repository := data.Repository.ValueString()
 	owner := d.client.Name()
 
-	tflog.Debug(ctx, "Reading GitHub Dependabot public key", map[string]interface{}{
+	tflog.Debug(ctx, "Reading GitHub Dependabot public key", map[string]any{
 		"owner":      owner,
 		"repository": repository,
 	})

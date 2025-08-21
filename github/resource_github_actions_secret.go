@@ -194,7 +194,7 @@ func (r *githubActionsSecretResource) Create(ctx context.Context, req resource.C
 	// Set the ID and read the created resource
 	data.ID = types.StringValue(fmt.Sprintf("%s:%s", repo, secretName))
 
-	tflog.Debug(ctx, "created GitHub actions secret", map[string]interface{}{
+	tflog.Debug(ctx, "created GitHub actions secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repo,
 		"secret_name": secretName,
@@ -262,7 +262,7 @@ func (r *githubActionsSecretResource) Delete(ctx context.Context, req resource.D
 		return
 	}
 
-	tflog.Debug(ctx, "deleted GitHub actions secret", map[string]interface{}{
+	tflog.Debug(ctx, "deleted GitHub actions secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"secret_name": secretName,
@@ -305,7 +305,7 @@ func (r *githubActionsSecretResource) ImportState(ctx context.Context, req resou
 
 	// Note: encrypted_value or plaintext_value cannot be imported as they are not retrievable
 
-	tflog.Debug(ctx, "imported GitHub actions secret", map[string]interface{}{
+	tflog.Debug(ctx, "imported GitHub actions secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"secret_name": secretName,
@@ -344,7 +344,7 @@ func (r *githubActionsSecretResource) readGithubActionsSecret(ctx context.Contex
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotFound {
-				tflog.Info(ctx, "removing actions secret from state because it no longer exists in GitHub", map[string]interface{}{
+				tflog.Info(ctx, "removing actions secret from state because it no longer exists in GitHub", map[string]any{
 					"owner":       owner,
 					"repository":  repoName,
 					"secret_name": secretName,
@@ -383,7 +383,7 @@ func (r *githubActionsSecretResource) readGithubActionsSecret(ctx context.Contex
 	// as deleted (unset the ID) in order to fix potential drift by recreating
 	// the resource.
 	if !data.UpdatedAt.IsNull() && !data.UpdatedAt.IsUnknown() && data.UpdatedAt.ValueString() != secret.UpdatedAt.String() {
-		tflog.Info(ctx, "the secret has been externally updated in GitHub", map[string]interface{}{
+		tflog.Info(ctx, "the secret has been externally updated in GitHub", map[string]any{
 			"id":                data.ID.ValueString(),
 			"state_updated_at":  data.UpdatedAt.ValueString(),
 			"github_updated_at": secret.UpdatedAt.String(),
@@ -393,7 +393,7 @@ func (r *githubActionsSecretResource) readGithubActionsSecret(ctx context.Contex
 		data.UpdatedAt = types.StringValue(secret.UpdatedAt.String())
 	}
 
-	tflog.Debug(ctx, "successfully read GitHub actions secret", map[string]interface{}{
+	tflog.Debug(ctx, "successfully read GitHub actions secret", map[string]any{
 		"id":          data.ID.ValueString(),
 		"repository":  repoName,
 		"secret_name": secretName,
