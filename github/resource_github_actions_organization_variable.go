@@ -86,6 +86,7 @@ func (r *githubActionsOrganizationVariableResource) Schema(ctx context.Context, 
 			"selected_repository_ids": schema.SetAttribute{
 				Description: "An array of repository ids that can access the organization variable.",
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.Int64Type,
 				Default:     setdefault.StaticValue(types.SetValueMust(types.Int64Type, []attr.Value{})),
 				Validators: []validator.Set{
