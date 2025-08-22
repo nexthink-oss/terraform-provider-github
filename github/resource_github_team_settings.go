@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -106,12 +105,11 @@ func (r *githubTeamSettingsResource) Schema(_ context.Context, _ resource.Schema
 				Description: "The unique ID of the Team on GitHub. Corresponds to the ID of the 'github_team_settings' resource.",
 				Computed:    true,
 			},
-			"review_request_delegation": schema.ListNestedAttribute{
+		},
+		Blocks: map[string]schema.Block{
+			"review_request_delegation": schema.ListNestedBlock{
 				Description: "The settings for delegating code reviews to individuals on behalf of the team. If this block is present, even without any fields, then review request delegation will be enabled for the team.",
-				Optional:    true,
-				Computed:    true,
-				Default:     listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: reviewRequestDelegationAttrTypes()})),
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"algorithm": schema.StringAttribute{
 							Description: "The algorithm to use when assigning pull requests to team members. Supported values are 'ROUND_ROBIN' and 'LOAD_BALANCE'.",

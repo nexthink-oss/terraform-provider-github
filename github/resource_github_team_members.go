@@ -74,10 +74,11 @@ func (r *githubTeamMembersResource) Schema(ctx context.Context, req resource.Sch
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"members": schema.SetNestedAttribute{
+		},
+		Blocks: map[string]schema.Block{
+			"members": schema.SetNestedBlock{
 				Description: "List of team members.",
-				Required:    true,
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"username": schema.StringAttribute{
 							Description: "The user to add to the team.",

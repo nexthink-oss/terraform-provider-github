@@ -23,9 +23,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = &githubBranchProtectionResource{}
-	_ resource.ResourceWithConfigure   = &githubBranchProtectionResource{}
-	_ resource.ResourceWithImportState = &githubBranchProtectionResource{}
+	_ resource.Resource                 = &githubBranchProtectionResource{}
+	_ resource.ResourceWithConfigure    = &githubBranchProtectionResource{}
+	_ resource.ResourceWithImportState  = &githubBranchProtectionResource{}
+	_ resource.ResourceWithUpgradeState = &githubBranchProtectionResource{}
 )
 
 func NewGithubBranchProtectionResource() resource.Resource {
@@ -84,6 +85,10 @@ type restrictPushesModel struct {
 
 func (r *githubBranchProtectionResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_branch_protection"
+}
+
+func (r *githubBranchProtectionResource) SchemaVersion() int64 {
+	return 2
 }
 
 func (r *githubBranchProtectionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -426,6 +431,275 @@ func (r *githubBranchProtectionResource) Delete(ctx context.Context, req resourc
 			"Could not delete branch protection rule: "+err.Error(),
 		)
 		return
+	}
+}
+
+func (r *githubBranchProtectionResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"repository": schema.StringAttribute{
+						Required: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+					},
+					"branch": schema.StringAttribute{
+						Required: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+					},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var oldState struct {
+					Repository types.String `tfsdk:"repository"`
+					Branch     types.String `tfsdk:"branch"`
+				}
+
+				resp.Diagnostics.Append(req.State.Get(ctx, &oldState)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				// Get repository ID from name
+				repoName := oldState.Repository.ValueString()
+				repoID, err := r.getRepositoryID(repoName)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error Getting Repository ID During Migration",
+						"Could not get repository ID during state migration: "+err.Error(),
+					)
+					return
+				}
+
+				// Get branch protection rule ID
+				branch := oldState.Branch.ValueString()
+				protectionID, err := r.getBranchProtectionID(ctx, repoID.(string), branch)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error Getting Branch Protection ID During Migration",
+						"Could not get branch protection rule ID during state migration: "+err.Error(),
+					)
+					return
+				}
+
+				// Create new state structure
+				newState := githubBranchProtectionResourceModel{
+					ID:                            types.StringValue(protectionID),
+					RepositoryID:                  types.StringValue(repoID.(string)),
+					Pattern:                       types.StringValue(branch),
+					AllowsDeletions:               types.BoolValue(false),
+					AllowsForcePushes:             types.BoolValue(false),
+					EnforceAdmins:                 types.BoolValue(false),
+					RequireSignedCommits:          types.BoolValue(false),
+					RequiredLinearHistory:         types.BoolValue(false),
+					RequireConversationResolution: types.BoolValue(false),
+					LockBranch:                    types.BoolValue(false),
+					RequiredPullRequestReviews: types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+						"required_approving_review_count": types.Int64Type,
+						"require_code_owner_reviews":      types.BoolType,
+						"dismiss_stale_reviews":           types.BoolType,
+						"restrict_dismissals":             types.BoolType,
+						"dismissal_restrictions":          types.SetType{ElemType: types.StringType},
+						"pull_request_bypassers":          types.SetType{ElemType: types.StringType},
+						"require_last_push_approval":      types.BoolType,
+					}}),
+					RequiredStatusChecks: types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+						"strict":   types.BoolType,
+						"contexts": types.SetType{ElemType: types.StringType},
+					}}),
+					RestrictPushes: types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+						"blocks_creations": types.BoolType,
+						"push_allowances":  types.SetType{ElemType: types.StringType},
+					}}),
+					ForcePushBypassers: types.SetNull(types.StringType),
+				}
+
+				resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
+			},
+		},
+		1: {
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Computed: true,
+					},
+					"repository_id": schema.StringAttribute{
+						Required: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+					},
+					"pattern": schema.StringAttribute{
+						Required: true,
+					},
+					"push_restrictions": schema.SetAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+					},
+					"blocks_creations": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  booldefault.StaticBool(false),
+					},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var oldState struct {
+					ID               types.String `tfsdk:"id"`
+					RepositoryID     types.String `tfsdk:"repository_id"`
+					Pattern          types.String `tfsdk:"pattern"`
+					PushRestrictions types.Set    `tfsdk:"push_restrictions"`
+					BlocksCreations  types.Bool   `tfsdk:"blocks_creations"`
+					// Include other attributes that may exist
+					AllowsDeletions               types.Bool `tfsdk:"allows_deletions"`
+					AllowsForcePushes             types.Bool `tfsdk:"allows_force_pushes"`
+					EnforceAdmins                 types.Bool `tfsdk:"enforce_admins"`
+					RequireSignedCommits          types.Bool `tfsdk:"require_signed_commits"`
+					RequiredLinearHistory         types.Bool `tfsdk:"required_linear_history"`
+					RequireConversationResolution types.Bool `tfsdk:"require_conversation_resolution"`
+					LockBranch                    types.Bool `tfsdk:"lock_branch"`
+					RequiredPullRequestReviews    types.List `tfsdk:"required_pull_request_reviews"`
+					RequiredStatusChecks          types.List `tfsdk:"required_status_checks"`
+					ForcePushBypassers            types.Set  `tfsdk:"force_push_bypassers"`
+				}
+
+				resp.Diagnostics.Append(req.State.Get(ctx, &oldState)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				// Migrate push_restrictions and blocks_creations to restrict_pushes block
+				var restrictPushes types.List
+				if !oldState.PushRestrictions.IsNull() && !oldState.PushRestrictions.IsUnknown() {
+					// Convert push_restrictions set to push_allowances
+					var pushRestrictions []string
+					resp.Diagnostics.Append(oldState.PushRestrictions.ElementsAs(ctx, &pushRestrictions, false)...)
+					if resp.Diagnostics.HasError() {
+						return
+					}
+
+					pushAllowancesSet, diags := types.SetValueFrom(ctx, types.StringType, pushRestrictions)
+					resp.Diagnostics.Append(diags...)
+					if resp.Diagnostics.HasError() {
+						return
+					}
+
+					blocksCreations := false
+					if !oldState.BlocksCreations.IsNull() && !oldState.BlocksCreations.IsUnknown() {
+						blocksCreations = oldState.BlocksCreations.ValueBool()
+					}
+
+					// Create restrict_pushes block
+					restrictPushObj, diags := types.ObjectValue(
+						map[string]attr.Type{
+							"blocks_creations": types.BoolType,
+							"push_allowances":  types.SetType{ElemType: types.StringType},
+						},
+						map[string]attr.Value{
+							"blocks_creations": types.BoolValue(blocksCreations),
+							"push_allowances":  pushAllowancesSet,
+						},
+					)
+					resp.Diagnostics.Append(diags...)
+					if resp.Diagnostics.HasError() {
+						return
+					}
+
+					restrictPushes, diags = types.ListValue(
+						types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"blocks_creations": types.BoolType,
+								"push_allowances":  types.SetType{ElemType: types.StringType},
+							},
+						},
+						[]attr.Value{restrictPushObj},
+					)
+					resp.Diagnostics.Append(diags...)
+					if resp.Diagnostics.HasError() {
+						return
+					}
+				} else {
+					// No push restrictions, set to null
+					restrictPushes = types.ListNull(types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"blocks_creations": types.BoolType,
+							"push_allowances":  types.SetType{ElemType: types.StringType},
+						},
+					})
+				}
+
+				// Preserve other attributes, set null/default values as appropriate
+				newState := githubBranchProtectionResourceModel{
+					ID:             oldState.ID,
+					RepositoryID:   oldState.RepositoryID,
+					Pattern:        oldState.Pattern,
+					RestrictPushes: restrictPushes,
+
+					// Preserve existing attributes or set defaults
+					AllowsDeletions:               oldState.AllowsDeletions,
+					AllowsForcePushes:             oldState.AllowsForcePushes,
+					EnforceAdmins:                 oldState.EnforceAdmins,
+					RequireSignedCommits:          oldState.RequireSignedCommits,
+					RequiredLinearHistory:         oldState.RequiredLinearHistory,
+					RequireConversationResolution: oldState.RequireConversationResolution,
+					LockBranch:                    oldState.LockBranch,
+					RequiredPullRequestReviews:    oldState.RequiredPullRequestReviews,
+					RequiredStatusChecks:          oldState.RequiredStatusChecks,
+					ForcePushBypassers:            oldState.ForcePushBypassers,
+				}
+
+				// Set null values for any unset attributes
+				if newState.AllowsDeletions.IsNull() {
+					newState.AllowsDeletions = types.BoolValue(false)
+				}
+				if newState.AllowsForcePushes.IsNull() {
+					newState.AllowsForcePushes = types.BoolValue(false)
+				}
+				if newState.EnforceAdmins.IsNull() {
+					newState.EnforceAdmins = types.BoolValue(false)
+				}
+				if newState.RequireSignedCommits.IsNull() {
+					newState.RequireSignedCommits = types.BoolValue(false)
+				}
+				if newState.RequiredLinearHistory.IsNull() {
+					newState.RequiredLinearHistory = types.BoolValue(false)
+				}
+				if newState.RequireConversationResolution.IsNull() {
+					newState.RequireConversationResolution = types.BoolValue(false)
+				}
+				if newState.LockBranch.IsNull() {
+					newState.LockBranch = types.BoolValue(false)
+				}
+
+				// Set null list values if not set
+				if newState.RequiredPullRequestReviews.IsNull() {
+					newState.RequiredPullRequestReviews = types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+						"required_approving_review_count": types.Int64Type,
+						"require_code_owner_reviews":      types.BoolType,
+						"dismiss_stale_reviews":           types.BoolType,
+						"restrict_dismissals":             types.BoolType,
+						"dismissal_restrictions":          types.SetType{ElemType: types.StringType},
+						"pull_request_bypassers":          types.SetType{ElemType: types.StringType},
+						"require_last_push_approval":      types.BoolType,
+					}})
+				}
+				if newState.RequiredStatusChecks.IsNull() {
+					newState.RequiredStatusChecks = types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+						"strict":   types.BoolType,
+						"contexts": types.SetType{ElemType: types.StringType},
+					}})
+				}
+				if newState.ForcePushBypassers.IsNull() {
+					newState.ForcePushBypassers = types.SetNull(types.StringType)
+				}
+
+				resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
+			},
+		},
 	}
 }
 

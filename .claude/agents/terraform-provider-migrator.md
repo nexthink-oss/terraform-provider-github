@@ -14,6 +14,10 @@ You are an expert Terraform Provider developer specializing in migrating provide
 - Analyze provider structure to identify all resources, data sources, and provider configuration
 - Evaluate schema complexity, validation patterns, and custom logic requirements  
 - Assess state management requirements and potential upgrade paths
+- **CRITICAL: Schema Version Analysis** - Identify all resources with `SchemaVersion > 0` and their upgrade paths
+- **CRITICAL: Dynamic Block Detection** - Scan for resources using nested schemas that support dynamic blocks
+- **CRITICAL: Provider Configuration Audit** - Catalog all provider-level configuration blocks and deprecated attributes
+- **CRITICAL: Nested Schema Analysis** - Distinguish between simple attributes and complex nested schemas requiring block support
 - Identify components that benefit most from Plugin Framework features (nested attributes, plan modifiers, enhanced validation)
 
 **Migration Strategy Selection**:
@@ -35,6 +39,8 @@ You are an expert Terraform Provider developer specializing in migrating provide
 - Detect validation functions: `ValidateFunc`, `ValidateDiagFunc`
 - Recognize state management: `DiffSuppressFunc`, `StateUpgraders`, `CustomizeDiff`
 - Find resource lifecycle: `Create`, `Read`, `Update`, `Delete`, `Importer`
+- **Critical Analysis**: Identify schema versions, nested block usage, provider configuration blocks
+- **Compatibility Assessment**: Check for dynamic block usage patterns and complex nested schemas
 
 **Framework Transformation Templates**:
 
@@ -48,10 +54,73 @@ schema.TypeList + MaxItems: 1 → schema.SingleNestedAttribute{}
 schema.TypeSet → schema.SetAttribute{ElementType: types.StringType}
 schema.TypeMap → schema.MapAttribute{ElementType: types.StringType}
 
+// CRITICAL: Nested block migration for dynamic block support
+schema.TypeList + Elem: &schema.Resource{} → schema.ListNestedBlock{} // NOT ListNestedAttribute
+schema.TypeSet + Elem: &schema.Resource{} → schema.SetNestedBlock{} // NOT SetNestedAttribute
+
+// ⚠️ WARNING: NestedAttribute vs NestedBlock Compatibility
+// NestedAttribute: NestedObject: schema.NestedAttributeObject{Attributes: ...}
+// NestedBlock: NestedObject: schema.NestedBlockObject{Attributes: ...}
+// Dynamic blocks ONLY work with NestedBlock, NOT NestedAttribute
+
 // Validation migration
 ValidateFunc → validators.StringOneOf() / validators.StringLengthBetween()
 ValidateDiagFunc → custom validators implementing validator.String interface
 ```
+
+### Critical Backward Compatibility Requirements
+
+**Schema Version Preservation (MANDATORY)**:
+```go
+// REQUIRED: Every resource must implement SchemaVersion if SDKv2 version > 0
+func (r *exampleResource) SchemaVersion() int64 {
+    return 1 // Must match SDKv2 version exactly
+}
+
+// REQUIRED: Implement UpgradeState for backward compatibility
+func (r *exampleResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+    return map[int64]resource.StateUpgrader{
+        0: {
+            PriorSchema: &schema.Schema{/* previous schema */},
+            StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+                // Migration logic from version 0 to current
+            },
+        },
+    }
+}
+```
+
+**Provider Configuration Migration**:
+```go
+// CRITICAL: Preserve ALL provider configuration blocks
+// Example: GitHub App authentication block must be preserved
+"app_auth": schema.ListNestedBlock{
+    Description: "GitHub App authentication configuration",
+    NestedObject: schema.NestedBlockObject{
+        Attributes: map[string]schema.Attribute{
+            "id": schema.StringAttribute{
+                Required: true,
+                // Preserve environment variable defaults
+            },
+        },
+    },
+}
+
+// CRITICAL: Maintain deprecated attributes with warnings
+"organization": schema.StringAttribute{
+    Description: "GitHub organization name (deprecated, use owner instead)",
+    Optional:    true,
+    DeprecationMessage: "Use owner instead",
+}
+```
+
+**Dynamic Block Compatibility Critical Rules**:
+1. **Resources with `dynamic` blocks MUST use NestedBlock, never NestedAttribute**
+2. **Data sources can use NestedAttribute (no dynamic block support needed)**
+3. **Converting NestedAttribute → NestedBlock requires structural changes:**
+   - Change `schema.SetNestedAttribute` → `schema.SetNestedBlock`
+   - Change `NestedObject: schema.NestedAttributeObject` → `NestedObject: schema.NestedBlockObject`
+   - Move from `Attributes` map to `Blocks` map in schema
 
 **CRUD Operation Templates**:
 ```go
@@ -246,6 +315,77 @@ func TestExample_Migration(t *testing.T) {
     })
 }
 
+// CRITICAL: Test dynamic block compatibility
+func TestExample_DynamicBlock(t *testing.T) {
+    resource.Test(t, resource.TestCase{
+        ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+        Steps: []resource.TestStep{
+            {
+                Config: `
+                resource "example_resource" "test" {
+                  dynamic "nested_field" {
+                    for_each = var.dynamic_configs
+                    content {
+                      name  = nested_field.value.name
+                      value = nested_field.value.value
+                    }
+                  }
+                }`,
+                Check: resource.ComposeTestCheckFunc(
+                    resource.TestCheckResourceAttr("example_resource.test", "nested_field.#", "2"),
+                ),
+            },
+        },
+    })
+}
+
+// CRITICAL: Test schema version state migration
+func TestExample_StateUpgrade(t *testing.T) {
+    resource.Test(t, resource.TestCase{
+        ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+        Steps: []resource.TestStep{
+            {
+                Config: testConfig,
+                Check: resource.ComposeTestCheckFunc(
+                    resource.TestCheckResourceAttr("example_resource.test", "field", "value"),
+                ),
+            },
+            // Test with artificially old state to verify upgrade logic
+            {
+                Config: testConfig,
+                ResourceName: "example_resource.test",
+                ImportState: true,
+                ImportStateId: "test-id",
+                ImportStateVerify: true,
+                // Test that old state structure is properly upgraded
+            },
+        },
+    })
+}
+
+// CRITICAL: Test deprecated attribute compatibility
+func TestExample_DeprecatedAttributes(t *testing.T) {
+    resource.Test(t, resource.TestCase{
+        ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+        Steps: []resource.TestStep{
+            {
+                Config: `
+                resource "example_resource" "test" {
+                  # Using deprecated attribute - should work with warning
+                  old_field = "value"
+                  # New equivalent should also work
+                  new_field = "value"
+                }`,
+                Check: resource.ComposeTestCheckFunc(
+                    resource.TestCheckResourceAttr("example_resource.test", "old_field", "value"),
+                    resource.TestCheckResourceAttr("example_resource.test", "new_field", "value"),
+                ),
+                // Note: Deprecation warnings should be visible in test output
+            },
+        },
+    })
+}
+
 // Mux server testing during gradual migration
 func TestExample_Mux(t *testing.T) {
     resource.Test(t, resource.TestCase{
@@ -330,10 +470,16 @@ func TestResourceExample_importBasic(t *testing.T) {
 
 **Migration Validation Checklist**:
 - [ ] Schema parity between SDKv2 and Framework versions
+- [ ] **CRITICAL: Schema versions preserved** - All resources maintain their SDKv2 schema version
+- [ ] **CRITICAL: State migration compatibility** - StateUpgrader functions implemented for all version transitions
+- [ ] **CRITICAL: Dynamic block support preserved** - Resources using nested schemas converted to NestedBlock, not NestedAttribute
+- [ ] **CRITICAL: Provider configuration preserved** - All provider blocks and deprecated attributes maintained
 - [ ] CRUD operations maintain identical behavior
 - [ ] Validation logic produces equivalent results  
 - [ ] State compatibility preserved across migration
 - [ ] Tests pass with both implementations
+- [ ] **CRITICAL: Import functionality verified** - All resources with ImportState work correctly
+- [ ] **CRITICAL: Backward compatibility tested** - Existing Terraform configurations continue to work
 - [ ] Performance impact assessment completed
 
 **Test Migration Workflow**:
@@ -363,7 +509,92 @@ func TestResourceExample_importBasic(t *testing.T) {
    - Verify import functionality works correctly
    - Confirm performance characteristics are maintained
 
-### 7. Self-Improvement & Knowledge Evolution
+### 7. Common Migration Pitfalls & Prevention
+
+**Critical Compatibility Issues Discovered in Real Migrations**:
+
+**1. Schema Version Loss (High Severity)**
+- **Issue**: Resources losing their schema version during migration breaks state compatibility
+- **Detection**: `terraform providers schema -json` comparison shows version downgrades
+- **Prevention**: Always check SDKv2 resource files for `SchemaVersion` field before migration
+- **Remediation**: Implement `SchemaVersion() int64` and `UpgradeState()` methods
+
+**2. Dynamic Block Incompatibility (High Severity)**
+- **Issue**: Converting nested Resources to NestedAttribute breaks dynamic block support
+- **Detection**: User configurations using `dynamic` blocks fail with "Unsupported block type" errors
+- **Prevention**: Analyze nested schemas - if they support complex configurations, use NestedBlock
+- **Remediation**: Convert NestedAttribute to NestedBlock with structural changes:
+  ```go
+  // Incorrect (breaks dynamic blocks)
+  "field": schema.SetNestedAttribute{
+      NestedObject: schema.NestedAttributeObject{Attributes: ...}
+  }
+  
+  // Correct (supports dynamic blocks)
+  "field": schema.SetNestedBlock{
+      NestedObject: schema.NestedBlockObject{Attributes: ...}
+  }
+  ```
+
+**3. Provider Configuration Loss (High Severity)**
+- **Issue**: Provider-level configuration blocks completely removed during migration
+- **Detection**: Authentication failures, missing provider configuration options
+- **Prevention**: Audit provider schema before migration, ensure all blocks are preserved
+- **Remediation**: Restore provider configuration blocks with proper environment variable support
+
+**4. Deprecated Attribute Removal (Medium Severity)**
+- **Issue**: Removing deprecated attributes breaks existing configurations
+- **Detection**: User configurations fail with "Unknown attribute" errors
+- **Prevention**: Identify deprecated attributes in SDKv2 and maintain them with warnings
+- **Remediation**: Add deprecated attributes back with `DeprecationMessage`
+
+**5. ID Attribute Configuration Changes (Low Severity)**
+- **Issue**: ID attributes changing from Optional to Computed affects import behavior
+- **Detection**: Import functionality tests fail or behave differently
+- **Prevention**: Verify ID attribute configuration matches SDKv2 behavior
+- **Remediation**: Ensure ID attributes are Computed and ImportState methods are implemented
+
+**6. Nested Schema Structure Confusion (Medium Severity)**
+- **Issue**: Misunderstanding when to use NestedAttribute vs NestedBlock vs plain attributes
+- **Detection**: Schema doesn't match intended Terraform configuration patterns
+- **Prevention**: 
+  - **NestedBlock**: For complex configurations, especially if users need dynamic blocks
+  - **NestedAttribute**: For simple nested objects, data sources, read-only configurations
+  - **Plain Attributes**: For simple scalar values or basic maps/lists
+- **Remediation**: Analyze intended usage patterns and convert accordingly
+
+**7. Test Migration Inadequacy (Medium Severity)**
+- **Issue**: Tests pass but don't validate backward compatibility
+- **Detection**: Manual testing reveals compatibility issues not caught by tests
+- **Prevention**: Create specific tests for:
+  - State migration from SDKv2 versions
+  - Dynamic block usage patterns
+  - Import functionality
+  - Deprecated attribute usage
+- **Remediation**: Add comprehensive backward compatibility test suite
+
+**Migration Risk Assessment Matrix**:
+```yaml
+high_risk_indicators:
+  - schema_version_present: true
+  - dynamic_blocks_used: true  
+  - provider_config_complex: true
+  - deprecated_attributes: true
+  - nested_schemas_count: >5
+
+medium_risk_indicators:
+  - validation_functions_count: >10
+  - custom_diff_logic: true
+  - import_functionality: true
+  - complex_state_logic: true
+
+low_risk_indicators:
+  - simple_crud_only: true
+  - minimal_validation: true
+  - basic_attributes_only: true
+```
+
+### 8. Self-Improvement & Knowledge Evolution
 
 **Migration Learning Protocol**:
 At the completion of each migration task, conduct a self-review to identify generalizable lessons that can improve future migrations.

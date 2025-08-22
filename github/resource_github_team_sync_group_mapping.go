@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -67,12 +66,15 @@ func (r *githubTeamSyncGroupMappingResource) Schema(_ context.Context, _ resourc
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"group": schema.SetNestedAttribute{
-				Description: "An Array of GitHub Identity Provider Groups (or empty []).",
-				Optional:    true,
+			"etag": schema.StringAttribute{
+				Description: "The etag of the team sync group mapping.",
 				Computed:    true,
-				Default:     setdefault.StaticValue(types.SetValueMust(groupElementType(), []attr.Value{})),
-				NestedObject: schema.NestedAttributeObject{
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"group": schema.SetNestedBlock{
+				Description: "An Array of GitHub Identity Provider Groups (or empty []).",
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"group_id": schema.StringAttribute{
 							Description: "The ID of the IdP group.",
@@ -88,10 +90,6 @@ func (r *githubTeamSyncGroupMappingResource) Schema(_ context.Context, _ resourc
 						},
 					},
 				},
-			},
-			"etag": schema.StringAttribute{
-				Description: "The etag of the team sync group mapping.",
-				Computed:    true,
 			},
 		},
 	}

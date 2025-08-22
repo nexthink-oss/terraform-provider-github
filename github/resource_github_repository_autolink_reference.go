@@ -23,9 +23,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = &githubRepositoryAutolinkReferenceResource{}
-	_ resource.ResourceWithConfigure   = &githubRepositoryAutolinkReferenceResource{}
-	_ resource.ResourceWithImportState = &githubRepositoryAutolinkReferenceResource{}
+	_ resource.Resource                 = &githubRepositoryAutolinkReferenceResource{}
+	_ resource.ResourceWithConfigure    = &githubRepositoryAutolinkReferenceResource{}
+	_ resource.ResourceWithImportState  = &githubRepositoryAutolinkReferenceResource{}
+	_ resource.ResourceWithUpgradeState = &githubRepositoryAutolinkReferenceResource{}
 )
 
 type githubRepositoryAutolinkReferenceResource struct {
@@ -47,6 +48,59 @@ func NewGithubRepositoryAutolinkReferenceResource() resource.Resource {
 
 func (r *githubRepositoryAutolinkReferenceResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_repository_autolink_reference"
+}
+
+func (r *githubRepositoryAutolinkReferenceResource) SchemaVersion(ctx context.Context) int64 {
+	return 1
+}
+
+func (r *githubRepositoryAutolinkReferenceResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				// Get the raw state as a dynamic value and convert to map
+				rawStateValue := make(map[string]any)
+				err := req.State.Raw.As(&rawStateValue)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error Parsing State",
+						"Could not parse state during migration from version 0 to 1: "+err.Error(),
+					)
+					return
+				}
+
+				// Create a new model with the migrated data
+				var upgradedState githubRepositoryAutolinkReferenceResourceModel
+
+				// Populate the model from the raw state - all fields should be present as-is
+				// since the schema structure hasn't changed between versions
+				if id, ok := rawStateValue["id"]; ok && id != nil {
+					upgradedState.ID = types.StringValue(id.(string))
+				}
+				if repository, ok := rawStateValue["repository"]; ok && repository != nil {
+					upgradedState.Repository = types.StringValue(repository.(string))
+				}
+				if keyPrefix, ok := rawStateValue["key_prefix"]; ok && keyPrefix != nil {
+					upgradedState.KeyPrefix = types.StringValue(keyPrefix.(string))
+				}
+				if targetURLTemplate, ok := rawStateValue["target_url_template"]; ok && targetURLTemplate != nil {
+					upgradedState.TargetURLTemplate = types.StringValue(targetURLTemplate.(string))
+				}
+				if isAlphanumeric, ok := rawStateValue["is_alphanumeric"]; ok && isAlphanumeric != nil {
+					upgradedState.IsAlphanumeric = types.BoolValue(isAlphanumeric.(bool))
+				} else {
+					// Default value for is_alphanumeric if not present
+					upgradedState.IsAlphanumeric = types.BoolValue(true)
+				}
+				if etag, ok := rawStateValue["etag"]; ok && etag != nil {
+					upgradedState.Etag = types.StringValue(etag.(string))
+				}
+
+				// Set the upgraded state
+				resp.Diagnostics.Append(resp.State.Set(ctx, upgradedState)...)
+			},
+		},
+	}
 }
 
 func (r *githubRepositoryAutolinkReferenceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {

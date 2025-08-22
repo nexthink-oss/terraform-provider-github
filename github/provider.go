@@ -4,12 +4,17 @@ import (
 	"context"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -18,6 +23,7 @@ type githubProvider struct{}
 type githubProviderModel struct {
 	Token            types.String `tfsdk:"token"`
 	Owner            types.String `tfsdk:"owner"`
+	Organization     types.String `tfsdk:"organization"`
 	BaseURL          types.String `tfsdk:"base_url"`
 	ParallelRequests types.Bool   `tfsdk:"parallel_requests"`
 	ReadDelayMS      types.Int64  `tfsdk:"read_delay_ms"`
@@ -26,6 +32,13 @@ type githubProviderModel struct {
 	MaxRetries       types.Int64  `tfsdk:"max_retries"`
 	RetryableErrors  types.List   `tfsdk:"retryable_errors"`
 	Insecure         types.Bool   `tfsdk:"insecure"`
+	AppAuth          types.List   `tfsdk:"app_auth"`
+}
+
+type appAuthModel struct {
+	ID             types.String `tfsdk:"id"`
+	InstallationID types.String `tfsdk:"installation_id"`
+	PemFile        types.String `tfsdk:"pem_file"`
 }
 
 func New() provider.Provider {
@@ -44,10 +57,18 @@ func (p *githubProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 				Description: "The GitHub personal access token or GitHub App installation token.",
 				Optional:    true,
 				Sensitive:   true,
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("app_auth")),
+				},
 			},
 			"owner": schema.StringAttribute{
 				Description: "The GitHub owner name to manage resources under.",
 				Optional:    true,
+			},
+			"organization": schema.StringAttribute{
+				Description:        "The GitHub organization name to manage resources under.",
+				DeprecationMessage: "Use 'owner' instead. This attribute is deprecated and will be removed in a future version.",
+				Optional:           true,
 			},
 			"base_url": schema.StringAttribute{
 				Description: "The GitHub base API URL",
@@ -83,6 +104,32 @@ func (p *githubProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 				Optional:    true,
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"app_auth": schema.ListNestedBlock{
+				Description: "GitHub App authentication configuration. Cannot be used with `token`. Anonymous mode is enabled if both `token` and `app_auth` are not set.",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "The GitHub App ID.",
+							Required:    true,
+						},
+						"installation_id": schema.StringAttribute{
+							Description: "The GitHub App installation ID.",
+							Required:    true,
+						},
+						"pem_file": schema.StringAttribute{
+							Description: "The GitHub App private key PEM file contents.",
+							Required:    true,
+							Sensitive:   true,
+						},
+					},
+				},
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+					listvalidator.ConflictsWith(path.MatchRoot("token")),
+				},
+			},
+		},
 	}
 }
 
@@ -101,9 +148,101 @@ func (p *githubProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		token = config.Token.ValueString()
 	}
 
+	// Handle GitHub App authentication
+	if !config.AppAuth.IsNull() && !config.AppAuth.IsUnknown() {
+		var appAuthList []appAuthModel
+		resp.Diagnostics.Append(config.AppAuth.ElementsAs(ctx, &appAuthList, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		if len(appAuthList) > 0 {
+			appAuthConfig := appAuthList[0]
+
+			// Get app_auth configuration with environment variable fallback
+			appID := os.Getenv("GITHUB_APP_ID")
+			if !appAuthConfig.ID.IsNull() && !appAuthConfig.ID.IsUnknown() {
+				appID = appAuthConfig.ID.ValueString()
+			}
+
+			appInstallationID := os.Getenv("GITHUB_APP_INSTALLATION_ID")
+			if !appAuthConfig.InstallationID.IsNull() && !appAuthConfig.InstallationID.IsUnknown() {
+				appInstallationID = appAuthConfig.InstallationID.ValueString()
+			}
+
+			appPemFile := os.Getenv("GITHUB_APP_PEM_FILE")
+			if !appAuthConfig.PemFile.IsNull() && !appAuthConfig.PemFile.IsUnknown() {
+				appPemFile = appAuthConfig.PemFile.ValueString()
+			}
+
+			// Validate required app_auth fields
+			if appID == "" {
+				resp.Diagnostics.AddError(
+					"Missing GitHub App ID",
+					"app_auth.id must be set and contain a non-empty value. "+
+						"This can be set in the configuration or via the GITHUB_APP_ID environment variable.",
+				)
+				return
+			}
+
+			if appInstallationID == "" {
+				resp.Diagnostics.AddError(
+					"Missing GitHub App Installation ID",
+					"app_auth.installation_id must be set and contain a non-empty value. "+
+						"This can be set in the configuration or via the GITHUB_APP_INSTALLATION_ID environment variable.",
+				)
+				return
+			}
+
+			if appPemFile == "" {
+				resp.Diagnostics.AddError(
+					"Missing GitHub App PEM File",
+					"app_auth.pem_file must be set and contain a non-empty value. "+
+						"This can be set in the configuration or via the GITHUB_APP_PEM_FILE environment variable.",
+				)
+				return
+			}
+
+			// Handle \n replacement for PEM file (Terraform Cloud compatibility)
+			appPemFile = strings.ReplaceAll(appPemFile, `\n`, "\n")
+
+			// Generate OAuth token from GitHub App credentials
+			baseURL := os.Getenv("GITHUB_BASE_URL")
+			if !config.BaseURL.IsNull() && !config.BaseURL.IsUnknown() {
+				baseURL = config.BaseURL.ValueString()
+			}
+			if baseURL == "" {
+				baseURL = "https://api.github.com/"
+			}
+
+			appToken, err := GenerateOAuthTokenFromApp(baseURL, appID, appInstallationID, appPemFile)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"GitHub App Authentication Error",
+					"Unable to generate OAuth token from GitHub App credentials. "+
+						"Please verify your app_auth configuration is correct.\n\n"+
+						"Error: "+err.Error(),
+				)
+				return
+			}
+
+			token = appToken
+		}
+	}
+
 	owner := os.Getenv("GITHUB_OWNER")
 	if !config.Owner.IsNull() && !config.Owner.IsUnknown() {
 		owner = config.Owner.ValueString()
+	}
+
+	// Handle deprecated 'organization' attribute with backward compatibility
+	// organization takes precedence over owner when both are set
+	organization := os.Getenv("GITHUB_ORGANIZATION")
+	if !config.Organization.IsNull() && !config.Organization.IsUnknown() {
+		organization = config.Organization.ValueString()
+	}
+	if organization != "" {
+		owner = organization
 	}
 
 	baseURL := os.Getenv("GITHUB_BASE_URL")

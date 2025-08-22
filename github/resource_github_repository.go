@@ -27,9 +27,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = &githubRepositoryResource{}
-	_ resource.ResourceWithConfigure   = &githubRepositoryResource{}
-	_ resource.ResourceWithImportState = &githubRepositoryResource{}
+	_ resource.Resource                 = &githubRepositoryResource{}
+	_ resource.ResourceWithConfigure    = &githubRepositoryResource{}
+	_ resource.ResourceWithImportState  = &githubRepositoryResource{}
+	_ resource.ResourceWithUpgradeState = &githubRepositoryResource{}
 )
 
 type githubRepositoryResource struct {
@@ -140,6 +141,228 @@ func NewGithubRepositoryResource() resource.Resource {
 
 func (r *githubRepositoryResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_repository"
+}
+
+func (r *githubRepositoryResource) SchemaVersion(ctx context.Context) int64 {
+	return 1
+}
+
+func (r *githubRepositoryResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				// Get the raw state as a dynamic value and convert to map
+				rawStateValue := make(map[string]any)
+				err := req.State.Raw.As(&rawStateValue)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error Parsing State",
+						"Could not parse state during migration: "+err.Error(),
+					)
+					return
+				}
+
+				// Remove any "branches." prefixed attributes (this matches the SDKv2 migration)
+				// These were removed in schema version 0 -> 1 migration
+				for key := range rawStateValue {
+					if strings.HasPrefix(key, "branches.") {
+						delete(rawStateValue, key)
+					}
+				}
+
+				// Create a new model with the migrated data
+				var upgradedState githubRepositoryResourceModel
+
+				// Populate the model from the raw state
+				if id, ok := rawStateValue["id"]; ok && id != nil {
+					upgradedState.ID = types.StringValue(id.(string))
+				}
+				if name, ok := rawStateValue["name"]; ok && name != nil {
+					upgradedState.Name = types.StringValue(name.(string))
+				}
+				if description, ok := rawStateValue["description"]; ok && description != nil {
+					upgradedState.Description = types.StringValue(description.(string))
+				}
+				if homepageURL, ok := rawStateValue["homepage_url"]; ok && homepageURL != nil {
+					upgradedState.HomepageURL = types.StringValue(homepageURL.(string))
+				}
+				if private, ok := rawStateValue["private"]; ok && private != nil {
+					upgradedState.Private = types.BoolValue(private.(bool))
+				}
+				if visibility, ok := rawStateValue["visibility"]; ok && visibility != nil {
+					upgradedState.Visibility = types.StringValue(visibility.(string))
+				}
+				if hasIssues, ok := rawStateValue["has_issues"]; ok && hasIssues != nil {
+					upgradedState.HasIssues = types.BoolValue(hasIssues.(bool))
+				}
+				if hasDiscussions, ok := rawStateValue["has_discussions"]; ok && hasDiscussions != nil {
+					upgradedState.HasDiscussions = types.BoolValue(hasDiscussions.(bool))
+				}
+				if hasProjects, ok := rawStateValue["has_projects"]; ok && hasProjects != nil {
+					upgradedState.HasProjects = types.BoolValue(hasProjects.(bool))
+				}
+				if hasDownloads, ok := rawStateValue["has_downloads"]; ok && hasDownloads != nil {
+					upgradedState.HasDownloads = types.BoolValue(hasDownloads.(bool))
+				}
+				if hasWiki, ok := rawStateValue["has_wiki"]; ok && hasWiki != nil {
+					upgradedState.HasWiki = types.BoolValue(hasWiki.(bool))
+				}
+				if isTemplate, ok := rawStateValue["is_template"]; ok && isTemplate != nil {
+					upgradedState.IsTemplate = types.BoolValue(isTemplate.(bool))
+				}
+				if allowMergeCommit, ok := rawStateValue["allow_merge_commit"]; ok && allowMergeCommit != nil {
+					upgradedState.AllowMergeCommit = types.BoolValue(allowMergeCommit.(bool))
+				}
+				if allowSquashMerge, ok := rawStateValue["allow_squash_merge"]; ok && allowSquashMerge != nil {
+					upgradedState.AllowSquashMerge = types.BoolValue(allowSquashMerge.(bool))
+				}
+				if allowRebaseMerge, ok := rawStateValue["allow_rebase_merge"]; ok && allowRebaseMerge != nil {
+					upgradedState.AllowRebaseMerge = types.BoolValue(allowRebaseMerge.(bool))
+				}
+				if allowAutoMerge, ok := rawStateValue["allow_auto_merge"]; ok && allowAutoMerge != nil {
+					upgradedState.AllowAutoMerge = types.BoolValue(allowAutoMerge.(bool))
+				}
+				if squashMergeCommitTitle, ok := rawStateValue["squash_merge_commit_title"]; ok && squashMergeCommitTitle != nil {
+					upgradedState.SquashMergeCommitTitle = types.StringValue(squashMergeCommitTitle.(string))
+				}
+				if squashMergeCommitMessage, ok := rawStateValue["squash_merge_commit_message"]; ok && squashMergeCommitMessage != nil {
+					upgradedState.SquashMergeCommitMessage = types.StringValue(squashMergeCommitMessage.(string))
+				}
+				if mergeCommitTitle, ok := rawStateValue["merge_commit_title"]; ok && mergeCommitTitle != nil {
+					upgradedState.MergeCommitTitle = types.StringValue(mergeCommitTitle.(string))
+				}
+				if mergeCommitMessage, ok := rawStateValue["merge_commit_message"]; ok && mergeCommitMessage != nil {
+					upgradedState.MergeCommitMessage = types.StringValue(mergeCommitMessage.(string))
+				}
+				if deleteBranchOnMerge, ok := rawStateValue["delete_branch_on_merge"]; ok && deleteBranchOnMerge != nil {
+					upgradedState.DeleteBranchOnMerge = types.BoolValue(deleteBranchOnMerge.(bool))
+				}
+				if webCommitSignoffRequired, ok := rawStateValue["web_commit_signoff_required"]; ok && webCommitSignoffRequired != nil {
+					upgradedState.WebCommitSignoffRequired = types.BoolValue(webCommitSignoffRequired.(bool))
+				}
+				if autoInit, ok := rawStateValue["auto_init"]; ok && autoInit != nil {
+					upgradedState.AutoInit = types.BoolValue(autoInit.(bool))
+				}
+				if defaultBranch, ok := rawStateValue["default_branch"]; ok && defaultBranch != nil {
+					upgradedState.DefaultBranch = types.StringValue(defaultBranch.(string))
+				}
+				if licenseTemplate, ok := rawStateValue["license_template"]; ok && licenseTemplate != nil {
+					upgradedState.LicenseTemplate = types.StringValue(licenseTemplate.(string))
+				}
+				if gitignoreTemplate, ok := rawStateValue["gitignore_template"]; ok && gitignoreTemplate != nil {
+					upgradedState.GitignoreTemplate = types.StringValue(gitignoreTemplate.(string))
+				}
+				if archived, ok := rawStateValue["archived"]; ok && archived != nil {
+					upgradedState.Archived = types.BoolValue(archived.(bool))
+				}
+				if archiveOnDestroy, ok := rawStateValue["archive_on_destroy"]; ok && archiveOnDestroy != nil {
+					upgradedState.ArchiveOnDestroy = types.BoolValue(archiveOnDestroy.(bool))
+				}
+				if topics, ok := rawStateValue["topics"]; ok && topics != nil {
+					if topicsList, ok := topics.([]any); ok {
+						topicValues := make([]attr.Value, 0, len(topicsList))
+						for _, topic := range topicsList {
+							if topicStr, ok := topic.(string); ok {
+								topicValues = append(topicValues, types.StringValue(topicStr))
+							}
+						}
+						upgradedState.Topics = types.SetValueMust(types.StringType, topicValues)
+					}
+				}
+				if vulnerabilityAlerts, ok := rawStateValue["vulnerability_alerts"]; ok && vulnerabilityAlerts != nil {
+					upgradedState.VulnerabilityAlerts = types.BoolValue(vulnerabilityAlerts.(bool))
+				}
+				if ignoreVulnerabilityAlertsDuringRead, ok := rawStateValue["ignore_vulnerability_alerts_during_read"]; ok && ignoreVulnerabilityAlertsDuringRead != nil {
+					upgradedState.IgnoreVulnerabilityAlertsDuringRead = types.BoolValue(ignoreVulnerabilityAlertsDuringRead.(bool))
+				}
+				if allowUpdateBranch, ok := rawStateValue["allow_update_branch"]; ok && allowUpdateBranch != nil {
+					upgradedState.AllowUpdateBranch = types.BoolValue(allowUpdateBranch.(bool))
+				}
+				// Computed attributes
+				if fullName, ok := rawStateValue["full_name"]; ok && fullName != nil {
+					upgradedState.FullName = types.StringValue(fullName.(string))
+				}
+				if htmlURL, ok := rawStateValue["html_url"]; ok && htmlURL != nil {
+					upgradedState.HTMLURL = types.StringValue(htmlURL.(string))
+				}
+				if sshCloneURL, ok := rawStateValue["ssh_clone_url"]; ok && sshCloneURL != nil {
+					upgradedState.SSHCloneURL = types.StringValue(sshCloneURL.(string))
+				}
+				if svnURL, ok := rawStateValue["svn_url"]; ok && svnURL != nil {
+					upgradedState.SVNURL = types.StringValue(svnURL.(string))
+				}
+				if gitCloneURL, ok := rawStateValue["git_clone_url"]; ok && gitCloneURL != nil {
+					upgradedState.GitCloneURL = types.StringValue(gitCloneURL.(string))
+				}
+				if httpCloneURL, ok := rawStateValue["http_clone_url"]; ok && httpCloneURL != nil {
+					upgradedState.HTTPCloneURL = types.StringValue(httpCloneURL.(string))
+				}
+				if etag, ok := rawStateValue["etag"]; ok && etag != nil {
+					upgradedState.ETag = types.StringValue(etag.(string))
+				}
+				if primaryLanguage, ok := rawStateValue["primary_language"]; ok && primaryLanguage != nil {
+					upgradedState.PrimaryLanguage = types.StringValue(primaryLanguage.(string))
+				}
+				if nodeID, ok := rawStateValue["node_id"]; ok && nodeID != nil {
+					upgradedState.NodeID = types.StringValue(nodeID.(string))
+				}
+				if repoID, ok := rawStateValue["repo_id"]; ok && repoID != nil {
+					if repoIDInt, ok := repoID.(int); ok {
+						upgradedState.RepoID = types.Int64Value(int64(repoIDInt))
+					} else if repoIDFloat, ok := repoID.(float64); ok {
+						upgradedState.RepoID = types.Int64Value(int64(repoIDFloat))
+					}
+				}
+
+				// Handle complex nested blocks - set to null initially
+				// These would need more complex migration logic if they existed in v0
+				securityFeatureObjType := types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"status": types.StringType,
+					},
+				}
+				securityAnalysisObjType := types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"advanced_security":               types.ListType{ElemType: securityFeatureObjType},
+						"secret_scanning":                 types.ListType{ElemType: securityFeatureObjType},
+						"secret_scanning_push_protection": types.ListType{ElemType: securityFeatureObjType},
+					},
+				}
+				upgradedState.SecurityAndAnalysis = types.ListNull(securityAnalysisObjType)
+
+				sourceObjType := types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"branch": types.StringType,
+						"path":   types.StringType,
+					},
+				}
+				pagesObjType := types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"source":     types.ListType{ElemType: sourceObjType},
+						"build_type": types.StringType,
+						"cname":      types.StringType,
+						"custom_404": types.BoolType,
+						"html_url":   types.StringType,
+						"status":     types.StringType,
+						"url":        types.StringType,
+					},
+				}
+				upgradedState.Pages = types.ListNull(pagesObjType)
+
+				templateObjType := types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"include_all_branches": types.BoolType,
+						"owner":                types.StringType,
+						"repository":           types.StringType,
+					},
+				}
+				upgradedState.Template = types.ListNull(templateObjType)
+
+				// Set the upgraded state
+				resp.Diagnostics.Append(resp.State.Set(ctx, upgradedState)...)
+			},
+		},
+	}
 }
 
 func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -183,4 +184,35 @@ func (r *githubUserInvitationAccepterResource) Delete(ctx context.Context, req r
 	tflog.Debug(ctx, "removing GitHub user invitation accepter from state", map[string]any{
 		"id": data.ID.ValueString(),
 	})
+}
+
+func (r *githubUserInvitationAccepterResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// The import ID can be either:
+	// 1. An invitation ID (numeric)
+	// 2. A UUID (for resources created with allow_empty_id=true)
+
+	importID := req.ID
+
+	// Try to parse as invitation ID (numeric)
+	if invitationID, err := strconv.Atoi(importID); err == nil {
+		// It's a numeric invitation ID
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(importID))...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("invitation_id"), types.StringValue(importID))...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("allow_empty_id"), types.BoolValue(false))...)
+
+		tflog.Debug(ctx, "imported GitHub user invitation accepter with invitation ID", map[string]any{
+			"id":            importID,
+			"invitation_id": invitationID,
+		})
+	} else {
+		// It's likely a UUID from allow_empty_id=true case
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), types.StringValue(importID))...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("invitation_id"), types.StringValue(""))...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("allow_empty_id"), types.BoolValue(true))...)
+
+		tflog.Debug(ctx, "imported GitHub user invitation accepter with UUID", map[string]any{
+			"id":             importID,
+			"allow_empty_id": true,
+		})
+	}
 }

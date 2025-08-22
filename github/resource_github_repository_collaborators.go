@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -109,12 +108,17 @@ func (r *githubRepositoryCollaboratorsResource) Schema(ctx context.Context, req 
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"user": schema.SetNestedAttribute{
-				Description: "List of users to add as collaborators",
-				Optional:    true,
+			"invitation_ids": schema.MapAttribute{
+				Description: "Map of usernames to invitation ID for any users added",
+				ElementType: types.StringType,
 				Computed:    true,
-				Default:     setdefault.StaticValue(types.SetValueMust(types.ObjectType{AttrTypes: userCollaboratorAttrTypes()}, []attr.Value{})),
-				NestedObject: schema.NestedAttributeObject{
+				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"user": schema.SetNestedBlock{
+				Description: "List of users to add as collaborators",
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"permission": schema.StringAttribute{
 							Description: "The permission to grant the collaborator. Must be one of: pull, push, maintain, triage, admin.",
@@ -135,12 +139,9 @@ func (r *githubRepositoryCollaboratorsResource) Schema(ctx context.Context, req 
 					},
 				},
 			},
-			"team": schema.SetNestedAttribute{
+			"team": schema.SetNestedBlock{
 				Description: "List of teams to add as collaborators",
-				Optional:    true,
-				Computed:    true,
-				Default:     setdefault.StaticValue(types.SetValueMust(types.ObjectType{AttrTypes: teamCollaboratorAttrTypes()}, []attr.Value{})),
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"permission": schema.StringAttribute{
 							Description: "The permission to grant the team. Must be one of: pull, push, maintain, triage, admin.",
@@ -158,18 +159,9 @@ func (r *githubRepositoryCollaboratorsResource) Schema(ctx context.Context, req 
 					},
 				},
 			},
-			"invitation_ids": schema.MapAttribute{
-				Description: "Map of usernames to invitation ID for any users added",
-				ElementType: types.StringType,
-				Computed:    true,
-				Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
-			},
-			"ignore_team": schema.SetNestedAttribute{
+			"ignore_team": schema.SetNestedBlock{
 				Description: "List of teams to ignore",
-				Optional:    true,
-				Computed:    true,
-				Default:     setdefault.StaticValue(types.SetValueMust(types.ObjectType{AttrTypes: ignoreTeamAttrTypes()}, []attr.Value{})),
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"team_id": schema.StringAttribute{
 							Description: "ID or slug of the team to ignore.",
@@ -509,12 +501,6 @@ func teamCollaboratorAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"permission": types.StringType,
 		"team_id":    types.StringType,
-	}
-}
-
-func ignoreTeamAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"team_id": types.StringType,
 	}
 }
 

@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -77,16 +76,32 @@ func (r *githubIssueLabelsResource) Schema(ctx context.Context, req resource.Sch
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"label": schema.SetAttribute{
+		},
+		Blocks: map[string]schema.Block{
+			"label": schema.SetNestedBlock{
 				Description: "List of labels",
-				Optional:    true,
-				ElementType: labelObjectType,
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.UseStateForUnknown(),
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Description: "The name of the label.",
+							Required:    true,
+						},
+						"color": schema.StringAttribute{
+							Description: "A 6 character hex code, without the leading #, identifying the color of the label.",
+							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "A short description of the label.",
+							Optional:    true,
+						},
+						"url": schema.StringAttribute{
+							Description: "The URL to the label.",
+							Computed:    true,
+						},
+					},
 				},
 			},
 		},
-		Blocks: map[string]schema.Block{},
 	}
 }
 

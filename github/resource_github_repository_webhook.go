@@ -22,9 +22,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = &githubRepositoryWebhookResource{}
-	_ resource.ResourceWithConfigure   = &githubRepositoryWebhookResource{}
-	_ resource.ResourceWithImportState = &githubRepositoryWebhookResource{}
+	_ resource.Resource                 = &githubRepositoryWebhookResource{}
+	_ resource.ResourceWithConfigure    = &githubRepositoryWebhookResource{}
+	_ resource.ResourceWithImportState  = &githubRepositoryWebhookResource{}
+	_ resource.ResourceWithUpgradeState = &githubRepositoryWebhookResource{}
 )
 
 type githubRepositoryWebhookResource struct {
@@ -359,6 +360,164 @@ func (r *githubRepositoryWebhookResource) ImportState(ctx context.Context, req r
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("repository"), parts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+}
+
+func (r *githubRepositoryWebhookResource) SchemaVersion(ctx context.Context) int64 {
+	return 1
+}
+
+func (r *githubRepositoryWebhookResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schema.Schema{
+				Description: "Creates and manages repository webhooks within GitHub organizations or personal accounts",
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Description: "The ID of the webhook.",
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"repository": schema.StringAttribute{
+						Description: "The repository of the webhook.",
+						Required:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+					},
+					"events": schema.SetAttribute{
+						Description: "A list of events which should trigger the webhook",
+						Required:    true,
+						ElementType: types.StringType,
+					},
+					"configuration": schema.MapAttribute{
+						Description: "Configuration for the webhook.",
+						Optional:    true,
+						ElementType: types.StringType,
+					},
+					"url": schema.StringAttribute{
+						Description: "URL of the webhook",
+						Computed:    true,
+					},
+					"active": schema.BoolAttribute{
+						Description: "Indicate if the webhook should receive events. Defaults to 'true'.",
+						Optional:    true,
+						Computed:    true,
+						Default:     booldefault.StaticBool(true),
+					},
+					"etag": schema.StringAttribute{
+						Description: "An etag representing the webhook object.",
+						Computed:    true,
+					},
+				},
+			},
+			StateUpgrader: r.upgradeStateV0toV1,
+		},
+	}
+}
+
+func (r *githubRepositoryWebhookResource) upgradeStateV0toV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	log.Printf("[DEBUG] Migrating github_repository_webhook from schema version 0 to 1")
+
+	// Define the v0 state model
+	type v0StateModel struct {
+		ID            types.String `tfsdk:"id"`
+		Repository    types.String `tfsdk:"repository"`
+		Events        types.Set    `tfsdk:"events"`
+		Configuration types.Map    `tfsdk:"configuration"`
+		URL           types.String `tfsdk:"url"`
+		Active        types.Bool   `tfsdk:"active"`
+		ETag          types.String `tfsdk:"etag"`
+	}
+
+	var priorStateData v0StateModel
+
+	// Get the prior state
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Create the upgraded state
+	upgradedStateData := githubRepositoryWebhookResourceModel{
+		ID:         priorStateData.ID,
+		Repository: priorStateData.Repository,
+		Events:     priorStateData.Events,
+		URL:        priorStateData.URL,
+		Active:     priorStateData.Active,
+		ETag:       priorStateData.ETag,
+	}
+
+	// Handle configuration migration from map to list
+	if !priorStateData.Configuration.IsNull() && !priorStateData.Configuration.IsUnknown() {
+		var configMap map[string]string
+		resp.Diagnostics.Append(priorStateData.Configuration.ElementsAs(ctx, &configMap, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		// Convert map to list structure
+		configAttrs := map[string]attr.Value{
+			"url":          types.StringNull(),
+			"content_type": types.StringNull(),
+			"secret":       types.StringNull(),
+			"insecure_ssl": types.BoolNull(),
+		}
+
+		if url, ok := configMap["url"]; ok && url != "" {
+			configAttrs["url"] = types.StringValue(url)
+		}
+		if contentType, ok := configMap["content_type"]; ok && contentType != "" {
+			configAttrs["content_type"] = types.StringValue(contentType)
+		}
+		if secret, ok := configMap["secret"]; ok && secret != "" {
+			configAttrs["secret"] = types.StringValue(secret)
+		}
+		if insecureSSL, ok := configMap["insecure_ssl"]; ok {
+			// Convert string "0"/"1" to bool
+			configAttrs["insecure_ssl"] = types.BoolValue(insecureSSL == "1")
+		}
+
+		configObj, objDiags := types.ObjectValue(map[string]attr.Type{
+			"url":          types.StringType,
+			"content_type": types.StringType,
+			"secret":       types.StringType,
+			"insecure_ssl": types.BoolType,
+		}, configAttrs)
+		resp.Diagnostics.Append(objDiags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		configList, listDiags := types.ListValue(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"url":          types.StringType,
+				"content_type": types.StringType,
+				"secret":       types.StringType,
+				"insecure_ssl": types.BoolType,
+			},
+		}, []attr.Value{configObj})
+		resp.Diagnostics.Append(listDiags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		upgradedStateData.Configuration = configList
+	} else {
+		// Configuration is null/unknown, set to null list
+		upgradedStateData.Configuration = types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"url":          types.StringType,
+				"content_type": types.StringType,
+				"secret":       types.StringType,
+				"insecure_ssl": types.BoolType,
+			},
+		})
+	}
+
+	// Set the upgraded state
+	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
 }
 
 // Helper functions

@@ -95,23 +95,37 @@ func (r *githubEnterpriseActionsPermissionsResource) Schema(_ context.Context, _
 					stringvalidator.OneOf("all", "local_only", "selected"),
 				},
 			},
-			"allowed_actions_config": schema.ListAttribute{
+		},
+		Blocks: map[string]schema.Block{
+			"allowed_actions_config": schema.ListNestedBlock{
 				Description: "Sets the actions that are allowed in an enterprise. Only available when 'allowed_actions' = 'selected'",
-				Optional:    true,
-				ElementType: types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"github_owned_allowed": types.BoolType,
-						"patterns_allowed":     types.SetType{ElemType: types.StringType},
-						"verified_allowed":     types.BoolType,
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"github_owned_allowed": schema.BoolAttribute{
+							Description: "Whether GitHub-owned actions are allowed",
+							Required:    true,
+						},
+						"patterns_allowed": schema.SetAttribute{
+							Description: "Specifies a list of string-matching patterns to allow specific action(s)",
+							ElementType: types.StringType,
+							Optional:    true,
+						},
+						"verified_allowed": schema.BoolAttribute{
+							Description: "Whether actions from GitHub Marketplace verified creators are allowed",
+							Required:    true,
+						},
 					},
 				},
 			},
-			"enabled_organizations_config": schema.ListAttribute{
+			"enabled_organizations_config": schema.ListNestedBlock{
 				Description: "Sets the list of selected organizations that are enabled for GitHub Actions in an enterprise. Only available when 'enabled_organizations' = 'selected'.",
-				Optional:    true,
-				ElementType: types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"organization_ids": types.SetType{ElemType: types.Int64Type},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"organization_ids": schema.SetAttribute{
+							Description: "List of organization IDs to enable for GitHub Actions",
+							ElementType: types.Int64Type,
+							Required:    true,
+						},
 					},
 				},
 			},

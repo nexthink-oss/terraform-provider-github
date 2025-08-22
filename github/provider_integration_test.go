@@ -21,7 +21,9 @@ func TestConfigHTTPClientBehavior(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestTimes = append(requestTimes, time.Now())
 			w.WriteHeader(200)
-			w.Write([]byte(`{"message": "ok"}`))
+			if _, err := w.Write([]byte(`{"message": "ok"}`)); err != nil {
+				t.Errorf("Failed to write response: %v", err)
+			}
 		}))
 		defer server.Close()
 
@@ -63,7 +65,9 @@ func TestConfigHTTPClientBehavior(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestTimes = append(requestTimes, time.Now())
 			w.WriteHeader(201)
-			w.Write([]byte(`{"message": "created"}`))
+			if _, err := w.Write([]byte(`{"message": "created"}`)); err != nil {
+				t.Errorf("Failed to write response: %v", err)
+			}
 		}))
 		defer server.Close()
 
@@ -107,7 +111,9 @@ func TestConfigHTTPClientBehavior(t *testing.T) {
 			// Simulate some processing time
 			time.Sleep(10 * time.Millisecond)
 			w.WriteHeader(200)
-			w.Write([]byte(`{"message": "ok"}`))
+			if _, err := w.Write([]byte(`{"message": "ok"}`)); err != nil {
+				t.Errorf("Failed to write response: %v", err)
+			}
 		}))
 		defer server.Close()
 
@@ -164,11 +170,15 @@ func TestConfigHTTPClientBehavior(t *testing.T) {
 			if requestCount <= 2 {
 				// Return 500 for first two requests
 				w.WriteHeader(500)
-				w.Write([]byte(`{"message": "server error"}`))
+				if _, err := w.Write([]byte(`{"message": "server error"}`)); err != nil {
+					t.Errorf("Failed to write response: %v", err)
+				}
 			} else {
 				// Succeed on third request
 				w.WriteHeader(200)
-				w.Write([]byte(`{"message": "success"}`))
+				if _, err := w.Write([]byte(`{"message": "success"}`)); err != nil {
+					t.Errorf("Failed to write response: %v", err)
+				}
 			}
 		}))
 		defer server.Close()
@@ -205,7 +215,9 @@ func TestConfigHTTPClientBehavior(t *testing.T) {
 		// Create a TLS server with self-signed certificate
 		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(200)
-			w.Write([]byte(`{"message": "secure"}`))
+			if _, err := w.Write([]byte(`{"message": "secure"}`)); err != nil {
+				t.Errorf("Failed to write response: %v", err)
+			}
 		}))
 		defer server.Close()
 
@@ -250,7 +262,9 @@ func TestConfigHTTPClientBehavior(t *testing.T) {
 				return
 			}
 			w.WriteHeader(200)
-			w.Write([]byte(`{"message": "authenticated"}`))
+			if _, err := w.Write([]byte(`{"message": "authenticated"}`)); err != nil {
+				t.Errorf("Failed to write response: %v", err)
+			}
 		}))
 		defer server.Close()
 
@@ -321,7 +335,9 @@ func TestConfigRetryableErrorsBehavior(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				requestCount++
 				w.WriteHeader(tc.serverResponse)
-				w.Write(fmt.Appendf(nil, `{"error": "status %d"}`, tc.serverResponse))
+				if _, err := w.Write(fmt.Appendf(nil, `{"error": "status %d"}`, tc.serverResponse)); err != nil {
+					t.Errorf("Failed to write response: %v", err)
+				}
 			}))
 			defer server.Close()
 
@@ -369,7 +385,9 @@ func TestConfigHTTPTransportIntegration(t *testing.T) {
 			// Second request succeeds
 			w.WriteHeader(200)
 		}
-		w.Write([]byte(`{"message": "response"}`))
+		if _, err := w.Write([]byte(`{"message": "response"}`)); err != nil {
+			t.Errorf("Failed to write response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -427,7 +445,9 @@ func TestTransportChaining(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
-		w.Write([]byte(`{"test": "success"}`))
+		if _, err := w.Write([]byte(`{"test": "success"}`)); err != nil {
+			t.Errorf("Failed to write response: %v", err)
+		}
 	}))
 	defer server.Close()
 

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -21,9 +22,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = &githubOrganizationWebhookResource{}
-	_ resource.ResourceWithConfigure   = &githubOrganizationWebhookResource{}
-	_ resource.ResourceWithImportState = &githubOrganizationWebhookResource{}
+	_ resource.Resource                 = &githubOrganizationWebhookResource{}
+	_ resource.ResourceWithConfigure    = &githubOrganizationWebhookResource{}
+	_ resource.ResourceWithImportState  = &githubOrganizationWebhookResource{}
+	_ resource.ResourceWithUpgradeState = &githubOrganizationWebhookResource{}
 )
 
 type githubOrganizationWebhookResource struct {
@@ -375,6 +377,160 @@ func (r *githubOrganizationWebhookResource) ImportState(ctx context.Context, req
 	// Organization webhooks can be imported using just the webhook ID
 	// since they're always associated with the configured organization
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+}
+
+func (r *githubOrganizationWebhookResource) SchemaVersion(ctx context.Context) int64 {
+	return 1
+}
+
+func (r *githubOrganizationWebhookResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &schema.Schema{
+				Description: "Creates and manages webhooks for GitHub organizations",
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Description: "The ID of the webhook.",
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"events": schema.SetAttribute{
+						Description: "A list of events which should trigger the webhook.",
+						Required:    true,
+						ElementType: types.StringType,
+					},
+					"configuration": schema.MapAttribute{
+						Description: "Configuration for the webhook.",
+						Optional:    true,
+						Sensitive:   true,
+						ElementType: types.StringType,
+					},
+					"url": schema.StringAttribute{
+						Description: "URL of the webhook.",
+						Computed:    true,
+					},
+					"active": schema.BoolAttribute{
+						Description: "Indicate if the webhook should receive events.",
+						Optional:    true,
+						Computed:    true,
+						Default:     booldefault.StaticBool(true),
+					},
+					"etag": schema.StringAttribute{
+						Description: "An etag representing the webhook object.",
+						Computed:    true,
+					},
+				},
+			},
+			StateUpgrader: r.upgradeStateV0toV1,
+		},
+	}
+}
+
+func (r *githubOrganizationWebhookResource) upgradeStateV0toV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	log.Printf("[DEBUG] Migrating github_organization_webhook from schema version 0 to 1")
+
+	// Define the v0 state model
+	type v0StateModel struct {
+		ID            types.String `tfsdk:"id"`
+		Events        types.Set    `tfsdk:"events"`
+		Configuration types.Map    `tfsdk:"configuration"`
+		URL           types.String `tfsdk:"url"`
+		Active        types.Bool   `tfsdk:"active"`
+		ETag          types.String `tfsdk:"etag"`
+	}
+
+	var priorStateData v0StateModel
+
+	// Get the prior state
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Create the upgraded state
+	upgradedStateData := githubOrganizationWebhookResourceModel{
+		ID:     priorStateData.ID,
+		Events: priorStateData.Events,
+		URL:    priorStateData.URL,
+		Active: priorStateData.Active,
+		ETag:   priorStateData.ETag,
+	}
+
+	// Handle configuration migration from map to list
+	if !priorStateData.Configuration.IsNull() && !priorStateData.Configuration.IsUnknown() {
+		var configMap map[string]string
+		resp.Diagnostics.Append(priorStateData.Configuration.ElementsAs(ctx, &configMap, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		// Convert map to list structure
+		configAttrs := map[string]attr.Value{
+			"url":          types.StringNull(),
+			"content_type": types.StringNull(),
+			"secret":       types.StringNull(),
+			"insecure_ssl": types.BoolNull(),
+		}
+
+		if url, ok := configMap["url"]; ok && url != "" {
+			configAttrs["url"] = types.StringValue(url)
+		}
+		if contentType, ok := configMap["content_type"]; ok && contentType != "" {
+			configAttrs["content_type"] = types.StringValue(contentType)
+		}
+		if secret, ok := configMap["secret"]; ok && secret != "" {
+			configAttrs["secret"] = types.StringValue(secret)
+		}
+		if insecureSSL, ok := configMap["insecure_ssl"]; ok {
+			if insecureSSL == "1" || strings.ToLower(insecureSSL) == "true" {
+				configAttrs["insecure_ssl"] = types.BoolValue(true)
+			} else {
+				configAttrs["insecure_ssl"] = types.BoolValue(false)
+			}
+		}
+
+		configObj, diags := types.ObjectValue(map[string]attr.Type{
+			"url":          types.StringType,
+			"content_type": types.StringType,
+			"secret":       types.StringType,
+			"insecure_ssl": types.BoolType,
+		}, configAttrs)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		configList, diags := types.ListValue(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"url":          types.StringType,
+				"content_type": types.StringType,
+				"secret":       types.StringType,
+				"insecure_ssl": types.BoolType,
+			},
+		}, []attr.Value{configObj})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		upgradedStateData.Configuration = configList
+	} else {
+		upgradedStateData.Configuration = types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"url":          types.StringType,
+				"content_type": types.StringType,
+				"secret":       types.StringType,
+				"insecure_ssl": types.BoolType,
+			},
+		})
+	}
+
+	// Set the upgraded state
+	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
+
+	log.Printf("[DEBUG] Completed migration of github_organization_webhook from schema version 0 to 1")
 }
 
 // Helper functions

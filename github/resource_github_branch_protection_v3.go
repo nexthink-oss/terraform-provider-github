@@ -136,13 +136,14 @@ func (r *githubBranchProtectionV3Resource) Schema(ctx context.Context, req resou
 				Description: "The ETag of the branch protection rule.",
 				Computed:    true,
 			},
-			"required_status_checks": schema.ListNestedAttribute{
+		},
+		Blocks: map[string]schema.Block{
+			"required_status_checks": schema.ListNestedBlock{
 				Description: "Enforce restrictions for required status checks.",
-				Optional:    true,
 				Validators: []validator.List{
 					listvalidator.SizeAtMost(1),
 				},
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"strict": schema.BoolAttribute{
 							Description: "Require branches to be up to date before merging.",
@@ -164,13 +165,12 @@ func (r *githubBranchProtectionV3Resource) Schema(ctx context.Context, req resou
 					},
 				},
 			},
-			"required_pull_request_reviews": schema.ListNestedAttribute{
+			"required_pull_request_reviews": schema.ListNestedBlock{
 				Description: "Enforce restrictions for pull request reviews.",
-				Optional:    true,
 				Validators: []validator.List{
 					listvalidator.SizeAtMost(1),
 				},
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"dismiss_stale_reviews": schema.BoolAttribute{
 							Description: "Dismiss approved reviews automatically when a new commit is pushed.",
@@ -212,13 +212,14 @@ func (r *githubBranchProtectionV3Resource) Schema(ctx context.Context, req resou
 							Computed:    true,
 							Default:     booldefault.StaticBool(false),
 						},
-						"bypass_pull_request_allowances": schema.ListNestedAttribute{
+					},
+					Blocks: map[string]schema.Block{
+						"bypass_pull_request_allowances": schema.ListNestedBlock{
 							Description: "Allow specific users, teams, or apps to bypass pull request requirements.",
-							Optional:    true,
 							Validators: []validator.List{
 								listvalidator.SizeAtMost(1),
 							},
-							NestedObject: schema.NestedAttributeObject{
+							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"users": schema.SetAttribute{
 										Description: "The list of user logins allowed to bypass pull request requirements.",
@@ -241,13 +242,12 @@ func (r *githubBranchProtectionV3Resource) Schema(ctx context.Context, req resou
 					},
 				},
 			},
-			"restrictions": schema.ListNestedAttribute{
+			"restrictions": schema.ListNestedBlock{
 				Description: "Enforce restrictions for the users and teams that may push to the branch.",
-				Optional:    true,
 				Validators: []validator.List{
 					listvalidator.SizeAtMost(1),
 				},
-				NestedObject: schema.NestedAttributeObject{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"users": schema.SetAttribute{
 							Description: "The list of user logins with push access.",
