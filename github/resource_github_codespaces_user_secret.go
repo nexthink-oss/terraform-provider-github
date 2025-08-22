@@ -103,6 +103,9 @@ func (r *githubCodespacesUserSecretResource) Schema(ctx context.Context, req res
 			"created_at": schema.StringAttribute{
 				Description: "Date of 'codespaces_secret' creation.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"updated_at": schema.StringAttribute{
 				Description: "Date of 'codespaces_secret' update.",

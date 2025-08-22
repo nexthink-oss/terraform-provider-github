@@ -74,6 +74,9 @@ func (r *githubBranchDefaultResource) Schema(ctx context.Context, req resource.S
 			"etag": schema.StringAttribute{
 				Description: "The ETag of the branch default.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

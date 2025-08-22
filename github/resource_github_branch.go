@@ -92,6 +92,9 @@ func (r *githubBranchResource) Schema(ctx context.Context, req resource.SchemaRe
 			"etag": schema.StringAttribute{
 				Description: "An etag representing the Branch object.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"ref": schema.StringAttribute{
 				Description: "A string representing a branch reference, in the form of 'refs/heads/<branch>'.",

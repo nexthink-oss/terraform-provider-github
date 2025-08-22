@@ -118,6 +118,9 @@ func (r *githubActionsRunnerGroupResource) Schema(_ context.Context, _ resource.
 			"etag": schema.StringAttribute{
 				Description: "An etag representing the runner group object",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"inherited": schema.BoolAttribute{
 				Description: "Whether the runner group is inherited from the enterprise level",

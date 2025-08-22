@@ -61,6 +61,9 @@ func (r *githubOrganizationBlockResource) Schema(ctx context.Context, req resour
 			"etag": schema.StringAttribute{
 				Description: "The ETag of the blocked user.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

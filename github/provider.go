@@ -32,6 +32,7 @@ type githubProviderModel struct {
 	MaxRetries       types.Int64  `tfsdk:"max_retries"`
 	RetryableErrors  types.List   `tfsdk:"retryable_errors"`
 	Insecure         types.Bool   `tfsdk:"insecure"`
+	RateLimiter      types.String `tfsdk:"rate_limiter"`
 	AppAuth          types.List   `tfsdk:"app_auth"`
 }
 
@@ -102,6 +103,13 @@ func (p *githubProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 			"insecure": schema.BoolAttribute{
 				Description: "Enable insecure mode for testing purposes.",
 				Optional:    true,
+			},
+			"rate_limiter": schema.StringAttribute{
+				Description: "The rate limiting strategy to use. 'legacy' uses the provider's built-in rate limiting with configurable delays. 'advanced' uses go-github-ratelimit for automatic GitHub API rate limit handling. When using 'advanced', the read_delay_ms, write_delay_ms, and parallel_requests settings are ignored. Defaults to 'legacy'.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("legacy", "advanced"),
+				},
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -347,6 +355,12 @@ func (p *githubProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
+	// Get rate_limiter setting
+	rateLimiter := "legacy" // Default to legacy
+	if !config.RateLimiter.IsNull() && !config.RateLimiter.IsUnknown() {
+		rateLimiter = config.RateLimiter.ValueString()
+	}
+
 	// Convert retryable errors to map
 	retryableErrors := make(map[int]bool)
 	if maxRetries > 0 {
@@ -367,6 +381,7 @@ func (p *githubProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		WriteDelay:       time.Duration(writeDelayMS) * time.Millisecond,
 		RetryDelay:       time.Duration(retryDelayMS) * time.Millisecond,
 		RetryableErrors:  retryableErrors,
+		RateLimiter:      rateLimiter,
 	}
 
 	// Set BaseURL default if empty

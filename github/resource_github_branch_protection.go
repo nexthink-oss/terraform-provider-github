@@ -98,6 +98,9 @@ func (r *githubBranchProtectionResource) Schema(ctx context.Context, req resourc
 			"id": schema.StringAttribute{
 				Description: "The ID of the branch protection rule.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"repository_id": schema.StringAttribute{
 				Description: "The name or node ID of the repository associated with this branch protection rule.",

@@ -572,6 +572,9 @@ func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.Sche
 			},
 			"etag": schema.StringAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"primary_language": schema.StringAttribute{
 				Computed: true,
@@ -579,6 +582,9 @@ func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.Sche
 			"node_id": schema.StringAttribute{
 				Description: "GraphQL global node id for use with v4 API.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"repo_id": schema.Int64Attribute{
 				Description: "GitHub ID for the repository.",

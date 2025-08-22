@@ -131,6 +131,9 @@ func (r *githubEnterpriseActionsRunnerGroupResource) Schema(_ context.Context, _
 			"etag": schema.StringAttribute{
 				Description: "An etag representing the runner group object",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"runners_url": schema.StringAttribute{
 				Description: "The GitHub API URL for the runner group's runners.",

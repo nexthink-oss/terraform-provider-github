@@ -135,6 +135,9 @@ func (r *githubReleaseResource) Schema(ctx context.Context, req resource.SchemaR
 			"etag": schema.StringAttribute{
 				Description: "ETag of the release.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"release_id": schema.Int64Attribute{
 				Description: "The ID of the release.",
@@ -143,10 +146,16 @@ func (r *githubReleaseResource) Schema(ctx context.Context, req resource.SchemaR
 			"node_id": schema.StringAttribute{
 				Description: "The node ID of the release.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"created_at": schema.StringAttribute{
 				Description: "The date and time the release was created.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"published_at": schema.StringAttribute{
 				Description: "The date and time the release was published.",

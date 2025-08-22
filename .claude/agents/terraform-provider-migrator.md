@@ -122,6 +122,56 @@ func (r *exampleResource) UpgradeState(ctx context.Context) map[int64]resource.S
    - Change `NestedObject: schema.NestedAttributeObject` → `NestedObject: schema.NestedBlockObject`
    - Move from `Attributes` map to `Blocks` map in schema
 
+### Critical Computed Field Plan Modifiers
+
+**The Problem**: During SDKv2 to Plugin Framework migration, computed-only fields often lose their `UseStateForUnknown()` plan modifier, causing unnecessary "known after apply" noise in terraform plans.
+
+**IMPORTANT**: UseStateForUnknown() should ONLY be used for stable computed fields that don't change after initial creation or during updates.
+
+**Decision Tree for UseStateForUnknown**:
+
+**✅ STABLE Fields - SHOULD have UseStateForUnknown()**:
+```go
+// CORRECT: Stable identifier with UseStateForUnknown
+"id": schema.StringAttribute{
+    Description: "The resource identifier.",
+    Computed:    true,
+    PlanModifiers: []planmodifier.String{
+        stringplanmodifier.UseStateForUnknown(),
+    },
+},
+```
+
+**❌ DYNAMIC Fields - should NOT have UseStateForUnknown()**:
+```go
+// CORRECT: Dynamic field without UseStateForUnknown
+"primary_language": schema.StringAttribute{
+    Description: "The primary programming language of the repository.",
+    Computed:    true,
+    // No UseStateForUnknown - this field changes based on repository content
+},
+```
+
+**Field Categories**:
+
+**STABLE Fields (need UseStateForUnknown)**:
+- `id`, `node_id`, `repo_id`, `team_id` - Immutable identifiers
+- `created_at` - Creation timestamp (never changes)
+- `etag` - When used as stable resource identifier (not version tag)
+- `full_name`, `slug` - Derived from immutable properties
+- `html_url`, `clone_url`, `ssh_url`, `api_url` - URLs derived from stable properties
+
+**DYNAMIC Fields (should NOT have UseStateForUnknown)**:
+- `updated_at`, `pushed_at` - Timestamps that change with activity
+- `primary_language`, `size` - Repository content-dependent
+- `stargazers_count`, `forks_count`, `watchers_count` - External activity counters
+- `description`, `topics` - User-modifiable metadata
+- `default_branch` - Can be changed by users
+
+**CONTEXT-DEPENDENT Fields (requires case-by-case analysis)**:
+- `etag` - Stable identifier ✅ vs version indicator ❌
+- Boolean flags - Depends on whether they change based on external factors
+
 **CRUD Operation Templates**:
 ```go
 // SDKv2 function signature
@@ -386,6 +436,76 @@ func TestExample_DeprecatedAttributes(t *testing.T) {
     })
 }
 
+// CRITICAL: Test computed fields preserve values (no "known after apply" noise)
+func TestExample_ComputedFieldStability(t *testing.T) {
+    resource.Test(t, resource.TestCase{
+        ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+        Steps: []resource.TestStep{
+            {
+                Config: testConfig,
+                Check: resource.ComposeTestCheckFunc(
+                    resource.TestCheckResourceAttr("example_resource.test", "name", "test"),
+                    // Stable fields - should be set once and preserved
+                    resource.TestCheckResourceAttrSet("example_resource.test", "id"),
+                    resource.TestCheckResourceAttrSet("example_resource.test", "etag"), 
+                    resource.TestCheckResourceAttrSet("example_resource.test", "node_id"),
+                    resource.TestCheckResourceAttrSet("example_resource.test", "created_at"),
+                ),
+            },
+            {
+                // Same config - STABLE computed fields should NOT show as "known after apply"
+                Config: testConfig,
+                ConfigPlanChecks: resource.ConfigPlanChecks{
+                    PreApply: []plancheck.PlanCheck{
+                        plancheck.ExpectEmptyPlan(), // Should be no-op for stable fields
+                    },
+                },
+            },
+        },
+    })
+}
+
+// Test that dynamic computed fields DO update when external state changes
+func TestExample_DynamicComputedFields(t *testing.T) {
+    var initialPrimaryLanguage, initialUpdatedAt string
+    
+    resource.Test(t, resource.TestCase{
+        ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+        Steps: []resource.TestStep{
+            {
+                Config: testConfig,
+                Check: resource.ComposeTestCheckFunc(
+                    resource.TestCheckResourceAttr("example_resource.test", "name", "test"),
+                    // Capture initial values of dynamic fields
+                    func(s *terraform.State) error {
+                        rs := s.RootModule().Resources["example_resource.test"]
+                        initialPrimaryLanguage = rs.Primary.Attributes["primary_language"]
+                        initialUpdatedAt = rs.Primary.Attributes["updated_at"]
+                        return nil
+                    },
+                ),
+            },
+            {
+                // After external change (e.g., repository content update)
+                // Dynamic fields should be able to show new values, not preserved state
+                PreConfig: func() {
+                    // Simulate external API change (this would be provider-specific)
+                    // In real tests, this might involve making actual API calls or mocking
+                },
+                Config: testConfig,
+                Check: resource.ComposeTestCheckFunc(
+                    // Stable fields should remain the same
+                    resource.TestCheckResourceAttrSet("example_resource.test", "id"),
+                    resource.TestCheckResourceAttrSet("example_resource.test", "etag"),
+                    // Dynamic fields might have changed (test is provider-specific)
+                    resource.TestCheckResourceAttrSet("example_resource.test", "primary_language"),
+                    resource.TestCheckResourceAttrSet("example_resource.test", "updated_at"),
+                ),
+            },
+        },
+    })
+}
+
 // Mux server testing during gradual migration
 func TestExample_Mux(t *testing.T) {
     resource.Test(t, resource.TestCase{
@@ -474,12 +594,14 @@ func TestResourceExample_importBasic(t *testing.T) {
 - [ ] **CRITICAL: State migration compatibility** - StateUpgrader functions implemented for all version transitions
 - [ ] **CRITICAL: Dynamic block support preserved** - Resources using nested schemas converted to NestedBlock, not NestedAttribute
 - [ ] **CRITICAL: Provider configuration preserved** - All provider blocks and deprecated attributes maintained
+- [ ] **CRITICAL: Computed field plan modifiers** - Stable fields have UseStateForUnknown(), dynamic fields do NOT
 - [ ] CRUD operations maintain identical behavior
 - [ ] Validation logic produces equivalent results  
 - [ ] State compatibility preserved across migration
 - [ ] Tests pass with both implementations
 - [ ] **CRITICAL: Import functionality verified** - All resources with ImportState work correctly
 - [ ] **CRITICAL: Backward compatibility tested** - Existing Terraform configurations continue to work
+- [ ] **CRITICAL: Plan noise eliminated** - Unchanged resources show no "known after apply" for stable computed fields
 - [ ] Performance impact assessment completed
 
 **Test Migration Workflow**:
@@ -563,7 +685,26 @@ func TestResourceExample_importBasic(t *testing.T) {
   - **Plain Attributes**: For simple scalar values or basic maps/lists
 - **Remediation**: Analyze intended usage patterns and convert accordingly
 
-**7. Test Migration Inadequacy (Medium Severity)**
+**7. Incorrect UseStateForUnknown Usage on Computed Fields (High Severity)**
+- **Issue**: Either missing UseStateForUnknown on stable fields OR incorrectly applying it to dynamic fields
+- **Detection**: 
+  - Missing on stable fields: Unchanged resources show stable fields as "known after apply" 
+  - Incorrect on dynamic fields: Fields don't update when external state changes
+- **Prevention**: Use decision tree to categorize fields as stable vs dynamic
+- **Remediation**: 
+  - **Stable fields** (id, etag, created_at): Add UseStateForUnknown
+  - **Dynamic fields** (updated_at, counts, mutable metadata): Remove UseStateForUnknown
+  ```go
+  // Stable field
+  PlanModifiers: []planmodifier.String{
+      stringplanmodifier.UseStateForUnknown(),
+  },
+  
+  // Dynamic field  
+  // No plan modifiers - let framework mark as unknown during updates
+  ```
+
+**8. Test Migration Inadequacy (Medium Severity)**
 - **Issue**: Tests pass but don't validate backward compatibility
 - **Detection**: Manual testing reveals compatibility issues not caught by tests
 - **Prevention**: Create specific tests for:

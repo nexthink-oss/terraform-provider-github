@@ -108,6 +108,9 @@ func (r *githubRepositoryWebhookResource) Schema(ctx context.Context, req resour
 			"etag": schema.StringAttribute{
 				Description: "An etag representing the webhook object.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -409,6 +412,9 @@ func (r *githubRepositoryWebhookResource) UpgradeState(ctx context.Context) map[
 					"etag": schema.StringAttribute{
 						Description: "An etag representing the webhook object.",
 						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},

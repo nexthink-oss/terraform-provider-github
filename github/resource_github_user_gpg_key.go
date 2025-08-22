@@ -66,6 +66,9 @@ func (r *githubUserGpgKeyResource) Schema(ctx context.Context, req resource.Sche
 			"etag": schema.StringAttribute{
 				Description: "The ETag of the GPG key.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

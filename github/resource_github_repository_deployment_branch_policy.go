@@ -75,6 +75,9 @@ func (r *githubRepositoryDeploymentBranchPolicyResource) Schema(ctx context.Cont
 			"etag": schema.StringAttribute{
 				Description: "An etag representing the branch policy object.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

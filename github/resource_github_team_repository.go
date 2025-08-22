@@ -79,6 +79,9 @@ func (r *githubTeamRepositoryResource) Schema(ctx context.Context, req resource.
 			"etag": schema.StringAttribute{
 				Description: "The ETag of the team repository association.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -118,14 +121,15 @@ func (r *githubTeamRepositoryResource) Create(ctx context.Context, req resource.
 	}
 
 	client := r.client.V3Client()
+	orgId := r.client.ID()
 
 	// The given team id could be an id or a slug
 	givenTeamId := plan.TeamID.ValueString()
-	teamSlug, err := r.getTeamSlug(ctx, givenTeamId)
+	teamId, err := r.getTeamID(givenTeamId)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to get team slug",
-			fmt.Sprintf("Could not resolve team slug for %q: %s", givenTeamId, err.Error()),
+			"Unable to get team ID",
+			fmt.Sprintf("Could not resolve team ID for %q: %s", givenTeamId, err.Error()),
 		)
 		return
 	}
@@ -134,9 +138,9 @@ func (r *githubTeamRepositoryResource) Create(ctx context.Context, req resource.
 	repoName := plan.Repository.ValueString()
 	permission := plan.Permission.ValueString()
 
-	_, err = client.Teams.AddTeamRepoBySlug(ctx,
-		orgName,
-		teamSlug,
+	_, err = client.Teams.AddTeamRepoByID(ctx,
+		orgId,
+		teamId,
 		orgName,
 		repoName,
 		&github.TeamAddTeamRepoOptions{
@@ -152,12 +156,7 @@ func (r *githubTeamRepositoryResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	plan.ID = types.StringValue(r.buildTwoPartID(givenTeamId, repoName))
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	plan.ID = types.StringValue(r.buildTwoPartID(strconv.FormatInt(teamId, 10), repoName))
 
 	// Read the resource to populate computed attributes
 	r.read(ctx, &plan, &resp.Diagnostics)
@@ -194,6 +193,7 @@ func (r *githubTeamRepositoryResource) read(ctx context.Context, state *githubTe
 	}
 
 	client := r.client.V3Client()
+	orgId := r.client.ID()
 
 	teamIdString, repoName, err := r.parseTwoPartID(state.ID.ValueString(), "team_id", "repository")
 	if err != nil {
@@ -204,11 +204,11 @@ func (r *githubTeamRepositoryResource) read(ctx context.Context, state *githubTe
 		return
 	}
 
-	teamSlug, err := r.getTeamSlug(ctx, teamIdString)
+	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
 		diagnostics.AddError(
-			"Unable to get team slug",
-			fmt.Sprintf("Could not resolve team slug for %q: %s", teamIdString, err.Error()),
+			"Invalid team ID",
+			fmt.Sprintf("Could not parse team ID %q: %s", teamIdString, err.Error()),
 		)
 		return
 	}
@@ -216,12 +216,12 @@ func (r *githubTeamRepositoryResource) read(ctx context.Context, state *githubTe
 	orgName := r.client.Name()
 
 	// Add context with ETag for conditional requests
-	requestCtx := ctx
+	requestCtx := context.WithValue(ctx, CtxId, state.ID.ValueString())
 	if !state.Etag.IsNull() && !state.Etag.IsUnknown() {
-		requestCtx = context.WithValue(ctx, CtxEtag, state.Etag.ValueString())
+		requestCtx = context.WithValue(requestCtx, CtxEtag, state.Etag.ValueString())
 	}
 
-	repo, resp, repoErr := client.Teams.IsTeamRepoBySlug(requestCtx, orgName, teamSlug, orgName, repoName)
+	repo, resp, repoErr := client.Teams.IsTeamRepoByID(requestCtx, orgId, teamId, orgName, repoName)
 	if repoErr != nil {
 		if ghErr, ok := repoErr.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -269,6 +269,7 @@ func (r *githubTeamRepositoryResource) Update(ctx context.Context, req resource.
 	}
 
 	client := r.client.V3Client()
+	orgId := r.client.ID()
 
 	teamIdString, repoName, err := r.parseTwoPartID(plan.ID.ValueString(), "team_id", "repository")
 	if err != nil {
@@ -279,11 +280,11 @@ func (r *githubTeamRepositoryResource) Update(ctx context.Context, req resource.
 		return
 	}
 
-	teamSlug, err := r.getTeamSlug(ctx, teamIdString)
+	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to get team slug",
-			fmt.Sprintf("Could not resolve team slug for %q: %s", teamIdString, err.Error()),
+			"Invalid team ID",
+			fmt.Sprintf("Could not parse team ID %q: %s", teamIdString, err.Error()),
 		)
 		return
 	}
@@ -292,9 +293,9 @@ func (r *githubTeamRepositoryResource) Update(ctx context.Context, req resource.
 	permission := plan.Permission.ValueString()
 
 	// the go-github library's AddTeamRepo method uses the add/update endpoint from GitHub API
-	_, err = client.Teams.AddTeamRepoBySlug(ctx,
-		orgName,
-		teamSlug,
+	_, err = client.Teams.AddTeamRepoByID(ctx,
+		orgId,
+		teamId,
 		orgName,
 		repoName,
 		&github.TeamAddTeamRepoOptions{
@@ -311,11 +312,6 @@ func (r *githubTeamRepositoryResource) Update(ctx context.Context, req resource.
 	}
 
 	plan.ID = types.StringValue(r.buildTwoPartID(teamIdString, repoName))
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 	// Read the resource to populate computed attributes
 	r.read(ctx, &plan, &resp.Diagnostics)
@@ -343,6 +339,7 @@ func (r *githubTeamRepositoryResource) Delete(ctx context.Context, req resource.
 	}
 
 	client := r.client.V3Client()
+	orgId := r.client.ID()
 
 	teamIdString, repoName, err := r.parseTwoPartID(state.ID.ValueString(), "team_id", "repository")
 	if err != nil {
@@ -353,18 +350,18 @@ func (r *githubTeamRepositoryResource) Delete(ctx context.Context, req resource.
 		return
 	}
 
-	teamSlug, err := r.getTeamSlug(ctx, teamIdString)
+	teamId, err := strconv.ParseInt(teamIdString, 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to get team slug",
-			fmt.Sprintf("Could not resolve team slug for %q: %s", teamIdString, err.Error()),
+			"Invalid team ID",
+			fmt.Sprintf("Could not parse team ID %q: %s", teamIdString, err.Error()),
 		)
 		return
 	}
 
 	orgName := r.client.Name()
 
-	deleteResp, err := client.Teams.RemoveTeamRepoBySlug(ctx, orgName, teamSlug, orgName, repoName)
+	deleteResp, err := client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, repoName)
 
 	if deleteResp != nil && deleteResp.StatusCode == 404 {
 		tflog.Debug(ctx, "Failed to find team to delete for repo", map[string]any{
@@ -386,7 +383,7 @@ func (r *githubTeamRepositoryResource) Delete(ctx context.Context, req resource.
 				"old_name": repoName,
 				"new_name": newRepoName,
 			})
-			_, err = client.Teams.RemoveTeamRepoBySlug(ctx, orgName, teamSlug, orgName, newRepoName)
+			_, err = client.Teams.RemoveTeamRepoByID(ctx, orgId, teamId, orgName, newRepoName)
 			if err != nil {
 				resp.Diagnostics.AddError(
 					"Unable to delete team repository association",
@@ -418,7 +415,7 @@ func (r *githubTeamRepositoryResource) ImportState(ctx context.Context, req reso
 		return
 	}
 
-	teamId, err := r.getTeamID(ctx, teamIdString)
+	teamId, err := r.getTeamID(teamIdString)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to get team ID",
@@ -446,7 +443,7 @@ func (r *githubTeamRepositoryResource) buildTwoPartID(a, b string) string {
 	return fmt.Sprintf("%s:%s", a, b)
 }
 
-func (r *githubTeamRepositoryResource) getTeamID(ctx context.Context, teamIDString string) (int64, error) {
+func (r *githubTeamRepositoryResource) getTeamID(teamIDString string) (int64, error) {
 	client := r.client.V3Client()
 	orgName := r.client.Name()
 
@@ -456,32 +453,11 @@ func (r *githubTeamRepositoryResource) getTeamID(ctx context.Context, teamIDStri
 	}
 
 	// The given id not an integer, assume it is a team slug
-	team, _, slugErr := client.Teams.GetTeamBySlug(ctx, orgName, teamIDString)
+	team, _, slugErr := client.Teams.GetTeamBySlug(context.Background(), orgName, teamIDString)
 	if slugErr != nil {
 		return -1, fmt.Errorf("%s%s", parseIntErr.Error(), slugErr.Error())
 	}
 	return team.GetID(), nil
-}
-
-func (r *githubTeamRepositoryResource) getTeamSlug(ctx context.Context, teamIDString string) (string, error) {
-	client := r.client.V3Client()
-	orgId := r.client.ID()
-
-	teamId, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
-	if parseIntErr == nil {
-		// It's an ID, get the team to find the slug
-		// Note: This still uses GetTeamByID as it's the only way to get slug from numeric ID
-		// This call is minimized by caching and the migration to slug-based APIs elsewhere
-		//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
-		team, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
-		if err != nil {
-			return "", err
-		}
-		return team.GetSlug(), nil
-	}
-
-	// The given id is not an integer, assume it is already a team slug
-	return teamIDString, nil
 }
 
 func (r *githubTeamRepositoryResource) getPermission(permission string) string {

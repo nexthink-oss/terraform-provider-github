@@ -204,6 +204,9 @@ func (r *githubRepositoryRulesetResource) Schema(_ context.Context, _ resource.S
 			},
 			"etag": schema.StringAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 
@@ -702,6 +705,9 @@ func (r *githubRepositoryRulesetResource) UpgradeState(ctx context.Context) map[
 					"id": schema.StringAttribute{
 						Description: "The ruleset ID.",
 						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"name": schema.StringAttribute{
 						Required:    true,

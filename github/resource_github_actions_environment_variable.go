@@ -88,6 +88,9 @@ func (r *githubActionsEnvironmentVariableResource) Schema(ctx context.Context, r
 			"created_at": schema.StringAttribute{
 				Description: "Date of 'actions_variable' creation.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"updated_at": schema.StringAttribute{
 				Description: "Date of 'actions_variable' update.",

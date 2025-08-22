@@ -153,6 +153,9 @@ func (r *githubRepositoryAutolinkReferenceResource) Schema(ctx context.Context, 
 			"etag": schema.StringAttribute{
 				Description: "An etag representing the autolink reference object.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

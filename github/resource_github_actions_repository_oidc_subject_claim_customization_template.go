@@ -49,6 +49,9 @@ func (r *githubActionsRepositoryOIDCSubjectClaimCustomizationTemplateResource) S
 			"id": schema.StringAttribute{
 				Description: "The ID of this resource.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"repository": schema.StringAttribute{
 				Description: "The name of the repository.",

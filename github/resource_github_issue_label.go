@@ -81,6 +81,9 @@ func (r *githubIssueLabelResource) Schema(ctx context.Context, req resource.Sche
 			"etag": schema.StringAttribute{
 				Description: "The ETag of the issue label.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

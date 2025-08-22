@@ -75,6 +75,10 @@ The following arguments are supported in the `provider` block:
 
 * `max_retries` - (Optional) Number of times to retry a request after receiving an error status code. Defaults to 3
 
+* `rate_limiter` - (Optional) The rate limiting strategy to use. Can be either `legacy` or `advanced`. Defaults to `legacy` if not set.
+  * `legacy` - Uses the provider's built-in rate limiting mechanism with configurable delays (`write_delay_ms`, `read_delay_ms`) and `parallel_requests` settings.
+  * `advanced` - Uses the [go-github-ratelimit](https://github.com/gofri/go-github-ratelimit) library for intelligent rate limit handling. This mode automatically handles both primary and secondary GitHub rate limits without requiring manual delay configuration. When using `advanced` mode, the `write_delay_ms`, `read_delay_ms`, and `parallel_requests` settings are ignored as the rate limiting is handled automatically. Server errors (500, 502, 503, 504) are still retried according to `max_retries` and `retry_delay_ms` settings.
+
 Note: If you have a PEM file on disk, you can pass it in via `pem_file = file("path/to/file.pem")`.
 
 For backwards compatibility, if more than one of `owner`, `organization`, `GITHUB_OWNER` and `GITHUB_ORGANIZATION` are set, the first in this list takes priority.

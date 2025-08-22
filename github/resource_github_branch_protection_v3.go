@@ -99,6 +99,9 @@ func (r *githubBranchProtectionV3Resource) Schema(ctx context.Context, req resou
 			"id": schema.StringAttribute{
 				Description: "The ID of the branch protection rule.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"repository": schema.StringAttribute{
 				Description: "The GitHub repository name.",
@@ -135,6 +138,9 @@ func (r *githubBranchProtectionV3Resource) Schema(ctx context.Context, req resou
 			"etag": schema.StringAttribute{
 				Description: "The ETag of the branch protection rule.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 		Blocks: map[string]schema.Block{

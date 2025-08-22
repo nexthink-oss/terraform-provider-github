@@ -76,6 +76,9 @@ func (r *githubUserSshKeyResource) Schema(ctx context.Context, req resource.Sche
 			"etag": schema.StringAttribute{
 				Description: "The ETag of the SSH key.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

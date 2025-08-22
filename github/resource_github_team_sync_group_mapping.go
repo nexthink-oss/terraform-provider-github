@@ -69,6 +69,9 @@ func (r *githubTeamSyncGroupMappingResource) Schema(_ context.Context, _ resourc
 			"etag": schema.StringAttribute{
 				Description: "The etag of the team sync group mapping.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -308,11 +311,10 @@ func (r *githubTeamSyncGroupMappingResource) readTeamSyncGroupMapping(ctx contex
 	teamSlug := state.TeamSlug.ValueString()
 
 	// Add context values for etag handling if available
-	requestCtx := ctx
+	requestCtx := context.WithValue(ctx, CtxId, state.ID.ValueString())
 	if !state.Etag.IsNull() && !state.Etag.IsUnknown() {
-		requestCtx = context.WithValue(ctx, CtxEtag, state.Etag.ValueString())
+		requestCtx = context.WithValue(requestCtx, CtxEtag, state.Etag.ValueString())
 	}
-	requestCtx = context.WithValue(requestCtx, CtxId, state.ID.ValueString())
 
 	idpGroupList, resp, err := client.Teams.ListIDPGroupsForTeamBySlug(requestCtx, orgName, teamSlug)
 	if err != nil {

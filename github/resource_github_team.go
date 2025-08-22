@@ -100,21 +100,21 @@ func (r *githubTeamResource) Schema(ctx context.Context, req resource.SchemaRequ
 			},
 			"parent_team_read_id": schema.StringAttribute{
 				Description: "The ID of the parent team read in Github.",
-				Optional:    true,
 				Computed:    true,
-				Default:     stringdefault.StaticString(""),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"parent_team_read_slug": schema.StringAttribute{
 				Description: "The slug of the parent team read in Github.",
-				Optional:    true,
 				Computed:    true,
-				Default:     stringdefault.StaticString(""),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"ldap_dn": schema.StringAttribute{
 				Description: "The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise Server.",
 				Optional:    true,
-				Computed:    true,
-				Default:     stringdefault.StaticString(""),
 			},
 			"create_default_maintainer": schema.BoolAttribute{
 				Description: "Adds a default maintainer to the team. Adds the creating user to the team when 'true'.",
@@ -135,10 +135,16 @@ func (r *githubTeamResource) Schema(ctx context.Context, req resource.SchemaRequ
 			"etag": schema.StringAttribute{
 				Description: "The ETag of the team.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"node_id": schema.StringAttribute{
 				Description: "The Node ID of the created team.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"members_count": schema.Int64Attribute{
 				Description: "The number of members in the team.",
@@ -216,9 +222,9 @@ func (r *githubTeamResource) Create(ctx context.Context, req resource.CreateRequ
 
 	// Handle parent team setting for GitHub App authentication
 	if newTeam.ParentTeamID != nil && githubTeam.Parent == nil {
-		_, _, err := client.Teams.EditTeamBySlug(ctx,
-			ownerName,
-			githubTeam.GetSlug(),
+		_, _, err := client.Teams.EditTeamByID(ctx,
+			*githubTeam.Organization.ID,
+			*githubTeam.ID,
 			newTeam,
 			false)
 		if err != nil {
@@ -285,7 +291,6 @@ func (r *githubTeamResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	client := r.client.V3Client()
 	orgId := r.client.ID()
-	orgName := r.client.Name()
 	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
@@ -312,15 +317,7 @@ func (r *githubTeamResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	// Get team slug from team ID for the EditTeamBySlug call
-	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
-	currentTeam, _, err := client.Teams.GetTeamByID(ctx, orgId, teamId)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to retrieve team", err.Error())
-		return
-	}
-
-	team, _, err := client.Teams.EditTeamBySlug(ctx, orgName, currentTeam.GetSlug(), editedTeam, removeParentTeam)
+	team, _, err := client.Teams.EditTeamByID(ctx, orgId, teamId, editedTeam, removeParentTeam)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update team", err.Error())
 		return
@@ -328,14 +325,19 @@ func (r *githubTeamResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// Handle LDAP DN updates
 	if !plan.LdapDN.Equal(state.LdapDN) {
-		ldapDN := plan.LdapDN.ValueString()
-		mapping := &github.TeamLDAPMapping{
-			LDAPDN: github.Ptr(ldapDN),
-		}
-		_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to update LDAP mapping", err.Error())
-			return
+		planLdapDN := plan.LdapDN.ValueString()
+		stateLdapDN := state.LdapDN.ValueString()
+
+		// Only attempt LDAP update if there's actually an LDAP DN to set or remove
+		if planLdapDN != "" || stateLdapDN != "" {
+			mapping := &github.TeamLDAPMapping{
+				LDAPDN: github.Ptr(planLdapDN),
+			}
+			_, _, err = client.Admin.UpdateTeamLDAPMapping(ctx, team.GetID(), mapping)
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to update LDAP mapping", err.Error())
+				return
+			}
 		}
 	}
 
@@ -375,18 +377,11 @@ func (r *githubTeamResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	// Get team slug first for the delete call
-	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
-	teamToDelete, _, err := client.Teams.GetTeamByID(ctx, orgId, id)
+	_, err = client.Teams.DeleteTeamByID(ctx, orgId, id)
+	// Handle potential parallel deletion scenario
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to retrieve team for deletion", err.Error())
-		return
-	}
-
-	_, err = client.Teams.DeleteTeamBySlug(ctx, r.client.Name(), teamToDelete.GetSlug())
-	if err != nil {
-		// Check if the team still exists in case of parallel deletion
-		_, _, checkErr := client.Teams.GetTeamBySlug(ctx, r.client.Name(), teamToDelete.GetSlug())
+		// Fetch the team to check if it still exists
+		_, _, checkErr := client.Teams.GetTeamByID(ctx, orgId, id)
 		if checkErr != nil {
 			if ghErr, ok := checkErr.(*github.ErrorResponse); ok {
 				if ghErr.Response.StatusCode == http.StatusNotFound {
@@ -447,7 +442,6 @@ func (r *githubTeamResource) readTeam(ctx context.Context, model *githubTeamReso
 		requestCtx = context.WithValue(requestCtx, CtxEtag, model.Etag.ValueString())
 	}
 
-	//nolint:staticcheck // SA1019: GetTeamByID is deprecated but needed for ID->slug conversion
 	team, resp, err := client.Teams.GetTeamByID(requestCtx, orgId, id)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
@@ -470,17 +464,24 @@ func (r *githubTeamResource) readTeam(ctx context.Context, model *githubTeamReso
 	model.Name = types.StringValue(team.GetName())
 	model.Privacy = types.StringValue(team.GetPrivacy())
 
+	// CRITICAL: Only update the read-only computed attributes, preserve user's parent_team_id input
 	if parent := team.Parent; parent != nil {
-		model.ParentTeamID = types.StringValue(strconv.FormatInt(parent.GetID(), 10))
 		model.ParentTeamReadID = types.StringValue(strconv.FormatInt(parent.GetID(), 10))
 		model.ParentTeamReadSlug = types.StringValue(parent.GetSlug())
 	} else {
-		model.ParentTeamID = types.StringValue("")
 		model.ParentTeamReadID = types.StringValue("")
 		model.ParentTeamReadSlug = types.StringValue("")
+		// Only clear parent_team_id if there's no parent AND it was previously set
+		if !model.ParentTeamID.IsNull() && !model.ParentTeamID.IsUnknown() && model.ParentTeamID.ValueString() != "" {
+			model.ParentTeamID = types.StringValue("")
+		}
 	}
 
-	model.LdapDN = types.StringValue(team.GetLDAPDN())
+	if ldapDN := team.GetLDAPDN(); ldapDN != "" {
+		model.LdapDN = types.StringValue(ldapDN)
+	} else {
+		model.LdapDN = types.StringNull()
+	}
 	model.Slug = types.StringValue(team.GetSlug())
 	model.NodeID = types.StringValue(team.GetNodeID())
 	model.MembersCount = types.Int64Value(int64(team.GetMembersCount()))
@@ -576,10 +577,13 @@ func (m *slugComputedWhenNameChanges) PlanModifyString(ctx context.Context, req 
 	// If the name has changed, mark slug as unknown so it will be computed
 	if !stateName.Equal(planName) {
 		resp.PlanValue = types.StringUnknown()
+	} else {
+		// Name hasn't changed, preserve the state value
+		resp.PlanValue = req.StateValue
 	}
 }
 
-// parentTeamIDPlanModifier implements diff suppression for parent_team_id when it matches parent_team_read_*
+// parentTeamIDPlanModifier implements diff suppression for parent_team_id when it matches parent_team_read_id or parent_team_read_slug
 type parentTeamIDPlanModifier struct{}
 
 func (m *parentTeamIDPlanModifier) Description(ctx context.Context) string {
@@ -605,7 +609,8 @@ func (m *parentTeamIDPlanModifier) PlanModifyString(ctx context.Context, req pla
 		return
 	}
 
-	// If the planned parent_team_id matches either of the read values, use the state value (suppress diff)
+	// If the planned parent_team_id matches either the read ID or slug,
+	// it means we're referring to the same team - suppress the diff
 	if req.PlanValue.Equal(parentTeamReadID) || req.PlanValue.Equal(parentTeamReadSlug) {
 		resp.PlanValue = req.StateValue
 	}

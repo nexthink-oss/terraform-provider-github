@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/client9/misspell v0.3.4
 	github.com/go-jose/go-jose/v3 v3.0.4
+	github.com/gofri/go-github-ratelimit/v2 v2.0.2
 	github.com/golangci/golangci-lint/v2 v2.4.0
 	github.com/google/go-github/v74 v74.0.0
 	github.com/google/uuid v1.6.0

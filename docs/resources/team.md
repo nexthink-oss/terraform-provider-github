@@ -35,8 +35,6 @@ resource "github_team" "some_team" {
 - `description` (String) A description of the team.
 - `ldap_dn` (String) The LDAP Distinguished Name of the group where membership will be synchronized. Only available in GitHub Enterprise Server.
 - `parent_team_id` (String) The ID or slug of the parent team, if this is a nested team.
-- `parent_team_read_id` (String) The ID of the parent team read in Github.
-- `parent_team_read_slug` (String) The slug of the parent team read in Github.
 - `privacy` (String) The level of privacy for the team. Must be one of 'secret' or 'closed'.
 
 ### Read-Only
@@ -45,6 +43,8 @@ resource "github_team" "some_team" {
 - `id` (String) The ID of the team.
 - `members_count` (Number) The number of members in the team.
 - `node_id` (String) The Node ID of the created team.
+- `parent_team_read_id` (String) The ID of the parent team read in Github.
+- `parent_team_read_slug` (String) The slug of the parent team read in Github.
 - `slug` (String) The slug of the created team.
 
 ## Import

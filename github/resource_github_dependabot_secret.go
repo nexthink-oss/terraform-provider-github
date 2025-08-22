@@ -101,6 +101,9 @@ func (r *githubDependabotSecretResource) Schema(ctx context.Context, req resourc
 			"created_at": schema.StringAttribute{
 				Description: "Date of 'dependabot_secret' creation.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"updated_at": schema.StringAttribute{
 				Description: "Date of 'dependabot_secret' update.",

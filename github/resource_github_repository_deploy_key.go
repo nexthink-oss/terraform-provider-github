@@ -92,6 +92,9 @@ func (r *githubRepositoryDeployKeyResource) Schema(ctx context.Context, req reso
 			"etag": schema.StringAttribute{
 				Description: "An etag representing the state of the deploy key.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

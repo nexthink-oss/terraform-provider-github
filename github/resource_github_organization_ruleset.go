@@ -116,6 +116,9 @@ func (r *githubOrganizationRulesetResource) Schema(_ context.Context, _ resource
 			},
 			"etag": schema.StringAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 

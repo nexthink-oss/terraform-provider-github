@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	github_ratelimit "github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
 	"github.com/google/go-github/v74/github"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -26,6 +27,7 @@ type Config struct {
 	RetryableErrors  map[int]bool
 	MaxRetries       int
 	ParallelRequests bool
+	RateLimiter      string // "legacy" or "advanced"
 }
 
 type Owner struct {
@@ -77,6 +79,25 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 	return client
 }
 
+func AdvancedRateLimitedHTTPClient(client *http.Client, retryDelay time.Duration, retryableErrors map[int]bool, maxRetries int) *http.Client {
+
+	client.Transport = NewEtagTransport(client.Transport)
+
+	// Use go-github-ratelimit for automatic GitHub rate limit handling (both primary and secondary)
+	rateLimitClient := github_ratelimit.NewClient(client.Transport)
+	rateLimitClient.Transport = newPreviewHeaderInjectorTransport(map[string]string{
+		// TODO: remove when Stone Crop preview is moved to general availability in the GraphQL API
+		"Accept": "application/vnd.github.stone-crop-preview+json",
+	}, rateLimitClient.Transport)
+
+	// Still use RetryTransport for server errors
+	if maxRetries > 0 {
+		rateLimitClient.Transport = NewRetryTransport(rateLimitClient.Transport, WithRetryDelay(retryDelay), WithRetryableErrors(retryableErrors), WithMaxRetries(maxRetries))
+	}
+
+	return rateLimitClient
+}
+
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
 
 	ctx := context.Background()
@@ -103,6 +124,9 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 		baseClient = oauth2.NewClient(ctx, ts)
 	}
 
+	if c.RateLimiter == "advanced" {
+		return AdvancedRateLimitedHTTPClient(baseClient, c.RetryDelay, c.RetryableErrors, c.MaxRetries)
+	}
 	return RateLimitedHTTPClient(baseClient, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
@@ -123,6 +147,9 @@ func (c *Config) AnonymousHTTPClient() *http.Client {
 	}
 
 	client := &http.Client{Transport: transport}
+	if c.RateLimiter == "advanced" {
+		return AdvancedRateLimitedHTTPClient(client, c.RetryDelay, c.RetryableErrors, c.MaxRetries)
+	}
 	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 

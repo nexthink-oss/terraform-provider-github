@@ -101,6 +101,9 @@ func (r *githubActionsSecretResource) Schema(ctx context.Context, req resource.S
 			"created_at": schema.StringAttribute{
 				Description: "Date of 'actions_secret' creation.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"updated_at": schema.StringAttribute{
 				Description: "Date of 'actions_secret' update.",

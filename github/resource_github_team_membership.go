@@ -85,6 +85,9 @@ func (r *githubTeamMembershipResource) Schema(ctx context.Context, req resource.
 			"etag": schema.StringAttribute{
 				Description: "The etag for the team membership.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -115,6 +118,9 @@ func (r *githubTeamMembershipResource) Create(ctx context.Context, req resource.
 		return
 	}
 
+	client := r.client.V3Client()
+	orgID := r.client.ID()
+
 	teamIDString := plan.TeamID.ValueString()
 	username := plan.Username.ValueString()
 	role := plan.Role.ValueString()
@@ -128,8 +134,7 @@ func (r *githubTeamMembershipResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	orgID := r.client.ID()
-	_, _, err = r.client.V3Client().Teams.AddTeamMembershipByID(ctx,
+	_, _, err = client.Teams.AddTeamMembershipByID(ctx,
 		orgID,
 		teamID,
 		username,
@@ -185,6 +190,9 @@ func (r *githubTeamMembershipResource) Update(ctx context.Context, req resource.
 		return
 	}
 
+	client := r.client.V3Client()
+	orgID := r.client.ID()
+
 	teamIDString := plan.TeamID.ValueString()
 	username := plan.Username.ValueString()
 	role := plan.Role.ValueString()
@@ -198,8 +206,7 @@ func (r *githubTeamMembershipResource) Update(ctx context.Context, req resource.
 		return
 	}
 
-	orgID := r.client.ID()
-	_, _, err = r.client.V3Client().Teams.AddTeamMembershipByID(ctx,
+	_, _, err = client.Teams.AddTeamMembershipByID(ctx,
 		orgID,
 		teamID,
 		username,
@@ -237,6 +244,9 @@ func (r *githubTeamMembershipResource) Delete(ctx context.Context, req resource.
 		return
 	}
 
+	client := r.client.V3Client()
+	orgID := r.client.ID()
+
 	teamIDString := state.TeamID.ValueString()
 	username := state.Username.ValueString()
 
@@ -249,8 +259,7 @@ func (r *githubTeamMembershipResource) Delete(ctx context.Context, req resource.
 		return
 	}
 
-	orgID := r.client.ID()
-	_, err = r.client.V3Client().Teams.RemoveTeamMembershipByID(ctx, orgID, teamID, username)
+	_, err = client.Teams.RemoveTeamMembershipByID(ctx, orgID, teamID, username)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to delete team membership",
@@ -316,15 +325,16 @@ func (r *githubTeamMembershipResource) read(ctx context.Context, state *githubTe
 	state.TeamID = types.StringValue(teamIDString)
 	state.Username = types.StringValue(username)
 
-	// Add etag context for conditional requests
-	etag := state.Etag.ValueString()
-	if etag != "" {
-		ctx = context.WithValue(ctx, CtxEtag, etag)
-	}
-	ctx = context.WithValue(ctx, CtxId, state.ID.ValueString())
-
+	client := r.client.V3Client()
 	orgID := r.client.ID()
-	membership, resp, err := r.client.V3Client().Teams.GetTeamMembershipByID(ctx, orgID, teamID, username)
+
+	// Add etag context for conditional requests
+	requestCtx := context.WithValue(ctx, CtxId, state.ID.ValueString())
+	if !state.Etag.IsNull() && !state.Etag.IsUnknown() {
+		requestCtx = context.WithValue(requestCtx, CtxEtag, state.Etag.ValueString())
+	}
+
+	membership, resp, err := client.Teams.GetTeamMembershipByID(requestCtx, orgID, teamID, username)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -376,7 +386,7 @@ func (r *githubTeamMembershipResource) parseTwoPartID(id, left, right string) (s
 func (r *githubTeamMembershipResource) getTeamID(teamIDString string) (int64, error) {
 	// Given a string that is either a team id or team slug, return the
 	// id of the team it is referring to.
-	client := r.client.V3Client
+	client := r.client.V3Client()
 	orgName := r.client.Name()
 
 	teamID, parseIntErr := strconv.ParseInt(teamIDString, 10, 64)
@@ -385,7 +395,7 @@ func (r *githubTeamMembershipResource) getTeamID(teamIDString string) (int64, er
 	}
 
 	// teamIDString is not an integer, so we assume it's a team slug
-	team, _, err := client().Teams.GetTeamBySlug(context.Background(), orgName, teamIDString)
+	team, _, err := client.Teams.GetTeamBySlug(context.Background(), orgName, teamIDString)
 	if err != nil {
 		return 0, err
 	}

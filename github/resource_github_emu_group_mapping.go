@@ -68,6 +68,9 @@ func (r *githubEmuGroupMappingResource) Schema(_ context.Context, _ resource.Sch
 			"etag": schema.StringAttribute{
 				Description: "The etag of the external group.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

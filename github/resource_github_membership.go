@@ -76,6 +76,9 @@ func (r *githubMembershipResource) Schema(ctx context.Context, req resource.Sche
 			"etag": schema.StringAttribute{
 				Description: "The etag for the membership.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"downgrade_on_destroy": schema.BoolAttribute{
 				Description: "Instead of removing the member from the org, you can choose to downgrade their membership to 'member' when this resource is destroyed. This is useful when wanting to downgrade admins while keeping them in the organization",
