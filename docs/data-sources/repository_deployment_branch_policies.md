@@ -28,13 +28,13 @@ data "github_repository_deployment_branch_policies" "example" {
 
 ### Read-Only
 
-- `deployment_branch_policies` (List of Object) (see [below for nested schema](#nestedatt--deployment_branch_policies))
-- `id` (String) The ID of this resource.
+- `deployment_branch_policies` (Attributes List) List of deployment branch policies for the repository environment. (see [below for nested schema](#nestedatt--deployment_branch_policies))
+- `id` (String) The ID of the data source.
 
 <a id="nestedatt--deployment_branch_policies"></a>
 ### Nested Schema for `deployment_branch_policies`
 
 Read-Only:
 
-- `id` (String)
-- `name` (String)
+- `id` (String) The ID of the deployment branch policy.
+- `name` (String) The name of the deployment branch policy.

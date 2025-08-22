@@ -2,7 +2,7 @@
 page_title: "github_repository_webhooks Data Source - github"
 subcategory: ""
 description: |-
-  Get information on all GitHub webhooks of the organization.
+  Get information on all GitHub webhooks of the repository.
 ---
 
 # github_repository_webhooks (Data Source)
@@ -24,20 +24,20 @@ data "github_repository_webhooks" "repo" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The name of the repository.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `webhooks` (List of Object) (see [below for nested schema](#nestedatt--webhooks))
+- `id` (String) The ID of the data source.
+- `webhooks` (Attributes List) List of webhooks for the repository. (see [below for nested schema](#nestedatt--webhooks))
 
 <a id="nestedatt--webhooks"></a>
 ### Nested Schema for `webhooks`
 
 Read-Only:
 
-- `active` (Boolean)
-- `id` (Number)
-- `name` (String)
-- `type` (String)
-- `url` (String)
+- `active` (Boolean) Whether the webhook is active.
+- `id` (Number) The ID of the webhook.
+- `name` (String) The name of the webhook.
+- `type` (String) The type of the webhook.
+- `url` (String) The URL of the webhook.

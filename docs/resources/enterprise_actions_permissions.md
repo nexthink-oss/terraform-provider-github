@@ -42,24 +42,24 @@ resource "github_enterprise_actions_permissions" "test" {
 ### Optional
 
 - `allowed_actions` (String) The permissions policy that controls the actions that are allowed to run. Can be one of: 'all', 'local_only', or 'selected'.
-- `allowed_actions_config` (Block List, Max: 1) Sets the actions that are allowed in an enterprise. Only available when 'allowed_actions' = 'selected' (see [below for nested schema](#nestedblock--allowed_actions_config))
-- `enabled_organizations_config` (Block List, Max: 1) Sets the list of selected organizations that are enabled for GitHub Actions in an enterprise. Only available when 'enabled_organizations' = 'selected'. (see [below for nested schema](#nestedblock--enabled_organizations_config))
+- `allowed_actions_config` (Block List) Sets the actions that are allowed in an enterprise. Only available when 'allowed_actions' = 'selected' (see [below for nested schema](#nestedblock--allowed_actions_config))
+- `enabled_organizations_config` (Block List) Sets the list of selected organizations that are enabled for GitHub Actions in an enterprise. Only available when 'enabled_organizations' = 'selected'. (see [below for nested schema](#nestedblock--enabled_organizations_config))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the enterprise.
 
 <a id="nestedblock--allowed_actions_config"></a>
 ### Nested Schema for `allowed_actions_config`
 
 Required:
 
-- `github_owned_allowed` (Boolean) Whether GitHub-owned actions are allowed in the enterprise.
+- `github_owned_allowed` (Boolean) Whether GitHub-owned actions are allowed
+- `verified_allowed` (Boolean) Whether actions from GitHub Marketplace verified creators are allowed
 
 Optional:
 
-- `patterns_allowed` (Set of String) Specifies a list of string-matching patterns to allow specific action(s). Wildcards, tags, and SHAs are allowed. For example, 'monalisa/octocat@', 'monalisa/octocat@v2', 'monalisa/'.
-- `verified_allowed` (Boolean) Whether actions in GitHub Marketplace from verified creators are allowed. Set to 'true' to allow all GitHub Marketplace actions by verified creators.
+- `patterns_allowed` (Set of String) Specifies a list of string-matching patterns to allow specific action(s)
 
 
 <a id="nestedblock--enabled_organizations_config"></a>
@@ -67,7 +67,7 @@ Optional:
 
 Required:
 
-- `organization_ids` (Set of Number) List of organization IDs to enable for GitHub Actions.
+- `organization_ids` (Set of Number) List of organization IDs to enable for GitHub Actions
 
 ## Import
 

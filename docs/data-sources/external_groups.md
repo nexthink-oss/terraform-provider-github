@@ -28,14 +28,14 @@ output "groups" {
 
 ### Read-Only
 
-- `external_groups` (List of Object) (see [below for nested schema](#nestedatt--external_groups))
-- `id` (String) The ID of this resource.
+- `external_groups` (Attributes List) List of external groups in the organization. (see [below for nested schema](#nestedatt--external_groups))
+- `id` (String) The ID of the data source.
 
 <a id="nestedatt--external_groups"></a>
 ### Nested Schema for `external_groups`
 
 Read-Only:
 
-- `group_id` (Number)
-- `group_name` (String)
-- `updated_at` (String)
+- `group_id` (Number) The ID of the external group.
+- `group_name` (String) The name of the external group.
+- `updated_at` (String) The timestamp when the external group was last updated.

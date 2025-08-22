@@ -74,8 +74,8 @@ resource "github_issue" "test" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The ETag of the issue.
+- `id` (String) The ID of the issue (repository:number).
 - `issue_id` (Number) The issue id.
 - `number` (Number) The issue number.
 

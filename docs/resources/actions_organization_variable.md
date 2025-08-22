@@ -48,7 +48,7 @@ resource "github_actions_organization_variable" "example_variable" {
 ### Read-Only
 
 - `created_at` (String) Date of 'actions_variable' creation.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the actions organization variable (same as variable_name).
 - `updated_at` (String) Date of 'actions_variable' update.
 
 ## Import

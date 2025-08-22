@@ -54,7 +54,7 @@ resource "github_enterprise_actions_runner_group" "example" {
 
 - `default` (Boolean) Whether this is the default runner group.
 - `etag` (String) An etag representing the runner group object
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the runner group.
 - `runners_url` (String) The GitHub API URL for the runner group's runners.
 - `selected_organizations_url` (String) GitHub API URL for the runner group's organizations.
 

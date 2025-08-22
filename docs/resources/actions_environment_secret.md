@@ -64,5 +64,5 @@ resource "github_actions_environment_secret" "test_secret" {
 ### Read-Only
 
 - `created_at` (String) Date of 'actions_environment_secret' creation.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the actions environment secret (repository:environment:secret_name).
 - `updated_at` (String) Date of 'actions_environment_secret' update.

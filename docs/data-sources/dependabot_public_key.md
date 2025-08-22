@@ -22,10 +22,10 @@ data "github_dependabot_public_key" "example" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The name of the repository.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `key` (String)
-- `key_id` (String)
+- `id` (String) The ID of the public key.
+- `key` (String) The public key value.
+- `key_id` (String) The ID of the public key.

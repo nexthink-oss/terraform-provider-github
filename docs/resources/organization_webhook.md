@@ -37,26 +37,23 @@ resource "github_organization_webhook" "foo" {
 ### Optional
 
 - `active` (Boolean) Indicate if the webhook should receive events.
-- `configuration` (Block List, Max: 1) Configuration for the webhook. (see [below for nested schema](#nestedblock--configuration))
+- `configuration` (List of Object, Sensitive) Configuration for the webhook. (see [below for nested schema](#nestedatt--configuration))
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) An etag representing the webhook object.
+- `id` (String) The ID of the webhook.
 - `url` (String) URL of the webhook.
 
-<a id="nestedblock--configuration"></a>
+<a id="nestedatt--configuration"></a>
 ### Nested Schema for `configuration`
-
-Required:
-
-- `url` (String, Sensitive) The URL of the webhook.
 
 Optional:
 
-- `content_type` (String) The content type for the payload. Valid values are either 'form' or 'json'.
-- `insecure_ssl` (Boolean) Insecure SSL boolean toggle. Defaults to 'false'.
-- `secret` (String, Sensitive) The shared secret for the webhook
+- `content_type` (String)
+- `insecure_ssl` (Boolean)
+- `secret` (String)
+- `url` (String)
 
 ## Import
 

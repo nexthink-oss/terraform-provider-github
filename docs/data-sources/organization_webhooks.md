@@ -22,16 +22,16 @@ data "github_organization_webhooks" "all" {}
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `webhooks` (List of Object) (see [below for nested schema](#nestedatt--webhooks))
+- `id` (String) The ID of the organization.
+- `webhooks` (Attributes List) List of webhooks in the organization. (see [below for nested schema](#nestedatt--webhooks))
 
 <a id="nestedatt--webhooks"></a>
 ### Nested Schema for `webhooks`
 
 Read-Only:
 
-- `active` (Boolean)
-- `id` (Number)
-- `name` (String)
-- `type` (String)
-- `url` (String)
+- `active` (Boolean) Whether the webhook is active.
+- `id` (Number) The webhook's ID.
+- `name` (String) The webhook's name.
+- `type` (String) The webhook's type.
+- `url` (String) The webhook's URL.

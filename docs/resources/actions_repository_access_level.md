@@ -33,7 +33,7 @@ resource "github_actions_repository_access_level" "test" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The name of the repository.
 
 ## Import
 

@@ -2,7 +2,7 @@
 page_title: "github_organization_block Resource - github"
 subcategory: ""
 description: |-
-  
+  Provides a GitHub organization block resource.
 ---
 
 # github_organization_block (Resource)
@@ -26,8 +26,8 @@ resource "github_organization_block" "example" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The ETag of the blocked user.
+- `id` (String) The username of the blocked user.
 
 ## Import
 

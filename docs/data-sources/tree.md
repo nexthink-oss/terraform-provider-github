@@ -37,25 +37,24 @@ output "entries" {
 
 ### Required
 
-- `repository` (String)
-- `tree_sha` (String)
+- `repository` (String) The name of the repository.
+- `tree_sha` (String) The SHA1 value for the tree.
 
 ### Optional
 
-- `recursive` (Boolean)
+- `recursive` (Boolean) Whether to fetch the tree recursively. Defaults to false.
 
 ### Read-Only
 
-- `entries` (List of Object) (see [below for nested schema](#nestedatt--entries))
-- `id` (String) The ID of this resource.
+- `entries` (Attributes List) The entries in the tree. (see [below for nested schema](#nestedatt--entries))
 
 <a id="nestedatt--entries"></a>
 ### Nested Schema for `entries`
 
 Read-Only:
 
-- `mode` (String)
-- `path` (String)
-- `sha` (String)
-- `size` (Number)
-- `type` (String)
+- `mode` (String) The mode of the entry.
+- `path` (String) The path of the entry.
+- `sha` (String) The SHA of the entry.
+- `size` (Number) The size of the entry.
+- `type` (String) The type of the entry.

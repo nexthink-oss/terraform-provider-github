@@ -48,8 +48,8 @@ resource "github_repository_deploy_key" "example_repository_deploy_key" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) An etag representing the state of the deploy key.
+- `id` (String) The ID of the deploy key (repository:key_id).
 
 ## Import
 

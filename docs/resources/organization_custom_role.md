@@ -57,7 +57,7 @@ resource "github_organization_custom_role" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the custom repository role.
 
 ## Import
 

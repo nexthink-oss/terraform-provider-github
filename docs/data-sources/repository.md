@@ -2,7 +2,7 @@
 page_title: "github_repository Data Source - github"
 subcategory: ""
 description: |-
-  Get details about GitHub repository
+  Get details about a GitHub repository.
 ---
 
 # github_repository (Data Source)
@@ -22,68 +22,68 @@ data "github_repository" "example" {
 
 ### Optional
 
-- `description` (String)
-- `full_name` (String)
-- `homepage_url` (String)
-- `name` (String)
+- `description` (String) A description of the repository.
+- `full_name` (String) Full name of the repository (in `owner/name` format).
+- `homepage_url` (String) URL of a page describing the project.
+- `name` (String) The name of the repository.
 
 ### Read-Only
 
-- `allow_auto_merge` (Boolean)
-- `allow_merge_commit` (Boolean)
-- `allow_rebase_merge` (Boolean)
-- `allow_squash_merge` (Boolean)
-- `allow_update_branch` (Boolean)
-- `archived` (Boolean)
-- `default_branch` (String)
-- `delete_branch_on_merge` (Boolean)
-- `fork` (Boolean)
-- `git_clone_url` (String)
-- `has_discussions` (Boolean)
-- `has_downloads` (Boolean)
-- `has_issues` (Boolean)
-- `has_projects` (Boolean)
-- `has_wiki` (Boolean)
-- `html_url` (String)
-- `http_clone_url` (String)
+- `allow_auto_merge` (Boolean) Whether the repository allows auto-merge for pull requests.
+- `allow_merge_commit` (Boolean) Whether the repository allows merge commits.
+- `allow_rebase_merge` (Boolean) Whether the repository allows rebase merges.
+- `allow_squash_merge` (Boolean) Whether the repository allows squash merges.
+- `allow_update_branch` (Boolean) Whether the repository allows updating branch for pull requests.
+- `archived` (Boolean) Whether the repository is archived.
+- `default_branch` (String) The name of the default branch of the repository.
+- `delete_branch_on_merge` (Boolean) Whether the repository allows automatically deleting head branches when pull requests are merged.
+- `fork` (Boolean) Whether the repository is a fork.
+- `git_clone_url` (String) URL that can be provided to `git clone` to clone the repository anonymously via the git protocol.
+- `has_discussions` (Boolean) Whether the repository has GitHub Discussions enabled.
+- `has_downloads` (Boolean) Whether the repository has GitHub Downloads enabled.
+- `has_issues` (Boolean) Whether the repository has GitHub Issues enabled.
+- `has_projects` (Boolean) Whether the repository has GitHub Projects enabled.
+- `has_wiki` (Boolean) Whether the repository has GitHub Wiki enabled.
+- `html_url` (String) URL to the repository on the web.
+- `http_clone_url` (String) URL that can be provided to `git clone` to clone the repository via HTTPS.
 - `id` (String) The ID of this resource.
-- `is_template` (Boolean)
-- `merge_commit_message` (String)
-- `merge_commit_title` (String)
-- `node_id` (String)
-- `pages` (List of Object) (see [below for nested schema](#nestedatt--pages))
-- `primary_language` (String)
-- `private` (Boolean)
-- `repo_id` (Number)
-- `repository_license` (List of Object) (see [below for nested schema](#nestedatt--repository_license))
-- `squash_merge_commit_message` (String)
-- `squash_merge_commit_title` (String)
-- `ssh_clone_url` (String)
-- `svn_url` (String)
-- `template` (List of Object) (see [below for nested schema](#nestedatt--template))
-- `topics` (List of String)
-- `visibility` (String)
+- `is_template` (Boolean) Whether the repository is a template.
+- `merge_commit_message` (String) The default value for a merge commit message.
+- `merge_commit_title` (String) The default value for a merge commit title.
+- `node_id` (String) GraphQL global node id for use with v4 API.
+- `pages` (Attributes List) The GitHub Pages configuration for the repository. (see [below for nested schema](#nestedatt--pages))
+- `primary_language` (String) The primary language of the repository.
+- `private` (Boolean) Whether the repository is private.
+- `repo_id` (Number) GitHub ID for the repository.
+- `repository_license` (Attributes List) The license of the repository. (see [below for nested schema](#nestedatt--repository_license))
+- `squash_merge_commit_message` (String) The default value for a squash merge commit message.
+- `squash_merge_commit_title` (String) The default value for a squash merge commit title.
+- `ssh_clone_url` (String) URL that can be provided to `git clone` to clone the repository via SSH.
+- `svn_url` (String) URL that can be provided to `svn checkout` to check out the repository via GNU Subversion.
+- `template` (Attributes List) The template repository configuration. (see [below for nested schema](#nestedatt--template))
+- `topics` (List of String) The list of topics of the repository.
+- `visibility` (String) Can be 'public' or 'private'.
 
 <a id="nestedatt--pages"></a>
 ### Nested Schema for `pages`
 
 Read-Only:
 
-- `build_type` (String)
-- `cname` (String)
-- `custom_404` (Boolean)
-- `html_url` (String)
-- `source` (List of Object) (see [below for nested schema](#nestedobjatt--pages--source))
-- `status` (String)
-- `url` (String)
+- `build_type` (String) The GitHub Pages build type.
+- `cname` (String) The custom domain for the repository.
+- `custom_404` (Boolean) Whether the repository has a custom 404 page.
+- `html_url` (String) The GitHub Pages URL.
+- `source` (Attributes List) The source configuration for GitHub Pages. (see [below for nested schema](#nestedatt--pages--source))
+- `status` (String) The GitHub Pages status.
+- `url` (String) The GitHub Pages API URL.
 
-<a id="nestedobjatt--pages--source"></a>
+<a id="nestedatt--pages--source"></a>
 ### Nested Schema for `pages.source`
 
 Read-Only:
 
-- `branch` (String)
-- `path` (String)
+- `branch` (String) The branch name.
+- `path` (String) The path from which to publish.
 
 
 
@@ -92,36 +92,36 @@ Read-Only:
 
 Read-Only:
 
-- `content` (String)
-- `download_url` (String)
-- `encoding` (String)
-- `git_url` (String)
-- `html_url` (String)
-- `license` (List of Object) (see [below for nested schema](#nestedobjatt--repository_license--license))
-- `name` (String)
-- `path` (String)
-- `sha` (String)
-- `size` (Number)
-- `type` (String)
-- `url` (String)
+- `content` (String) The license file content (base64 encoded).
+- `download_url` (String) The license file download URL.
+- `encoding` (String) The license file encoding.
+- `git_url` (String) The license file Git URL.
+- `html_url` (String) The license file HTML URL.
+- `license` (Attributes List) The license information. (see [below for nested schema](#nestedatt--repository_license--license))
+- `name` (String) The license file name.
+- `path` (String) The license file path.
+- `sha` (String) The license file SHA.
+- `size` (Number) The license file size in bytes.
+- `type` (String) The license file type.
+- `url` (String) The license file URL.
 
-<a id="nestedobjatt--repository_license--license"></a>
+<a id="nestedatt--repository_license--license"></a>
 ### Nested Schema for `repository_license.license`
 
 Read-Only:
 
-- `body` (String)
-- `conditions` (Set of String)
-- `description` (String)
-- `featured` (Boolean)
-- `html_url` (String)
-- `implementation` (String)
-- `key` (String)
-- `limitations` (Set of String)
-- `name` (String)
-- `permissions` (Set of String)
-- `spdx_id` (String)
-- `url` (String)
+- `body` (String) The license body.
+- `conditions` (Set of String) The license conditions.
+- `description` (String) The license description.
+- `featured` (Boolean) Whether the license is featured.
+- `html_url` (String) The license HTML URL.
+- `implementation` (String) The license implementation.
+- `key` (String) The license key.
+- `limitations` (Set of String) The license limitations.
+- `name` (String) The license name.
+- `permissions` (Set of String) The license permissions.
+- `spdx_id` (String) The license SPDX ID.
+- `url` (String) The license URL.
 
 
 
@@ -130,5 +130,5 @@ Read-Only:
 
 Read-Only:
 
-- `owner` (String)
-- `repository` (String)
+- `owner` (String) The template repository owner.
+- `repository` (String) The template repository name.

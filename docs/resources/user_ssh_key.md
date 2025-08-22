@@ -30,8 +30,8 @@ resource "github_user_ssh_key" "example" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The ETag of the SSH key.
+- `id` (String) The ID of the SSH key.
 - `url` (String) The URL of the SSH key.
 
 ## Import

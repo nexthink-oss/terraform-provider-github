@@ -22,11 +22,11 @@ data "github_app" "foobar" {
 
 ### Required
 
-- `slug` (String)
+- `slug` (String) The slug of the app.
 
 ### Read-Only
 
-- `description` (String)
-- `id` (String) The ID of this resource.
-- `name` (String)
-- `node_id` (String)
+- `description` (String) The description of the app.
+- `id` (String) The ID of the app.
+- `name` (String) The name of the app.
+- `node_id` (String) The node ID of the app.

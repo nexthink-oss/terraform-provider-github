@@ -22,16 +22,15 @@ data "github_branch_protection_rules" "example" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The name of the repository to retrieve branch protection rules for.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `rules` (List of Object) (see [below for nested schema](#nestedatt--rules))
+- `rules` (Attributes List) List of branch protection rules for the repository. (see [below for nested schema](#nestedatt--rules))
 
 <a id="nestedatt--rules"></a>
 ### Nested Schema for `rules`
 
 Read-Only:
 
-- `pattern` (String)
+- `pattern` (String) The pattern of the branch protection rule.

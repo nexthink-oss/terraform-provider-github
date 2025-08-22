@@ -28,8 +28,8 @@ resource "github_user_gpg_key" "example" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The ETag of the GPG key.
+- `id` (String) The ID of the GPG key.
 - `key_id` (String) The key ID of the GPG key.
 
 ## Import

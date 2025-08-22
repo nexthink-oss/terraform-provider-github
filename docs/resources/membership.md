@@ -35,8 +35,8 @@ resource "github_membership" "membership_for_some_user" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The etag for the membership.
+- `id` (String) The ID of the membership.
 
 ## Import
 

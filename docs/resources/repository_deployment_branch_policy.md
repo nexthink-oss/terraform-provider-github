@@ -2,7 +2,7 @@
 page_title: "github_repository_deployment_branch_policy Resource - github"
 subcategory: ""
 description: |-
-  Creates and manages deployment branch policies
+  Creates and manages deployment branch policies for GitHub repository environments
 ---
 
 # github_repository_deployment_branch_policy (Resource)
@@ -41,8 +41,8 @@ resource "github_repository_deployment_branch_policy" "foo" {
 
 ### Read-Only
 
-- `etag` (String) An etag representing the Branch object.
-- `id` (String) The ID of this resource.
+- `etag` (String) An etag representing the branch policy object.
+- `id` (String) The ID of the deployment branch policy.
 
 ## Import
 

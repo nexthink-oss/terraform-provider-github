@@ -65,8 +65,8 @@ resource "github_branch_default" "default" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The ETag of the branch default.
+- `id` (String) The repository name.
 
 ## Import
 

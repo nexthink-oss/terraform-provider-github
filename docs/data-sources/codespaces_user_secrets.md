@@ -21,15 +21,15 @@ data "github_codespaces_user_secrets" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `secrets` (List of Object) (see [below for nested schema](#nestedatt--secrets))
+- `id` (String) The ID of the data source.
+- `secrets` (Attributes List) An array of user codespaces secrets. (see [below for nested schema](#nestedatt--secrets))
 
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
 Read-Only:
 
-- `created_at` (String)
-- `name` (String)
-- `updated_at` (String)
-- `visibility` (String)
+- `created_at` (String) Date of 'secret' creation.
+- `name` (String) Secret name.
+- `updated_at` (String) Date of 'secret' update.
+- `visibility` (String) Secret visibility.

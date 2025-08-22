@@ -24,11 +24,10 @@ data "github_app_token" "this" {
 
 ### Required
 
-- `app_id` (String) The GitHub App ID.
-- `installation_id` (String) The GitHub App installation instance ID.
-- `pem_file` (String) The GitHub App PEM file contents.
+- `app_id` (String) GitHub App ID.
+- `installation_id` (String) GitHub App Installation ID.
+- `pem_file` (String) GitHub App private key in PEM format.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
 - `token` (String, Sensitive) The generated token from the credentials.

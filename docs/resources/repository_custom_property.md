@@ -2,7 +2,7 @@
 page_title: "github_repository_custom_property Resource - github"
 subcategory: ""
 description: |-
-  Creates and a specific custom property for a GitHub repository
+  Creates and manages a specific custom property for a GitHub repository
 ---
 
 # github_repository_custom_property (Resource)
@@ -38,7 +38,7 @@ resource "github_repository_custom_property" "string" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the repository custom property (owner/repository/property_name).
 
 ## Import
 

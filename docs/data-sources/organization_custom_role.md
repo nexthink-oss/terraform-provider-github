@@ -24,11 +24,11 @@ data "github_organization_custom_role" "example" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the custom role.
 
 ### Read-Only
 
-- `base_role` (String)
-- `description` (String)
-- `id` (String) The ID of this resource.
-- `permissions` (Set of String)
+- `base_role` (String) The base role of the custom role.
+- `description` (String) The description of the custom role.
+- `id` (String) The ID of the custom role.
+- `permissions` (Set of String) List of additional permissions added to the base role.

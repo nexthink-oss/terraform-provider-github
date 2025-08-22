@@ -22,39 +22,39 @@ data "github_organization" "example" {
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the organization.
 
 ### Optional
 
-- `ignore_archived_repos` (Boolean)
-- `summary_only` (Boolean)
+- `ignore_archived_repos` (Boolean) Whether to ignore archived repositories.
+- `summary_only` (Boolean) Whether to return only summary data (without members, repositories, and other detailed information).
 
 ### Read-Only
 
-- `advanced_security_enabled_for_new_repositories` (Boolean)
-- `default_repository_permission` (String)
-- `dependabot_alerts_enabled_for_new_repositories` (Boolean)
-- `dependabot_security_updates_enabled_for_new_repositories` (Boolean)
-- `dependency_graph_enabled_for_new_repositories` (Boolean)
-- `description` (String)
-- `id` (String) The ID of this resource.
-- `login` (String)
-- `members` (List of String, Deprecated)
-- `members_allowed_repository_creation_type` (String)
-- `members_can_create_internal_repositories` (Boolean)
-- `members_can_create_pages` (Boolean)
-- `members_can_create_private_pages` (Boolean)
-- `members_can_create_private_repositories` (Boolean)
-- `members_can_create_public_pages` (Boolean)
-- `members_can_create_public_repositories` (Boolean)
-- `members_can_create_repositories` (Boolean)
-- `members_can_fork_private_repositories` (Boolean)
-- `node_id` (String)
-- `orgname` (String)
-- `plan` (String)
-- `repositories` (List of String)
-- `secret_scanning_enabled_for_new_repositories` (Boolean)
-- `secret_scanning_push_protection_enabled_for_new_repositories` (Boolean)
-- `two_factor_requirement_enabled` (Boolean)
-- `users` (List of Map of String)
-- `web_commit_signoff_required` (Boolean)
+- `advanced_security_enabled_for_new_repositories` (Boolean) Whether GitHub Advanced Security is enabled for new repositories.
+- `default_repository_permission` (String) The default repository permission for organization members.
+- `dependabot_alerts_enabled_for_new_repositories` (Boolean) Whether Dependabot alerts are enabled for new repositories.
+- `dependabot_security_updates_enabled_for_new_repositories` (Boolean) Whether Dependabot security updates are enabled for new repositories.
+- `dependency_graph_enabled_for_new_repositories` (Boolean) Whether dependency graph is enabled for new repositories.
+- `description` (String) The organization's description.
+- `id` (String) The ID of the organization.
+- `login` (String) The organization's login.
+- `members` (List of String, Deprecated) List of organization members. Use `users` instead by replacing `github_organization.example.members` to `github_organization.example.users[*].login`. Expect this field to be removed in next major version.
+- `members_allowed_repository_creation_type` (String) The type of repositories organization members are allowed to create.
+- `members_can_create_internal_repositories` (Boolean) Whether organization members can create internal repositories.
+- `members_can_create_pages` (Boolean) Whether organization members can create GitHub Pages sites.
+- `members_can_create_private_pages` (Boolean) Whether organization members can create private GitHub Pages sites.
+- `members_can_create_private_repositories` (Boolean) Whether organization members can create private repositories.
+- `members_can_create_public_pages` (Boolean) Whether organization members can create public GitHub Pages sites.
+- `members_can_create_public_repositories` (Boolean) Whether organization members can create public repositories.
+- `members_can_create_repositories` (Boolean) Whether organization members can create repositories.
+- `members_can_fork_private_repositories` (Boolean) Whether organization members can fork private repositories.
+- `node_id` (String) The node ID of the organization.
+- `orgname` (String) The organization name.
+- `plan` (String) The organization's plan.
+- `repositories` (List of String) List of organization repositories.
+- `secret_scanning_enabled_for_new_repositories` (Boolean) Whether secret scanning is enabled for new repositories.
+- `secret_scanning_push_protection_enabled_for_new_repositories` (Boolean) Whether secret scanning push protection is enabled for new repositories.
+- `two_factor_requirement_enabled` (Boolean) Whether two-factor authentication is required for organization members.
+- `users` (List of Map of String) List of organization users with their details.
+- `web_commit_signoff_required` (Boolean) Whether web commit signoff is required.

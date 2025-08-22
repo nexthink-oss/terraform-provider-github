@@ -22,15 +22,15 @@ data "github_membership" "membership_for_some_user" {
 
 ### Required
 
-- `username` (String)
+- `username` (String) The username to lookup membership for.
 
 ### Optional
 
-- `organization` (String)
+- `organization` (String) The organization to check membership in. If not specified, the provider's default organization is used.
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
-- `role` (String)
-- `state` (String)
+- `etag` (String) The ETag of the membership response.
+- `id` (String) The ID of the membership.
+- `role` (String) The role of the user in the organization.
+- `state` (String) The state of the user's membership in the organization.

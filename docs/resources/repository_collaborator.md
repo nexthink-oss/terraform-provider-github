@@ -49,7 +49,7 @@ resource "github_repository_collaborator" "a_repo_collaborator" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the repository collaborator (repository:username).
 - `invitation_id` (String) ID of the invitation to be used in 'github_user_invitation_accepter'
 
 ## Import

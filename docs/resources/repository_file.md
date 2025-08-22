@@ -75,7 +75,7 @@ resource "github_repository_file" "foo" {
 ### Read-Only
 
 - `commit_sha` (String) The SHA of the commit that modified the file
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the repository file (repository/file).
 - `ref` (String) The name of the commit/branch/tag
 - `sha` (String) The blob SHA of the file
 

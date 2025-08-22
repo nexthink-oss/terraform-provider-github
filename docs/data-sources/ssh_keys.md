@@ -20,5 +20,5 @@ data "github_ssh_keys" "test" {}
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `keys` (List of String)
+- `id` (String) The identifier of the data source.
+- `keys` (List of String) An array of GitHub's SSH keys.

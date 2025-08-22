@@ -25,17 +25,17 @@ data "github_repositories" "example" {
 
 ### Required
 
-- `query` (String)
+- `query` (String) Search query for repositories.
 
 ### Optional
 
-- `include_repo_id` (Boolean)
-- `results_per_page` (Number)
-- `sort` (String)
+- `include_repo_id` (Boolean) Whether to include repository IDs in the results.
+- `results_per_page` (Number) Number of results per page (0-1000).
+- `sort` (String) Sorts the repositories returned by the search. Can be one of: stars, fork, updated.
 
 ### Read-Only
 
-- `full_names` (List of String)
-- `id` (String) The ID of this resource.
-- `names` (List of String)
-- `repo_ids` (List of Number)
+- `full_names` (List of String) List of full repository names (owner/name).
+- `id` (String) The ID of the data source.
+- `names` (List of String) List of repository names.
+- `repo_ids` (List of Number) List of repository IDs. Only populated when include_repo_id is true.

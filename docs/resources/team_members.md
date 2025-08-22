@@ -60,12 +60,15 @@ resource "github_team_members" "some_team_members" {
 
 ### Required
 
-- `members` (Block Set, Min: 1) List of team members. (see [below for nested schema](#nestedblock--members))
 - `team_id` (String) The GitHub team id or slug
+
+### Optional
+
+- `members` (Block Set) List of team members. (see [below for nested schema](#nestedblock--members))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The team ID.
 
 <a id="nestedblock--members"></a>
 ### Nested Schema for `members`

@@ -24,14 +24,14 @@ data "github_repository_milestone" "example" {
 
 ### Required
 
-- `number` (Number)
-- `owner` (String)
-- `repository` (String)
+- `number` (Number) The number of the milestone.
+- `owner` (String) The repository owner.
+- `repository` (String) The name of the repository.
 
 ### Read-Only
 
-- `description` (String)
-- `due_date` (String)
-- `id` (String) The ID of this resource.
-- `state` (String)
-- `title` (String)
+- `description` (String) The description of the milestone.
+- `due_date` (String) The due date of the milestone in ISO 8601 format (YYYY-MM-DD).
+- `id` (String) The ID of the milestone.
+- `state` (String) The state of the milestone.
+- `title` (String) The title of the milestone.

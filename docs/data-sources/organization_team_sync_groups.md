@@ -20,14 +20,14 @@ data "github_organization_team_sync_groups" "test" {}
 
 ### Read-Only
 
-- `groups` (List of Object) (see [below for nested schema](#nestedatt--groups))
-- `id` (String) The ID of this resource.
+- `groups` (Attributes List) List of external identity provider (IdP) groups available to the organization. (see [below for nested schema](#nestedatt--groups))
+- `id` (String) The ID of the organization.
 
 <a id="nestedatt--groups"></a>
 ### Nested Schema for `groups`
 
 Read-Only:
 
-- `group_description` (String)
-- `group_id` (String)
-- `group_name` (String)
+- `group_description` (String) The description of the IdP group.
+- `group_id` (String) The ID of the IdP group.
+- `group_name` (String) The name of the IdP group.

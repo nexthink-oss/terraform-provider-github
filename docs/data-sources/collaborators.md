@@ -23,37 +23,37 @@ data "github_collaborators" "test" {
 
 ### Required
 
-- `owner` (String)
-- `repository` (String)
+- `owner` (String) The owner of the repository.
+- `repository` (String) The name of the repository.
 
 ### Optional
 
-- `affiliation` (String)
-- `permission` (String)
+- `affiliation` (String) Filter collaborators by their affiliation. Can be one of: all, direct, outside.
+- `permission` (String) Filter collaborators by their permission level. Can be one of: pull, triage, push, maintain, admin.
 
 ### Read-Only
 
-- `collaborator` (List of Object) (see [below for nested schema](#nestedatt--collaborator))
-- `id` (String) The ID of this resource.
+- `collaborator` (Attributes List) List of collaborators for the repository. (see [below for nested schema](#nestedatt--collaborator))
+- `id` (String) The ID of the data source.
 
 <a id="nestedatt--collaborator"></a>
 ### Nested Schema for `collaborator`
 
 Read-Only:
 
-- `events_url` (String)
-- `followers_url` (String)
-- `following_url` (String)
-- `gists_url` (String)
-- `html_url` (String)
-- `id` (Number)
-- `login` (String)
-- `organizations_url` (String)
-- `permission` (String)
-- `received_events_url` (String)
-- `repos_url` (String)
-- `site_admin` (Boolean)
-- `starred_url` (String)
-- `subscriptions_url` (String)
-- `type` (String)
-- `url` (String)
+- `events_url` (String) The events URL of the collaborator.
+- `followers_url` (String) The followers URL of the collaborator.
+- `following_url` (String) The following URL of the collaborator.
+- `gists_url` (String) The gists URL of the collaborator.
+- `html_url` (String) The GitHub URL of the collaborator.
+- `id` (Number) The ID of the collaborator.
+- `login` (String) The login name of the collaborator.
+- `organizations_url` (String) The organizations URL of the collaborator.
+- `permission` (String) The permission level of the collaborator.
+- `received_events_url` (String) The received events URL of the collaborator.
+- `repos_url` (String) The repositories URL of the collaborator.
+- `site_admin` (Boolean) Whether the collaborator is a site administrator.
+- `starred_url` (String) The starred URL of the collaborator.
+- `subscriptions_url` (String) The subscriptions URL of the collaborator.
+- `type` (String) The type of the collaborator (User or Organization).
+- `url` (String) The API URL of the collaborator.

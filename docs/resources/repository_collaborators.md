@@ -56,17 +56,17 @@ resource "github_repository_collaborators" "some_repo_collaborators" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The GitHub repository
 
 ### Optional
 
-- `ignore_team` (Block Set) List of teams to ignore. (see [below for nested schema](#nestedblock--ignore_team))
-- `team` (Block Set) List of teams. (see [below for nested schema](#nestedblock--team))
-- `user` (Block Set) List of users. (see [below for nested schema](#nestedblock--user))
+- `ignore_team` (Block Set) List of teams to ignore (see [below for nested schema](#nestedblock--ignore_team))
+- `team` (Block Set) List of teams to add as collaborators (see [below for nested schema](#nestedblock--team))
+- `user` (Block Set) List of users to add as collaborators (see [below for nested schema](#nestedblock--user))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the repository collaborators (repository name).
 - `invitation_ids` (Map of String) Map of usernames to invitation ID for any users added
 
 <a id="nestedblock--ignore_team"></a>
@@ -86,7 +86,7 @@ Required:
 
 Optional:
 
-- `permission` (String)
+- `permission` (String) The permission to grant the team. Must be one of: pull, push, maintain, triage, admin.
 
 
 <a id="nestedblock--user"></a>
@@ -94,11 +94,11 @@ Optional:
 
 Required:
 
-- `username` (String) (Required) The user to add to the repository as a collaborator.
+- `username` (String) The user to add to the repository as a collaborator.
 
 Optional:
 
-- `permission` (String)
+- `permission` (String) The permission to grant the collaborator. Must be one of: pull, push, maintain, triage, admin.
 
 ## Import
 

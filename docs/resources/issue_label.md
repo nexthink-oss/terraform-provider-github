@@ -41,8 +41,8 @@ resource "github_issue_label" "test_repo" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The ETag of the issue label.
+- `id` (String) The ID of the issue label (repository:name).
 - `url` (String) The URL to the issue label.
 
 ## Import

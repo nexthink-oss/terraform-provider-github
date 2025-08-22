@@ -22,12 +22,12 @@ data "github_rest_api" "example" {
 
 ### Required
 
-- `endpoint` (String)
+- `endpoint` (String) The GitHub REST API endpoint to query.
 
 ### Read-Only
 
-- `body` (String)
-- `code` (Number)
-- `headers` (String)
-- `id` (String) The ID of this resource.
-- `status` (String)
+- `body` (String) The HTTP response body as a string.
+- `code` (Number) The HTTP response status code.
+- `headers` (String) The HTTP response headers as a JSON string.
+- `id` (String) The ID of this data source.
+- `status` (String) The HTTP response status message.

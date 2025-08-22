@@ -34,7 +34,7 @@ resource "github_repository_topics" "test" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The repository name.
 
 ## Import
 

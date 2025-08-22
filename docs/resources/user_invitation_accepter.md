@@ -53,4 +53,4 @@ This is tracked in [#1157](https://github.com/integrations/terraform-provider-gi
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the invitation accepter resource.

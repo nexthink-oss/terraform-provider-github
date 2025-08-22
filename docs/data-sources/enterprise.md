@@ -23,13 +23,13 @@ data "github_enterprise" "example" {
 
 ### Required
 
-- `slug` (String)
+- `slug` (String) The slug of the enterprise.
 
 ### Read-Only
 
-- `created_at` (String)
-- `database_id` (Number)
-- `description` (String)
-- `id` (String) The ID of this resource.
-- `name` (String)
-- `url` (String)
+- `created_at` (String) The timestamp of when the enterprise was created.
+- `database_id` (Number) The database ID of the enterprise.
+- `description` (String) The description of the enterprise.
+- `id` (String) The ID of the enterprise.
+- `name` (String) The name of the enterprise.
+- `url` (String) The URL of the enterprise.

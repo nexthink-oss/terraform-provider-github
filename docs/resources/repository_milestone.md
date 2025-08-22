@@ -39,7 +39,7 @@ resource "github_repository_milestone" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the milestone.
 - `number` (Number) The number of the milestone.
 
 ## Import

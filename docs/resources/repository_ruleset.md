@@ -61,42 +61,69 @@ resource "github_repository_ruleset" "example" {
 
 - `enforcement` (String) Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.
 - `name` (String) The name of the ruleset.
-- `rules` (Block List, Min: 1, Max: 1) Rules within the ruleset. (see [below for nested schema](#nestedblock--rules))
 - `target` (String) Possible values are `branch` and `tag`.
 
 ### Optional
 
 - `bypass_actors` (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#nestedblock--bypass_actors))
-- `conditions` (Block List, Max: 1) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#nestedblock--conditions))
+- `conditions` (Block List) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#nestedblock--conditions))
 - `repository` (String) Name of the repository to apply rulset to.
+- `rules` (Block List) Rules within the ruleset. (see [below for nested schema](#nestedblock--rules))
 
 ### Read-Only
 
 - `etag` (String)
-- `id` (String) The ID of this resource.
+- `id` (String) The ruleset ID.
 - `node_id` (String) GraphQL global node id for use with v4 API.
 - `ruleset_id` (Number) GitHub ID for the ruleset.
+
+<a id="nestedblock--bypass_actors"></a>
+### Nested Schema for `bypass_actors`
+
+Required:
+
+- `actor_id` (Number) The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.
+- `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`.
+- `bypass_mode` (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.
+
+
+<a id="nestedblock--conditions"></a>
+### Nested Schema for `conditions`
+
+Optional:
+
+- `ref_name` (Block List) Parameters for a repository ruleset ref name condition. (see [below for nested schema](#nestedblock--conditions--ref_name))
+
+<a id="nestedblock--conditions--ref_name"></a>
+### Nested Schema for `conditions.ref_name`
+
+Required:
+
+- `exclude` (List of String) Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.
+- `include` (List of String) Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches.
+
+
 
 <a id="nestedblock--rules"></a>
 ### Nested Schema for `rules`
 
 Optional:
 
-- `branch_name_pattern` (Block List, Max: 1) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. (see [below for nested schema](#nestedblock--rules--branch_name_pattern))
-- `commit_author_email_pattern` (Block List, Max: 1) Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--commit_author_email_pattern))
-- `commit_message_pattern` (Block List, Max: 1) Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--commit_message_pattern))
-- `committer_email_pattern` (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--committer_email_pattern))
+- `branch_name_pattern` (Block List) Parameters to be used for the branch_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `tag_name_pattern` as it only applies to rulesets with target `branch`. (see [below for nested schema](#nestedblock--rules--branch_name_pattern))
+- `commit_author_email_pattern` (Block List) Parameters to be used for the commit_author_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--commit_author_email_pattern))
+- `commit_message_pattern` (Block List) Parameters to be used for the commit_message_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--commit_message_pattern))
+- `committer_email_pattern` (Block List) Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--committer_email_pattern))
 - `creation` (Boolean) Only allow users with bypass permission to create matching refs.
 - `deletion` (Boolean) Only allow users with bypass permissions to delete matching refs.
-- `merge_queue` (Block List, Max: 1) Merges must be performed via a merge queue. (see [below for nested schema](#nestedblock--rules--merge_queue))
+- `merge_queue` (Block List) Merges must be performed via a merge queue. (see [below for nested schema](#nestedblock--rules--merge_queue))
 - `non_fast_forward` (Boolean) Prevent users with push access from force pushing to branches.
-- `pull_request` (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#nestedblock--rules--pull_request))
-- `required_code_scanning` (Block List, Max: 1) Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. (see [below for nested schema](#nestedblock--rules--required_code_scanning))
-- `required_deployments` (Block List, Max: 1) Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. (see [below for nested schema](#nestedblock--rules--required_deployments))
+- `pull_request` (Block List) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#nestedblock--rules--pull_request))
+- `required_code_scanning` (Block List) Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. (see [below for nested schema](#nestedblock--rules--required_code_scanning))
+- `required_deployments` (Block List) Choose which environments must be successfully deployed to before branches can be merged into a branch that matches this rule. (see [below for nested schema](#nestedblock--rules--required_deployments))
 - `required_linear_history` (Boolean) Prevent merge commits from being pushed to matching branches.
 - `required_signatures` (Boolean) Commits pushed to matching branches must have verified signatures.
-- `required_status_checks` (Block List, Max: 1) Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. (see [below for nested schema](#nestedblock--rules--required_status_checks))
-- `tag_name_pattern` (Block List, Max: 1) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. (see [below for nested schema](#nestedblock--rules--tag_name_pattern))
+- `required_status_checks` (Block List) Choose which status checks must pass before branches can be merged into a branch that matches this rule. When enabled, commits must first be pushed to another branch, then merged or pushed directly to a branch that matches this rule after status checks have passed. (see [below for nested schema](#nestedblock--rules--required_status_checks))
+- `tag_name_pattern` (Block List) Parameters to be used for the tag_name_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. Conflicts with `branch_name_pattern` as it only applies to rulesets with target `tag`. (see [below for nested schema](#nestedblock--rules--tag_name_pattern))
 - `update` (Boolean) Only allow users with bypass permission to update matching refs.
 - `update_allows_fetch_and_merge` (Boolean) Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`.
 
@@ -189,9 +216,9 @@ Optional:
 <a id="nestedblock--rules--required_code_scanning"></a>
 ### Nested Schema for `rules.required_code_scanning`
 
-Required:
+Optional:
 
-- `required_code_scanning_tool` (Block Set, Min: 1) Tools that must provide code scanning results for this rule to pass. (see [below for nested schema](#nestedblock--rules--required_code_scanning--required_code_scanning_tool))
+- `required_code_scanning_tool` (Block Set) Tools that must provide code scanning results for this rule to pass. (see [below for nested schema](#nestedblock--rules--required_code_scanning--required_code_scanning_tool))
 
 <a id="nestedblock--rules--required_code_scanning--required_code_scanning_tool"></a>
 ### Nested Schema for `rules.required_code_scanning.required_code_scanning_tool`
@@ -215,13 +242,10 @@ Required:
 <a id="nestedblock--rules--required_status_checks"></a>
 ### Nested Schema for `rules.required_status_checks`
 
-Required:
-
-- `required_check` (Block Set, Min: 1) Status checks that are required. Several can be defined. (see [below for nested schema](#nestedblock--rules--required_status_checks--required_check))
-
 Optional:
 
 - `do_not_enforce_on_create` (Boolean) Allow repositories and branches to be created if a check would otherwise prohibit it.
+- `required_check` (Block Set) Status checks that are required. Several can be defined. (see [below for nested schema](#nestedblock--rules--required_status_checks--required_check))
 - `strict_required_status_checks_policy` (Boolean) Whether pull requests targeting a matching branch must be tested with the latest code. This setting will not take effect unless at least one status check is enabled. Defaults to `false`.
 
 <a id="nestedblock--rules--required_status_checks--required_check"></a>
@@ -249,33 +273,6 @@ Optional:
 
 - `name` (String) How this rule will appear to users.
 - `negate` (Boolean) If true, the rule will fail if the pattern matches.
-
-
-
-<a id="nestedblock--bypass_actors"></a>
-### Nested Schema for `bypass_actors`
-
-Required:
-
-- `actor_id` (Number) The ID of the actor that can bypass a ruleset. When `actor_type` is `OrganizationAdmin`, this should be set to `1`.
-- `actor_type` (String) The type of actor that can bypass a ruleset. Can be one of: `RepositoryRole`, `Team`, `Integration`, `OrganizationAdmin`, `DeployKey`.
-- `bypass_mode` (String) When the specified actor can bypass the ruleset. pull_request means that an actor can only bypass rules on pull requests. Can be one of: `always`, `pull_request`.
-
-
-<a id="nestedblock--conditions"></a>
-### Nested Schema for `conditions`
-
-Required:
-
-- `ref_name` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--conditions--ref_name))
-
-<a id="nestedblock--conditions--ref_name"></a>
-### Nested Schema for `conditions.ref_name`
-
-Required:
-
-- `exclude` (List of String) Array of ref names or patterns to exclude. The condition will not pass if any of these patterns match.
-- `include` (List of String) Array of ref names or patterns to include. One of these patterns must match for the condition to pass. Also accepts `~DEFAULT_BRANCH` to include the default branch or `~ALL` to include all branches.
 
 ## Import
 

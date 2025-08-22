@@ -32,28 +32,28 @@ output "current_github_login" {
 
 ### Required
 
-- `username` (String)
+- `username` (String) The username to lookup.
 
 ### Read-Only
 
-- `avatar_url` (String)
-- `bio` (String)
-- `blog` (String)
-- `company` (String)
-- `created_at` (String)
-- `email` (String)
-- `followers` (Number)
-- `following` (Number)
-- `gpg_keys` (List of String)
-- `gravatar_id` (String)
-- `id` (String) The ID of this resource.
-- `location` (String)
-- `login` (String)
-- `name` (String)
-- `node_id` (String)
-- `public_gists` (Number)
-- `public_repos` (Number)
-- `site_admin` (Boolean)
-- `ssh_keys` (List of String)
-- `suspended_at` (String)
-- `updated_at` (String)
+- `avatar_url` (String) The user's avatar URL.
+- `bio` (String) The user's bio.
+- `blog` (String) The user's blog URL.
+- `company` (String) The user's company.
+- `created_at` (String) The date the user was created.
+- `email` (String) The user's public email address.
+- `followers` (Number) The number of followers of the user.
+- `following` (Number) The number of users followed by the user.
+- `gpg_keys` (List of String) List of the user's GPG keys.
+- `gravatar_id` (String) The user's Gravatar ID.
+- `id` (String) The ID of the user.
+- `location` (String) The user's location.
+- `login` (String) The user's login.
+- `name` (String) The user's public name.
+- `node_id` (String) The node ID of the user.
+- `public_gists` (Number) The number of public gists owned by the user.
+- `public_repos` (Number) The number of public repositories owned by the user.
+- `site_admin` (Boolean) Whether the user is a site administrator.
+- `ssh_keys` (List of String) List of the user's SSH keys.
+- `suspended_at` (String) The date the user was suspended.
+- `updated_at` (String) The date the user was last updated.

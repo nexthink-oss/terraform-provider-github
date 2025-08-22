@@ -111,7 +111,7 @@ resource "github_team_repository" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the branch protection rule.
 
 <a id="nestedblock--required_pull_request_reviews"></a>
 ### Nested Schema for `required_pull_request_reviews`

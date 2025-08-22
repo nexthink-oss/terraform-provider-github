@@ -22,19 +22,19 @@ data "github_repository_teams" "example" {
 
 ### Optional
 
-- `full_name` (String)
-- `name` (String)
+- `full_name` (String) The full name of the repository (owner/repo_name).
+- `name` (String) The name of the repository.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `teams` (List of Object) (see [below for nested schema](#nestedatt--teams))
+- `id` (String) The ID of the data source.
+- `teams` (Attributes List) List of teams with permission on the repository. (see [below for nested schema](#nestedatt--teams))
 
 <a id="nestedatt--teams"></a>
 ### Nested Schema for `teams`
 
 Read-Only:
 
-- `name` (String)
-- `permission` (String)
-- `slug` (String)
+- `name` (String) The name of the team.
+- `permission` (String) The permission level of the team on the repository.
+- `slug` (String) The slug of the team.

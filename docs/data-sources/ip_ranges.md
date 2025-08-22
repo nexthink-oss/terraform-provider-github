@@ -2,7 +2,7 @@
 page_title: "github_ip_ranges Data Source - github"
 subcategory: ""
 description: |-
-  Get information on GitHub's IP addresses.
+  Get GitHub's IP address ranges for various services.
 ---
 
 # github_ip_ranges (Data Source)
@@ -20,31 +20,14 @@ data "github_ip_ranges" "test" {}
 
 ### Read-Only
 
-- `actions` (List of String)
-- `actions_ipv4` (List of String)
-- `actions_ipv6` (List of String)
-- `api` (List of String)
-- `api_ipv4` (List of String)
-- `api_ipv6` (List of String)
-- `dependabot` (List of String)
-- `dependabot_ipv4` (List of String)
-- `dependabot_ipv6` (List of String)
-- `git` (List of String)
-- `git_ipv4` (List of String)
-- `git_ipv6` (List of String)
-- `hooks` (List of String)
-- `hooks_ipv4` (List of String)
-- `hooks_ipv6` (List of String)
-- `id` (String) The ID of this resource.
-- `importer` (List of String)
-- `importer_ipv4` (List of String)
-- `importer_ipv6` (List of String)
-- `packages` (List of String)
-- `packages_ipv4` (List of String)
-- `packages_ipv6` (List of String)
-- `pages` (List of String)
-- `pages_ipv4` (List of String)
-- `pages_ipv6` (List of String)
-- `web` (List of String)
-- `web_ipv4` (List of String)
-- `web_ipv6` (List of String)
+- `actions` (List of String) An array of IP addresses in CIDR format for GitHub Actions.
+- `api` (List of String) An array of IP addresses in CIDR format for GitHub's API servers.
+- `dependabot` (List of String) An array of IP addresses in CIDR format for GitHub Dependabot.
+- `git` (List of String) An array of IP addresses in CIDR format specifying the Git servers.
+- `github_enterprise_importer` (List of String) An array of IP addresses in CIDR format for the GitHub Enterprise Importer.
+- `hooks` (List of String) An array of IP addresses in CIDR format specifying the addresses that incoming service hooks will originate from.
+- `id` (String) The ID of this data source.
+- `importer` (List of String) An array of IP addresses in CIDR format for the GitHub Importer.
+- `packages` (List of String) An array of IP addresses in CIDR format for GitHub Packages.
+- `pages` (List of String) An array of IP addresses in CIDR format specifying the A records for GitHub Pages.
+- `web` (List of String) An array of IP addresses in CIDR format for GitHub's web servers.

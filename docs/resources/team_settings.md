@@ -43,11 +43,11 @@ resource "github_team_settings" "code_review_settings" {
 
 ### Optional
 
-- `review_request_delegation` (Block List, Max: 1) The settings for delegating code reviews to individuals on behalf of the team. If this block is present, even without any fields, then review request delegation will be enabled for the team. (see [below for nested schema](#nestedblock--review_request_delegation))
+- `review_request_delegation` (Block List) The settings for delegating code reviews to individuals on behalf of the team. If this block is present, even without any fields, then review request delegation will be enabled for the team. (see [below for nested schema](#nestedblock--review_request_delegation))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the team settings resource.
 - `team_slug` (String) The slug of the Team within the Organization.
 - `team_uid` (String) The unique ID of the Team on GitHub. Corresponds to the ID of the 'github_team_settings' resource.
 

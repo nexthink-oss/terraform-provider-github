@@ -49,7 +49,7 @@ resource "github_codespaces_secret" "example_secret" {
 ### Read-Only
 
 - `created_at` (String) Date of 'codespaces_secret' creation.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the codespaces secret (repository:secret_name).
 - `updated_at` (String) Date of 'codespaces_secret' update.
 
 ## Import

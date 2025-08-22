@@ -22,11 +22,11 @@ data "github_repository_environments" "example" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The name of the repository.
 
 ### Read-Only
 
-- `environments` (List of Object) (see [below for nested schema](#nestedatt--environments))
+- `environments` (Attributes List) The list of environments in this repository. (see [below for nested schema](#nestedatt--environments))
 - `id` (String) The ID of this resource.
 
 <a id="nestedatt--environments"></a>
@@ -34,5 +34,5 @@ data "github_repository_environments" "example" {
 
 Read-Only:
 
-- `name` (String)
-- `node_id` (String)
+- `name` (String) The name of the environment.
+- `node_id` (String) The node ID of the environment.

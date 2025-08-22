@@ -22,20 +22,20 @@ data "github_actions_variables" "example" {
 
 ### Optional
 
-- `full_name` (String)
-- `name` (String)
+- `full_name` (String) Full name of the repository (in `owner/name` format).
+- `name` (String) The name of the repository.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `variables` (List of Object) (see [below for nested schema](#nestedatt--variables))
+- `id` (String) The ID of the repository.
+- `variables` (Attributes List) An array of repository actions variables. (see [below for nested schema](#nestedatt--variables))
 
 <a id="nestedatt--variables"></a>
 ### Nested Schema for `variables`
 
 Read-Only:
 
-- `created_at` (String)
-- `name` (String)
-- `updated_at` (String)
-- `value` (String)
+- `created_at` (String) Date of 'variable' creation.
+- `name` (String) Variable name.
+- `updated_at` (String) Date of 'variable' update.
+- `value` (String) Variable value.

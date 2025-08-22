@@ -1,7 +1,7 @@
 ---
 page_title: "Provider: github"
 description: |-
-  
+  GitHub Provider (Plugin Framework)
 ---
 
 # GitHub Provider
@@ -37,21 +37,7 @@ resource "github_membership" "membership_for_user_x" {
 
 - You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `isometry/github` in a submodule, your terraform run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
 
-Terraform 0.12 and earlier:
-
-```terraform
-# Configure the GitHub Provider
-provider "github" {
-  version = "~> 5.0"
-}
-
-# Add a user to the organization
-resource "github_membership" "membership_for_user_x" {
-  # ...
-}
-```
-
-~> **Note:** When upgrading from `hashicorp/github` to `isometry/github`, use `terraform state replace-provider`. Otherwise, Terraform will still require the old provider to interact with the state file.
+~> **Note:** When upgrading from `integrations/github` to `isometry/github`, use `terraform state replace-provider`. Otherwise, Terraform will still require the old provider to interact with the state file.
 
 ## Authentication
 

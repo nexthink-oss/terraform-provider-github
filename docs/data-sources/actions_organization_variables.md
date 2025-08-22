@@ -21,16 +21,16 @@ data "github_actions_organization_variables" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `variables` (List of Object) (see [below for nested schema](#nestedatt--variables))
+- `id` (String) The ID of the organization.
+- `variables` (Attributes List) An array of organization actions variables. (see [below for nested schema](#nestedatt--variables))
 
 <a id="nestedatt--variables"></a>
 ### Nested Schema for `variables`
 
 Read-Only:
 
-- `created_at` (String)
-- `name` (String)
-- `updated_at` (String)
-- `value` (String)
-- `visibility` (String)
+- `created_at` (String) Date of 'variable' creation.
+- `name` (String) Variable name.
+- `updated_at` (String) Date of 'variable' update.
+- `value` (String) Variable value.
+- `visibility` (String) Variable visibility (all, private, selected).

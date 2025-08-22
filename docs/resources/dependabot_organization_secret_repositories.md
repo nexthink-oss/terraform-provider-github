@@ -2,7 +2,7 @@
 page_title: "github_dependabot_organization_secret_repositories Resource - github"
 subcategory: ""
 description: |-
-  Manages repository allow list for an Dependabot Secret within a GitHub organization
+  Manages repository allow list for a Dependabot Secret within a GitHub organization
 ---
 
 # github_dependabot_organization_secret_repositories (Resource)
@@ -40,7 +40,7 @@ resource "github_dependabot_organization_secret_repositories" "org_secret_repos"
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the dependabot organization secret repositories (same as secret_name).
 
 ## Import
 

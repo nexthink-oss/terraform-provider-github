@@ -23,28 +23,28 @@ data "github_repository_pull_request" "example" {
 
 ### Required
 
-- `base_repository` (String)
-- `number` (Number)
+- `base_repository` (String) The name of the repository containing the pull request.
+- `number` (Number) The pull request number.
 
 ### Optional
 
-- `owner` (String)
+- `owner` (String) The GitHub organization or user owning the repository. If not provided, the configured owner will be used.
 
 ### Read-Only
 
-- `base_ref` (String)
-- `base_sha` (String)
-- `body` (String)
-- `draft` (Boolean)
-- `head_owner` (String)
-- `head_ref` (String)
-- `head_repository` (String)
-- `head_sha` (String)
+- `base_ref` (String) The base branch name the PR is merging into.
+- `base_sha` (String) The SHA of the base branch the PR is merging into.
+- `body` (String) The body/content of the pull request.
+- `draft` (Boolean) Indicates whether or not the pull request is a draft.
+- `head_owner` (String) The owner of the repository containing the head branch.
+- `head_ref` (String) The head branch name the PR is merging from.
+- `head_repository` (String) The name of the repository containing the head branch.
+- `head_sha` (String) The SHA of the head branch the PR is merging from.
 - `id` (String) The ID of this resource.
-- `labels` (List of String) List of names of labels on the PR
-- `maintainer_can_modify` (Boolean)
-- `opened_at` (Number)
-- `opened_by` (String) Username of the PR creator
-- `state` (String)
-- `title` (String)
-- `updated_at` (Number)
+- `labels` (List of String) List of names of labels on the PR.
+- `maintainer_can_modify` (Boolean) Indicates whether maintainers can modify the pull request.
+- `opened_at` (Number) Unix timestamp indicating when the pull request was opened.
+- `opened_by` (String) Username of the PR creator.
+- `state` (String) The state of the pull request (open, closed, merged).
+- `title` (String) The title of the pull request.
+- `updated_at` (Number) Unix timestamp indicating when the pull request was last updated.

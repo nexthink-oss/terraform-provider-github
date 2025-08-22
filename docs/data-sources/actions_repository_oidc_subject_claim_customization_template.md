@@ -22,10 +22,10 @@ data "github_actions_repository_oidc_subject_claim_customization_template" "exam
 
 ### Required
 
-- `name` (String)
+- `name` (String) The name of the repository.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `include_claim_keys` (List of String)
-- `use_default` (Boolean)
+- `include_claim_keys` (List of String) The list of included claim keys in the customization template.
+- `use_default` (Boolean) Whether the repository uses the default template.

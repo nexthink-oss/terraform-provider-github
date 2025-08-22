@@ -31,7 +31,7 @@ resource "github_actions_variable" "example_variable" {
 ### Read-Only
 
 - `created_at` (String) Date of 'actions_variable' creation.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the actions variable (repository:variable_name).
 - `updated_at` (String) Date of 'actions_variable' update.
 
 ## Import

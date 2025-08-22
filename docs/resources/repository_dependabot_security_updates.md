@@ -2,7 +2,7 @@
 page_title: "github_repository_dependabot_security_updates Resource - github"
 subcategory: ""
 description: |-
-  
+  Provides a GitHub repository Dependabot security updates resource.
 ---
 
 # github_repository_dependabot_security_updates (Resource)
@@ -38,7 +38,7 @@ resource "github_repository_dependabot_security_updates" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The repository name.
 
 ## Import
 

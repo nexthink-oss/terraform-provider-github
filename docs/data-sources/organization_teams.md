@@ -30,26 +30,35 @@ data "github_organization_teams" "root_teams" {
 
 ### Optional
 
-- `results_per_page` (Number)
-- `root_teams_only` (Boolean)
-- `summary_only` (Boolean)
+- `results_per_page` (Number) Number of teams to fetch per page. Must be between 0 and 100.
+- `root_teams_only` (Boolean) Only return root teams (teams with no parent).
+- `summary_only` (Boolean) Only return basic team information, omitting members and repositories.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `teams` (List of Object) (see [below for nested schema](#nestedatt--teams))
+- `id` (String) The ID of the organization.
+- `teams` (Attributes List) List of teams in the organization. (see [below for nested schema](#nestedatt--teams))
 
 <a id="nestedatt--teams"></a>
 ### Nested Schema for `teams`
 
 Read-Only:
 
-- `description` (String)
-- `id` (Number)
-- `members` (List of String)
-- `name` (String)
-- `node_id` (String)
-- `parent` (Map of String)
-- `privacy` (String)
-- `repositories` (List of String)
-- `slug` (String)
+- `description` (String) The team's description.
+- `id` (Number) The team's ID.
+- `members` (List of String) List of team members (only returned when summary_only is false).
+- `name` (String) The team's name.
+- `node_id` (String) The team's node ID.
+- `parent` (Attributes) Parent team information. (see [below for nested schema](#nestedatt--teams--parent))
+- `privacy` (String) The team's privacy setting (open, closed, secret).
+- `repositories` (List of String) List of team repositories (only returned when summary_only is false).
+- `slug` (String) The team's slug.
+
+<a id="nestedatt--teams--parent"></a>
+### Nested Schema for `teams.parent`
+
+Read-Only:
+
+- `id` (String) The parent team's ID.
+- `name` (String) The parent team's name.
+- `slug` (String) The parent team's slug.

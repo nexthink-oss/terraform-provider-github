@@ -43,8 +43,8 @@ resource "github_team_sync_group_mapping" "example_group_mapping" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The etag of the team sync group mapping.
+- `id` (String) The ID of the team sync group mapping.
 
 <a id="nestedblock--group"></a>
 ### Nested Schema for `group`

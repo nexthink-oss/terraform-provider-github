@@ -43,8 +43,8 @@ resource "github_repository_autolink_reference" "autolink" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) An etag representing the autolink reference object.
+- `id` (String) The ID of the autolink reference.
 
 ## Import
 

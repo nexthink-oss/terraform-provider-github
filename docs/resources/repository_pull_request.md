@@ -42,7 +42,7 @@ resource "github_repository_pull_request" "example" {
 - `base_sha` (String) Head commit SHA of the Pull Request base.
 - `draft` (Boolean) Indicates Whether this Pull Request is a draft.
 - `head_sha` (String) Head commit SHA of the Pull Request head.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the pull request (owner:repository:number).
 - `labels` (List of String) List of names of labels on the PR
 - `number` (Number) The number of the Pull Request within the repository.
 - `opened_at` (Number) Unix timestamp indicating the Pull Request creation time.

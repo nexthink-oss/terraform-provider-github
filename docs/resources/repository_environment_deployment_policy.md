@@ -2,7 +2,7 @@
 page_title: "github_repository_environment_deployment_policy Resource - github"
 subcategory: ""
 description: |-
-  Creates and manages environment deployment branch policies for GitHub repositories
+  Creates and manages environment deployment policies for GitHub repositories.
 ---
 
 # github_repository_environment_deployment_policy (Resource)
@@ -88,7 +88,7 @@ resource "github_repository_environment_deployment_policy" "test" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the deployment policy.
 
 ## Import
 

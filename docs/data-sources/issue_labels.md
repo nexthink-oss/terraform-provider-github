@@ -26,19 +26,19 @@ data "github_labels" "test" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The repository name.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `labels` (List of Object) (see [below for nested schema](#nestedatt--labels))
+- `id` (String) The ID of the data source.
+- `labels` (Attributes List) List of labels in the repository. (see [below for nested schema](#nestedatt--labels))
 
 <a id="nestedatt--labels"></a>
 ### Nested Schema for `labels`
 
 Read-Only:
 
-- `color` (String)
-- `description` (String)
-- `name` (String)
-- `url` (String)
+- `color` (String) The color of the label (without the leading #).
+- `description` (String) A short description of the label.
+- `name` (String) The name of the label.
+- `url` (String) The URL of the label.

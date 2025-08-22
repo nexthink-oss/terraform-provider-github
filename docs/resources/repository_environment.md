@@ -46,31 +46,31 @@ resource "github_repository_environment" "example" {
 ### Optional
 
 - `can_admins_bypass` (Boolean) Can Admins bypass deployment protections
-- `deployment_branch_policy` (Block List, Max: 1) The deployment branch policy configuration (see [below for nested schema](#nestedblock--deployment_branch_policy))
+- `deployment_branch_policy` (List of Object) The deployment branch policy configuration (see [below for nested schema](#nestedatt--deployment_branch_policy))
 - `prevent_self_review` (Boolean) Prevent users from approving workflows runs that they triggered.
-- `reviewers` (Block List, Max: 6) The environment reviewers configuration. (see [below for nested schema](#nestedblock--reviewers))
+- `reviewers` (List of Object) The environment reviewers configuration. (see [below for nested schema](#nestedatt--reviewers))
 - `wait_timer` (Number) Amount of time to delay a job after the job is initially triggered.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the resource in the format 'repository:environment'
 
-<a id="nestedblock--deployment_branch_policy"></a>
+<a id="nestedatt--deployment_branch_policy"></a>
 ### Nested Schema for `deployment_branch_policy`
 
-Required:
+Optional:
 
-- `custom_branch_policies` (Boolean) Whether only branches that match the specified name patterns can deploy to this environment.
-- `protected_branches` (Boolean) Whether only branches with branch protection rules can deploy to this environment.
+- `custom_branch_policies` (Boolean)
+- `protected_branches` (Boolean)
 
 
-<a id="nestedblock--reviewers"></a>
+<a id="nestedatt--reviewers"></a>
 ### Nested Schema for `reviewers`
 
 Optional:
 
-- `teams` (Set of Number) Up to 6 IDs for teams who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.
-- `users` (Set of Number) Up to 6 IDs for users who may review jobs that reference the environment. Reviewers must have at least read access to the repository. Only one of the required reviewers needs to approve the job for it to proceed.
+- `teams` (Set of Number)
+- `users` (Set of Number)
 
 ## Import
 

@@ -49,7 +49,7 @@ resource "github_actions_secret" "example_secret" {
 ### Read-Only
 
 - `created_at` (String) Date of 'actions_secret' creation.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the actions secret (repository:secret_name).
 - `updated_at` (String) Date of 'actions_secret' update.
 
 ## Import

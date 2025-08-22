@@ -55,7 +55,7 @@ resource "github_dependabot_organization_secret" "example_secret" {
 ### Required
 
 - `secret_name` (String) Name of the secret.
-- `visibility` (String) Configures the access that repositories have to the organization secret. Must be one of 'all', 'private' or 'selected'. 'selected_repository_ids' is required if set to 'selected'.
+- `visibility` (String) Configures the access that repositories have to the organization secret. Must be one of 'all', 'private', or 'selected'. 'selected_repository_ids' is required if set to 'selected'.
 
 ### Optional
 
@@ -66,7 +66,7 @@ resource "github_dependabot_organization_secret" "example_secret" {
 ### Read-Only
 
 - `created_at` (String) Date of 'dependabot_secret' creation.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the dependabot organization secret (same as secret_name).
 - `updated_at` (String) Date of 'dependabot_secret' update.
 
 ## Import

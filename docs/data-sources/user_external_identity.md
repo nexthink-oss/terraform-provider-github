@@ -22,11 +22,11 @@ data "github_user_external_identity" "example_user" {
 
 ### Required
 
-- `username` (String)
+- `username` (String) The username to lookup the external identity for.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `login` (String)
-- `saml_identity` (Map of String)
-- `scim_identity` (Map of String)
+- `id` (String) The ID of the user external identity (format: orgName/username).
+- `login` (String) The user's GitHub login.
+- `saml_identity` (Map of String) The user's SAML identity information.
+- `scim_identity` (Map of String) The user's SCIM identity information.

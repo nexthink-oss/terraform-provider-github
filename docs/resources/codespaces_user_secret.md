@@ -2,7 +2,7 @@
 page_title: "github_codespaces_user_secret Resource - github"
 subcategory: ""
 description: |-
-  Creates and manages an Codespaces Secret within a GitHub user
+  Creates and manages a Codespaces Secret within a GitHub user account
 ---
 
 # github_codespaces_user_secret (Resource)
@@ -49,7 +49,7 @@ resource "github_codespaces_user_secret" "example_secret" {
 ### Read-Only
 
 - `created_at` (String) Date of 'codespaces_secret' creation.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the codespaces user secret.
 - `updated_at` (String) Date of 'codespaces_secret' update.
 
 ## Import

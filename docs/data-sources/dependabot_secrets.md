@@ -22,19 +22,19 @@ data "github_dependabot_secrets" "example" {
 
 ### Optional
 
-- `full_name` (String)
-- `name` (String)
+- `full_name` (String) Full name of the repository (in `owner/name` format).
+- `name` (String) The name of the repository.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `secrets` (List of Object) (see [below for nested schema](#nestedatt--secrets))
+- `id` (String) The ID of the repository.
+- `secrets` (Attributes List) An array of repository dependabot secrets. (see [below for nested schema](#nestedatt--secrets))
 
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
 Read-Only:
 
-- `created_at` (String)
-- `name` (String)
-- `updated_at` (String)
+- `created_at` (String) Date of 'secret' creation.
+- `name` (String) Secret name.
+- `updated_at` (String) Date of 'secret' update.

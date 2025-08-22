@@ -79,7 +79,7 @@ resource "github_organization_settings" "test" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) GitHub ID of the organization.
 
 ## Import
 

@@ -48,46 +48,46 @@ data "github_release" "example" {
 
 ### Required
 
-- `owner` (String)
-- `repository` (String)
-- `retrieve_by` (String)
+- `owner` (String) The repository owner.
+- `repository` (String) The name of the repository.
+- `retrieve_by` (String) How to retrieve the release. Must be one of `latest`, `id`, or `tag`.
 
 ### Optional
 
-- `release_id` (Number)
-- `release_tag` (String)
+- `release_id` (Number) The ID of the release to retrieve. Required if `retrieve_by = "id"`.
+- `release_tag` (String) The tag of the release to retrieve. Required if `retrieve_by = "tag"`.
 
 ### Read-Only
 
-- `asserts_url` (String, Deprecated)
-- `assets` (List of Object) (see [below for nested schema](#nestedatt--assets))
-- `assets_url` (String)
-- `body` (String)
-- `created_at` (String)
-- `draft` (Boolean)
-- `html_url` (String)
-- `id` (String) The ID of this resource.
-- `name` (String)
-- `prerelease` (Boolean)
-- `published_at` (String)
-- `tarball_url` (String)
-- `target_commitish` (String)
-- `upload_url` (String)
-- `url` (String)
-- `zipball_url` (String)
+- `asserts_url` (String, Deprecated) The URL of the release assets. Deprecated, use `assets_url` instead.
+- `assets` (Block List) The release assets. (see [below for nested schema](#nestedblock--assets))
+- `assets_url` (String) The URL of the release assets.
+- `body` (String) The body of the release.
+- `created_at` (String) The creation date of the release.
+- `draft` (Boolean) Whether the release is a draft.
+- `html_url` (String) The HTML URL of the release.
+- `id` (String) The ID of the release.
+- `name` (String) The name of the release.
+- `prerelease` (Boolean) Whether the release is a prerelease.
+- `published_at` (String) The publication date of the release.
+- `tarball_url` (String) The tarball URL of the release.
+- `target_commitish` (String) The target commitish of the release.
+- `upload_url` (String) The upload URL of the release.
+- `url` (String) The URL of the release.
+- `zipball_url` (String) The zipball URL of the release.
 
-<a id="nestedatt--assets"></a>
+<a id="nestedblock--assets"></a>
 ### Nested Schema for `assets`
 
 Read-Only:
 
-- `browser_download_url` (String)
-- `content_type` (String)
-- `created_at` (String)
-- `id` (Number)
-- `label` (String)
-- `name` (String)
-- `node_id` (String)
-- `size` (Number)
-- `updated_at` (String)
-- `url` (String)
+- `browser_download_url` (String) The browser download URL of the asset.
+- `content_type` (String) The content type of the asset.
+- `created_at` (String) The creation date of the asset.
+- `id` (Number) The ID of the asset.
+- `label` (String) The label of the asset.
+- `name` (String) The name of the asset.
+- `node_id` (String) The Node ID of the asset.
+- `size` (Number) The size of the asset in bytes.
+- `updated_at` (String) The last update date of the asset.
+- `url` (String) The URL of the asset.

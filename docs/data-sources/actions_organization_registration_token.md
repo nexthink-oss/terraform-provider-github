@@ -21,6 +21,6 @@ data "github_actions_organization_registration_token" "example" {
 
 ### Read-Only
 
-- `expires_at` (Number)
-- `id` (String) The ID of this resource.
-- `token` (String)
+- `expires_at` (Number) The Unix timestamp when the registration token expires.
+- `id` (String) The ID of the registration token.
+- `token` (String, Sensitive) The generated registration token.

@@ -36,7 +36,7 @@ resource "github_codespaces_organization_secret_repositories" "org_secret_repos"
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the codespaces organization secret repositories (same as secret_name).
 
 ## Import
 

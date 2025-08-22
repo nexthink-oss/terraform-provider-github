@@ -2,7 +2,7 @@
 page_title: "github_branch_protection_v3 Resource - github"
 subcategory: ""
 description: |-
-  Protects a GitHub branch using the v3 / REST implementation.  The github_branch_protection resource has moved to the GraphQL API, while this resource will continue to leverage the REST API
+  Protects a GitHub branch using the v3 / REST implementation. The github_branch_protection resource has moved to the GraphQL API, while this resource will continue to leverage the REST API
 ---
 
 # github_branch_protection_v3 (Resource)
@@ -92,26 +92,25 @@ resource "github_team_repository" "example" {
 - `enforce_admins` (Boolean) Setting this to 'true' enforces status checks for repository administrators.
 - `require_conversation_resolution` (Boolean) Setting this to 'true' requires all conversations on code must be resolved before a pull request can be merged.
 - `require_signed_commits` (Boolean) Setting this to 'true' requires all commits to be signed with GPG.
-- `required_pull_request_reviews` (Block List, Max: 1) Enforce restrictions for pull request reviews. (see [below for nested schema](#nestedblock--required_pull_request_reviews))
-- `required_status_checks` (Block List, Max: 1) Enforce restrictions for required status checks. (see [below for nested schema](#nestedblock--required_status_checks))
-- `restrictions` (Block List, Max: 1) Enforce restrictions for the users and teams that may push to the branch. (see [below for nested schema](#nestedblock--restrictions))
+- `required_pull_request_reviews` (Block List) Enforce restrictions for pull request reviews. (see [below for nested schema](#nestedblock--required_pull_request_reviews))
+- `required_status_checks` (Block List) Enforce restrictions for required status checks. (see [below for nested schema](#nestedblock--required_status_checks))
+- `restrictions` (Block List) Enforce restrictions for the users and teams that may push to the branch. (see [below for nested schema](#nestedblock--restrictions))
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The ETag of the branch protection rule.
+- `id` (String) The ID of the branch protection rule.
 
 <a id="nestedblock--required_pull_request_reviews"></a>
 ### Nested Schema for `required_pull_request_reviews`
 
 Optional:
 
-- `bypass_pull_request_allowances` (Block List, Max: 1) (see [below for nested schema](#nestedblock--required_pull_request_reviews--bypass_pull_request_allowances))
+- `bypass_pull_request_allowances` (Block List) Allow specific users, teams, or apps to bypass pull request requirements. (see [below for nested schema](#nestedblock--required_pull_request_reviews--bypass_pull_request_allowances))
 - `dismiss_stale_reviews` (Boolean) Dismiss approved reviews automatically when a new commit is pushed.
 - `dismissal_apps` (Set of String) The list of apps slugs with dismissal access. Always use slug of the app, not its name. Each app already has to have access to the repository.
 - `dismissal_teams` (Set of String) The list of team slugs with dismissal access. Always use slug of the team, not its name. Each team already has to have access to the repository.
 - `dismissal_users` (Set of String) The list of user logins with dismissal access.
-- `include_admins` (Boolean, Deprecated)
 - `require_code_owner_reviews` (Boolean) Require an approved review in pull requests including files with a designated code owner.
 - `require_last_push_approval` (Boolean) Require that the most recent push must be approved by someone other than the last pusher.
 - `required_approving_review_count` (Number) Require 'x' number of approvals to satisfy branch protection requirements. If this is specified it must be a number between 0-6.
@@ -121,9 +120,9 @@ Optional:
 
 Optional:
 
-- `apps` (Set of String)
-- `teams` (Set of String)
-- `users` (Set of String)
+- `apps` (Set of String) The list of app slugs allowed to bypass pull request requirements.
+- `teams` (Set of String) The list of team slugs allowed to bypass pull request requirements.
+- `users` (Set of String) The list of user logins allowed to bypass pull request requirements.
 
 
 
@@ -133,8 +132,7 @@ Optional:
 Optional:
 
 - `checks` (Set of String) The list of status checks to require in order to merge into this branch. No status checks are required by default. Checks should be strings containing the 'context' and 'app_id' like so 'context:app_id'
-- `contexts` (Set of String, Deprecated)
-- `include_admins` (Boolean, Deprecated)
+- `contexts` (Set of String, Deprecated) The list of status checks to require in order to merge into this branch. No status checks are required by default.
 - `strict` (Boolean) Require branches to be up to date before merging.
 
 

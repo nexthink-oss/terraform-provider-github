@@ -31,12 +31,12 @@ output "invalid_users" {
 
 ### Required
 
-- `usernames` (List of String)
+- `usernames` (List of String) List of usernames to lookup.
 
 ### Read-Only
 
-- `emails` (List of String)
-- `id` (String) The ID of this resource.
-- `logins` (List of String)
-- `node_ids` (List of String)
-- `unknown_logins` (List of String)
+- `emails` (List of String) List of found user emails.
+- `id` (String) The ID of the data source.
+- `logins` (List of String) List of found user logins.
+- `node_ids` (List of String) List of found user node IDs.
+- `unknown_logins` (List of String) List of usernames that could not be found.

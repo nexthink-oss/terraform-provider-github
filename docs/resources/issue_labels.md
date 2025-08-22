@@ -49,14 +49,14 @@ resource "github_issue_labels" "test_repo" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the issue labels resource (repository name).
 
 <a id="nestedblock--label"></a>
 ### Nested Schema for `label`
 
 Required:
 
-- `color` (String) A 6 character hex code, without the leading '#', identifying the color of the label.
+- `color` (String) A 6 character hex code, without the leading #, identifying the color of the label.
 - `name` (String) The name of the label.
 
 Optional:
@@ -65,7 +65,7 @@ Optional:
 
 Read-Only:
 
-- `url` (String) The URL to the issue label.
+- `url` (String) The URL to the label.
 
 ## Import
 

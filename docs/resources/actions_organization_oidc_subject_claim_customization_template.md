@@ -28,7 +28,7 @@ resource "github_actions_organization_oidc_subject_claim_customization_template"
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the organization.
 
 ## Import
 

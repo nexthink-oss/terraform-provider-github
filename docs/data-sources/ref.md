@@ -24,15 +24,14 @@ data "github_ref" "development" {
 
 ### Required
 
-- `ref` (String)
-- `repository` (String)
+- `ref` (String) The ref to read (e.g., 'heads/main', 'tags/v1.0.0').
+- `repository` (String) The name of the repository.
 
 ### Optional
 
-- `owner` (String)
+- `owner` (String) The GitHub owner name. If not specified, the provider's owner will be used.
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
-- `sha` (String)
+- `etag` (String) An ETag representing the Ref object.
+- `sha` (String) A string representing the SHA of the ref.

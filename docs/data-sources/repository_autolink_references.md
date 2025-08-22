@@ -22,18 +22,18 @@ data "github_repository_autolink_references" "example" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The name of the repository.
 
 ### Read-Only
 
-- `autolink_references` (List of Object) (see [below for nested schema](#nestedatt--autolink_references))
-- `id` (String) The ID of this resource.
+- `autolink_references` (Attributes List) List of autolink references for the repository. (see [below for nested schema](#nestedatt--autolink_references))
+- `id` (String) The ID of the data source.
 
 <a id="nestedatt--autolink_references"></a>
 ### Nested Schema for `autolink_references`
 
 Read-Only:
 
-- `is_alphanumeric` (Boolean)
-- `key_prefix` (String)
-- `target_url_template` (String)
+- `is_alphanumeric` (Boolean) Whether the autolink reference is alphanumeric.
+- `key_prefix` (String) The key prefix for the autolink reference.
+- `target_url_template` (String) The target URL template for the autolink reference.

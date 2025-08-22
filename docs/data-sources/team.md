@@ -22,30 +22,30 @@ data "github_team" "example" {
 
 ### Required
 
-- `slug` (String)
+- `slug` (String) The slug of the team.
 
 ### Optional
 
-- `membership_type` (String)
-- `results_per_page` (Number)
-- `summary_only` (Boolean)
+- `membership_type` (String) The type of membership to filter for. Can be either 'all' or 'immediate'.
+- `results_per_page` (Number) The number of results per page (max 100).
+- `summary_only` (Boolean) Whether to return only summary information (no members or repositories).
 
 ### Read-Only
 
-- `description` (String)
-- `id` (String) The ID of this resource.
-- `members` (List of String)
-- `name` (String)
-- `node_id` (String)
-- `permission` (String)
-- `privacy` (String)
-- `repositories` (List of String)
-- `repositories_detailed` (List of Object) (see [below for nested schema](#nestedatt--repositories_detailed))
+- `description` (String) The description of the team.
+- `id` (String) The ID of the team.
+- `members` (List of String) List of team members.
+- `name` (String) The name of the team.
+- `node_id` (String) The Node ID of the team.
+- `permission` (String) The permission level of the team.
+- `privacy` (String) The privacy setting of the team.
+- `repositories` (List of String) List of repositories the team has access to.
+- `repositories_detailed` (Attributes List) Detailed information about repositories the team has access to. (see [below for nested schema](#nestedatt--repositories_detailed))
 
 <a id="nestedatt--repositories_detailed"></a>
 ### Nested Schema for `repositories_detailed`
 
 Read-Only:
 
-- `repo_id` (Number)
-- `role_name` (String)
+- `repo_id` (Number) The ID of the repository.
+- `role_name` (String) The role name for the repository.

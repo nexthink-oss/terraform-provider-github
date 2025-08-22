@@ -26,40 +26,40 @@ data "github_repository_pull_requests" "example" {
 
 ### Required
 
-- `base_repository` (String)
+- `base_repository` (String) The repository name.
 
 ### Optional
 
-- `base_ref` (String)
-- `head_ref` (String)
-- `owner` (String)
-- `sort_by` (String)
-- `sort_direction` (String)
-- `state` (String)
+- `base_ref` (String) The name of the branch you want your changes pulled into.
+- `head_ref` (String) The name of the branch where your changes are implemented.
+- `owner` (String) The owner of the repository.
+- `sort_by` (String) What to sort results by. Can be either `created`, `updated`, `popularity` (comment count) or `long-running` (age, filtering by pulls updated in the last month). Default: `created`.
+- `sort_direction` (String) The direction to sort the results by. Default: `asc`.
+- `state` (String) Either `open`, `closed`, or `all` to filter by state. Default: `open`.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `results` (List of Object) (see [below for nested schema](#nestedatt--results))
+- `id` (String) The ID of the data source.
+- `results` (Attributes List) List of pull requests matching the criteria. (see [below for nested schema](#nestedatt--results))
 
 <a id="nestedatt--results"></a>
 ### Nested Schema for `results`
 
 Read-Only:
 
-- `base_ref` (String)
-- `base_sha` (String)
-- `body` (String)
-- `draft` (Boolean)
-- `head_owner` (String)
-- `head_ref` (String)
-- `head_repository` (String)
-- `head_sha` (String)
-- `labels` (List of String)
-- `maintainer_can_modify` (Boolean)
-- `number` (Number)
-- `opened_at` (Number)
-- `opened_by` (String)
-- `state` (String)
-- `title` (String)
-- `updated_at` (Number)
+- `base_ref` (String) The name of the branch you want your changes pulled into.
+- `base_sha` (String) The SHA of the base branch.
+- `body` (String) The body of the pull request.
+- `draft` (Boolean) Whether the pull request is a draft.
+- `head_owner` (String) The owner of the head repository.
+- `head_ref` (String) The name of the branch where your changes are implemented.
+- `head_repository` (String) The name of the head repository.
+- `head_sha` (String) The SHA of the head branch.
+- `labels` (List of String) List of names of labels on the PR
+- `maintainer_can_modify` (Boolean) Whether maintainers can modify the pull request.
+- `number` (Number) Per-repository, monotonically increasing ID of this PR
+- `opened_at` (Number) The timestamp when the pull request was opened.
+- `opened_by` (String) Username of the PR creator
+- `state` (String) The state of the pull request.
+- `title` (String) The title of the pull request.
+- `updated_at` (Number) The timestamp when the pull request was last updated.

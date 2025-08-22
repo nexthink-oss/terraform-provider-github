@@ -20,17 +20,17 @@ data "github_organization_ip_allow_list" "all" {}
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `ip_allow_list` (List of Object) (see [below for nested schema](#nestedatt--ip_allow_list))
+- `id` (String) The ID of the organization.
+- `ip_allow_list` (Attributes List) The list of IP allow list entries for the organization. (see [below for nested schema](#nestedatt--ip_allow_list))
 
 <a id="nestedatt--ip_allow_list"></a>
 ### Nested Schema for `ip_allow_list`
 
 Read-Only:
 
-- `allow_list_value` (String)
-- `created_at` (String)
-- `id` (String)
-- `is_active` (Boolean)
-- `name` (String)
-- `updated_at` (String)
+- `allow_list_value` (String) The IP address or CIDR block that is allowed.
+- `created_at` (String) The timestamp when the IP allow list entry was created.
+- `id` (String) The ID of the IP allow list entry.
+- `is_active` (Boolean) Whether the IP allow list entry is active.
+- `name` (String) The name of the IP allow list entry.
+- `updated_at` (String) The timestamp when the IP allow list entry was last updated.

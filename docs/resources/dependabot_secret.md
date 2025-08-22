@@ -49,7 +49,7 @@ resource "github_dependabot_secret" "example_secret" {
 ### Read-Only
 
 - `created_at` (String) Date of 'dependabot_secret' creation.
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the dependabot secret (repository:secret_name).
 - `updated_at` (String) Date of 'dependabot_secret' update.
 
 ## Import

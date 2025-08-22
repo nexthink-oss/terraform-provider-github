@@ -23,12 +23,11 @@ data "github_branch" "development" {
 
 ### Required
 
-- `branch` (String)
-- `repository` (String)
+- `branch` (String) The name of the branch.
+- `repository` (String) The name of the repository.
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
-- `ref` (String)
-- `sha` (String)
+- `etag` (String) An ETag representing the Branch object.
+- `ref` (String) A string representing a branch reference, in the form of 'refs/heads/<branch>'.
+- `sha` (String) A string representing the SHA of the branch reference.

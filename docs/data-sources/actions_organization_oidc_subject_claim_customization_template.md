@@ -21,5 +21,5 @@ data "github_actions_organization_oidc_subject_claim_customization_template" "ex
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `include_claim_keys` (List of String)
+- `id` (String) The ID of the organization.
+- `include_claim_keys` (List of String) A list of OpenID Connect claims.

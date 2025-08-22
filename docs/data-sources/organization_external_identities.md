@@ -20,14 +20,14 @@ data "github_organization_external_identities" "all" {}
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `identities` (List of Object) (see [below for nested schema](#nestedatt--identities))
+- `id` (String) The ID of this data source.
+- `identities` (Attributes List) List of organization members and their external identities. (see [below for nested schema](#nestedatt--identities))
 
 <a id="nestedatt--identities"></a>
 ### Nested Schema for `identities`
 
 Read-Only:
 
-- `login` (String)
-- `saml_identity` (Map of String)
-- `scim_identity` (Map of String)
+- `login` (String) The GitHub username of the organization member.
+- `saml_identity` (Map of String) SAML identity information for the user.
+- `scim_identity` (Map of String) SCIM identity information for the user.

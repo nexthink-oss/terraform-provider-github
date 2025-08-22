@@ -30,8 +30,8 @@ resource "github_emu_group_mapping" "example_emu_group_mapping" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The etag of the external group.
+- `id` (String) The ID of the EMU group mapping.
 
 ## Import
 

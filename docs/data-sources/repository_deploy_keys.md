@@ -22,19 +22,19 @@ data "github_repository_deploy_keys" "example" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The name of the repository.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `keys` (List of Object) (see [below for nested schema](#nestedatt--keys))
+- `id` (String) The ID of the data source.
+- `keys` (Attributes List) List of deploy keys for the repository. (see [below for nested schema](#nestedatt--keys))
 
 <a id="nestedatt--keys"></a>
 ### Nested Schema for `keys`
 
 Read-Only:
 
-- `id` (Number)
-- `key` (String)
-- `title` (String)
-- `verified` (Boolean)
+- `id` (Number) The ID of the deploy key.
+- `key` (String) The SSH key content.
+- `title` (String) The title of the deploy key.
+- `verified` (Boolean) Whether the key has been verified.

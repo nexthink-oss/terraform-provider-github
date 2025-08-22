@@ -26,13 +26,13 @@ data "github_repository_custom_properties" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `property` (Set of Object) List of custom properties (see [below for nested schema](#nestedatt--property))
+- `id` (String) The ID of the data source.
+- `property` (Attributes Set) List of custom properties (see [below for nested schema](#nestedatt--property))
 
 <a id="nestedatt--property"></a>
 ### Nested Schema for `property`
 
 Read-Only:
 
-- `property_name` (String)
-- `property_value` (Set of String)
+- `property_name` (String) Name of the custom property.
+- `property_value` (Set of String) Value of the custom property.

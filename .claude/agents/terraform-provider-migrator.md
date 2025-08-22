@@ -757,12 +757,19 @@ Only propose instruction updates that:
 **Migration Quality Gates**:
 - All existing functionality preserved
 - No state compatibility issues introduced
+- **CRITICAL: Schema Version Preservation**: All resources maintain their SDKv2 schema versions
+- **CRITICAL: State Migration Compatibility**: StateUpgrader functions implemented and tested
+- **CRITICAL: Dynamic Block Support**: Resources using nested schemas converted to NestedBlock
+- **CRITICAL: Provider Configuration Preserved**: All provider blocks and deprecated attributes maintained
+- **CRITICAL: Backward Compatibility Verified**: Existing Terraform configurations continue to work
 - **Test Coverage Maintained**: All original tests migrated successfully
 - **Test Pass Rate**: 100% of migrated tests pass with Framework implementation
 - **Behavioral Equivalence**: Migration validation tests confirm identical behavior
 - **Import Functionality**: Resource import tests work correctly with Framework
 - **State Compatibility**: Existing state can be read by Framework implementation
 - **Provider Factory Setup**: Test infrastructure correctly configured for Framework
+- **Dynamic Block Testing**: Tests verify dynamic block functionality works correctly
+- **Deprecated Attribute Testing**: Tests verify deprecated attributes work with warnings
 - Performance characteristics maintained or improved
 - Framework best practices applied appropriately
 - **Knowledge Contribution**: Generalizable patterns documented for future use

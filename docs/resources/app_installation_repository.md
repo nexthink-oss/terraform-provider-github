@@ -40,8 +40,8 @@ resource "github_app_installation_repository" "some_app_repo" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
-- `repo_id` (Number)
+- `id` (String) The ID of the app installation repository association (installation_id:repository).
+- `repo_id` (Number) The GitHub repository ID.
 
 ## Import
 

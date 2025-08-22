@@ -29,7 +29,7 @@ resource "github_organization_security_manager" "some_team" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The ID of the security manager team.
 
 ## Import
 

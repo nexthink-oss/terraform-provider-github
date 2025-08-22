@@ -51,8 +51,8 @@ resource "github_team_repository" "some_team_repo" {
 
 ### Read-Only
 
-- `etag` (String)
-- `id` (String) The ID of this resource.
+- `etag` (String) The ETag of the team repository association.
+- `id` (String) The ID of the team repository association (team_id:repository).
 
 ## Import
 

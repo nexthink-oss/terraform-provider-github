@@ -22,22 +22,22 @@ data "github_repository_branches" "example" {
 
 ### Required
 
-- `repository` (String)
+- `repository` (String) The name of the repository.
 
 ### Optional
 
-- `only_non_protected_branches` (Boolean)
-- `only_protected_branches` (Boolean)
+- `only_non_protected_branches` (Boolean) If true, only return non-protected branches.
+- `only_protected_branches` (Boolean) If true, only return protected branches.
 
 ### Read-Only
 
-- `branches` (List of Object) (see [below for nested schema](#nestedatt--branches))
-- `id` (String) The ID of this resource.
+- `branches` (Attributes List) The list of repository branches. (see [below for nested schema](#nestedatt--branches))
+- `id` (String) The ID of the data source.
 
 <a id="nestedatt--branches"></a>
 ### Nested Schema for `branches`
 
 Read-Only:
 
-- `name` (String)
-- `protected` (Boolean)
+- `name` (String) The name of the branch.
+- `protected` (Boolean) Whether the branch is protected.
