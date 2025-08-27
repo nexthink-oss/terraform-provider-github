@@ -122,6 +122,7 @@ func (r *githubOrganizationSettingsResource) Schema(_ context.Context, _ resourc
 			"description": schema.StringAttribute{
 				Description: "The description for the organization.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"blog": schema.StringAttribute{
 				Description: "The blog URL for the organization.",
@@ -430,7 +431,6 @@ func (r *githubOrganizationSettingsResource) updateOrganizationSettings(ctx cont
 		TwitterUsername:                    github.Ptr(plan.TwitterUsername.ValueString()),
 		Location:                           github.Ptr(plan.Location.ValueString()),
 		Name:                               github.Ptr(plan.Name.ValueString()),
-		Description:                        github.Ptr(plan.Description.ValueString()),
 		Blog:                               github.Ptr(plan.Blog.ValueString()),
 		HasOrganizationProjects:            github.Ptr(plan.HasOrganizationProjects.ValueBool()),
 		HasRepositoryProjects:              github.Ptr(plan.HasRepositoryProjects.ValueBool()),
@@ -449,6 +449,11 @@ func (r *githubOrganizationSettingsResource) updateOrganizationSettings(ctx cont
 		DependencyGraphEnabledForNewRepos:              github.Ptr(plan.DependencyGraphEnabledForNewRepositories.ValueBool()),
 		SecretScanningEnabledForNewRepos:               github.Ptr(plan.SecretScanningEnabledForNewRepositories.ValueBool()),
 		SecretScanningPushProtectionEnabledForNewRepos: github.Ptr(plan.SecretScanningPushProtectionEnabledForNewRepositories.ValueBool()),
+	}
+
+	// Only set description if it was configured by the user
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
+		settings.Description = github.Ptr(plan.Description.ValueString())
 	}
 
 	// Check organization plan to determine if enterprise features are available

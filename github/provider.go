@@ -34,6 +34,7 @@ type githubProviderModel struct {
 	Insecure         types.Bool   `tfsdk:"insecure"`
 	RateLimiter      types.String `tfsdk:"rate_limiter"`
 	AppAuth          types.List   `tfsdk:"app_auth"`
+	AutoImport       types.Bool   `tfsdk:"auto_import"`
 }
 
 type appAuthModel struct {
@@ -110,6 +111,12 @@ func (p *githubProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 				Validators: []validator.String{
 					stringvalidator.OneOf("legacy", "advanced"),
 				},
+			},
+			"auto_import": schema.BoolAttribute{
+				Description: "Enable automatic import of existing resources when creation fails with 'already exists' errors. " +
+					"Can be set via GITHUB_AUTO_IMPORT environment variable. " +
+					"Individual resources can override this setting. Defaults to false.",
+				Optional: true,
 			},
 		},
 		Blocks: map[string]schema.Block{
@@ -361,6 +368,15 @@ func (p *githubProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		rateLimiter = config.RateLimiter.ValueString()
 	}
 
+	// Get auto_import setting with environment variable fallback
+	autoImport := false
+	if envValue := os.Getenv("GITHUB_AUTO_IMPORT"); envValue == "true" {
+		autoImport = true
+	}
+	if !config.AutoImport.IsNull() && !config.AutoImport.IsUnknown() {
+		autoImport = config.AutoImport.ValueBool()
+	}
+
 	// Convert retryable errors to map
 	retryableErrors := make(map[int]bool)
 	if maxRetries > 0 {
@@ -382,6 +398,7 @@ func (p *githubProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		RetryDelay:       time.Duration(retryDelayMS) * time.Millisecond,
 		RetryableErrors:  retryableErrors,
 		RateLimiter:      rateLimiter,
+		AutoImport:       autoImport,
 	}
 
 	// Set BaseURL default if empty

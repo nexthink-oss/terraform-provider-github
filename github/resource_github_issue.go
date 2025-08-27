@@ -81,6 +81,7 @@ func (r *githubIssueResource) Schema(ctx context.Context, req resource.SchemaReq
 			"body": schema.StringAttribute{
 				Description: "Body of the issue.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"labels": schema.SetAttribute{
 				Description: "List of labels to attach to the issue.",

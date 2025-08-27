@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -89,7 +88,6 @@ func (r *githubActionsOrganizationVariableResource) Schema(ctx context.Context, 
 				Optional:    true,
 				Computed:    true,
 				ElementType: types.Int64Type,
-				Default:     setdefault.StaticValue(types.SetValueMust(types.Int64Type, []attr.Value{})),
 				Validators: []validator.Set{
 					&organizationVariableSelectedRepositoriesValidator{},
 				},
@@ -164,14 +162,17 @@ func (r *githubActionsOrganizationVariableResource) Create(ctx context.Context, 
 		}
 	}
 
-	repoIDs := github.SelectedRepoIDs(selectedRepositoryIDs)
-
 	// Create the variable
 	variable := &github.ActionsVariable{
-		Name:                  variableName,
-		Value:                 value,
-		Visibility:            &visibility,
-		SelectedRepositoryIDs: &repoIDs,
+		Name:       variableName,
+		Value:      value,
+		Visibility: &visibility,
+	}
+
+	// Only set SelectedRepositoryIDs if visibility is "selected" and we have repository IDs
+	if visibility == "selected" {
+		repoIDs := github.SelectedRepoIDs(selectedRepositoryIDs)
+		variable.SelectedRepositoryIDs = &repoIDs
 	}
 
 	_, err := client.Actions.CreateOrgVariable(ctx, owner, variable)
@@ -255,14 +256,17 @@ func (r *githubActionsOrganizationVariableResource) Update(ctx context.Context, 
 		}
 	}
 
-	repoIDs := github.SelectedRepoIDs(selectedRepositoryIDs)
-
 	// Update the variable
 	variable := &github.ActionsVariable{
-		Name:                  variableName,
-		Value:                 value,
-		Visibility:            &visibility,
-		SelectedRepositoryIDs: &repoIDs,
+		Name:       variableName,
+		Value:      value,
+		Visibility: &visibility,
+	}
+
+	// Only set SelectedRepositoryIDs if visibility is "selected" and we have repository IDs
+	if visibility == "selected" {
+		repoIDs := github.SelectedRepoIDs(selectedRepositoryIDs)
+		variable.SelectedRepositoryIDs = &repoIDs
 	}
 
 	_, err := client.Actions.UpdateOrgVariable(ctx, owner, variable)
@@ -374,7 +378,13 @@ func (r *githubActionsOrganizationVariableResource) ImportState(ctx context.Cont
 		}
 		data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, selectedRepositoryIDAttrs)
 	} else {
-		data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, []attr.Value{})
+		// Only set empty array if the user configured selected_repository_ids
+		// Otherwise preserve null state
+		if !data.SelectedRepositoryIDs.IsNull() {
+			data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, []attr.Value{})
+		} else {
+			data.SelectedRepositoryIDs = types.SetNull(types.Int64Type)
+		}
 	}
 
 	tflog.Debug(ctx, "imported GitHub actions organization variable", map[string]any{
@@ -445,11 +455,22 @@ func (r *githubActionsOrganizationVariableResource) readGithubActionsOrganizatio
 		}
 	}
 
-	selectedRepositoryIDAttrs := []attr.Value{}
-	for _, id := range selectedRepositoryIDs {
-		selectedRepositoryIDAttrs = append(selectedRepositoryIDAttrs, types.Int64Value(id))
+	// Only set selected_repository_ids if visibility is "selected"
+	if *variable.Visibility == "selected" {
+		selectedRepositoryIDAttrs := []attr.Value{}
+		for _, id := range selectedRepositoryIDs {
+			selectedRepositoryIDAttrs = append(selectedRepositoryIDAttrs, types.Int64Value(id))
+		}
+		data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, selectedRepositoryIDAttrs)
+	} else {
+		// Only set empty array if the user configured selected_repository_ids
+		// Otherwise preserve null state
+		if !data.SelectedRepositoryIDs.IsNull() {
+			data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, []attr.Value{})
+		} else {
+			data.SelectedRepositoryIDs = types.SetNull(types.Int64Type)
+		}
 	}
-	data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, selectedRepositoryIDAttrs)
 
 	tflog.Debug(ctx, "successfully read GitHub actions organization variable", map[string]any{
 		"id":            data.ID.ValueString(),

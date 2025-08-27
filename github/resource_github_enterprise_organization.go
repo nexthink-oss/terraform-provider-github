@@ -92,6 +92,7 @@ func (r *githubEnterpriseOrganizationResource) Schema(_ context.Context, _ resou
 			"description": schema.StringAttribute{
 				Description: "The description of the organization.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"database_id": schema.Int64Attribute{
 				Description: "The database ID of the organization.",
@@ -183,17 +184,22 @@ func (r *githubEnterpriseOrganizationResource) Create(ctx context.Context, req r
 	//
 	// It would be nice if there was an API available in github to enable a token for SSO.
 
-	description := plan.Description.ValueString()
-	displayName := plan.DisplayName.ValueString()
-	if description != "" || displayName != "" {
-		_, _, err = v3client.Organizations.Edit(
-			ctx,
-			plan.Name.ValueString(),
-			&github.Organization{
-				Description: github.Ptr(description),
-				Name:        github.Ptr(displayName),
-			},
-		)
+	// Set description and display name if configured by the user
+	orgUpdate := &github.Organization{}
+	needsUpdate := false
+
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() && plan.Description.ValueString() != "" {
+		orgUpdate.Description = github.Ptr(plan.Description.ValueString())
+		needsUpdate = true
+	}
+
+	if !plan.DisplayName.IsNull() && !plan.DisplayName.IsUnknown() && plan.DisplayName.ValueString() != "" {
+		orgUpdate.Name = github.Ptr(plan.DisplayName.ValueString())
+		needsUpdate = true
+	}
+
+	if needsUpdate {
+		_, _, err = v3client.Organizations.Edit(ctx, plan.Name.ValueString(), orgUpdate)
 		if err != nil {
 			resp.Diagnostics.AddError("Error setting organization description/display name", err.Error())
 			return
@@ -438,18 +444,22 @@ func (r *githubEnterpriseOrganizationResource) getOrganizationId(ctx context.Con
 
 func (r *githubEnterpriseOrganizationResource) updateDescription(ctx context.Context, plan, state *githubEnterpriseOrganizationResourceModel, v3client *github.Client) error {
 	orgName := plan.Name.ValueString()
-	oldDesc := state.Description.ValueString()
-	newDesc := plan.Description.ValueString()
 
-	if oldDesc != newDesc {
-		_, _, err := v3client.Organizations.Edit(
-			ctx,
-			orgName,
-			&github.Organization{
-				Description: github.Ptr(plan.Description.ValueString()),
-			},
-		)
-		return err
+	// Only update description if it was configured by the user
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
+		oldDesc := state.Description.ValueString()
+		newDesc := plan.Description.ValueString()
+
+		if oldDesc != newDesc {
+			_, _, err := v3client.Organizations.Edit(
+				ctx,
+				orgName,
+				&github.Organization{
+					Description: github.Ptr(plan.Description.ValueString()),
+				},
+			)
+			return err
+		}
 	}
 	return nil
 }

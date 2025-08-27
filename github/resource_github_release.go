@@ -103,6 +103,7 @@ func (r *githubReleaseResource) Schema(ctx context.Context, req resource.SchemaR
 			"body": schema.StringAttribute{
 				Description: "Text describing the contents of the tag.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"draft": schema.BoolAttribute{
 				Description: "Set to 'false' to create a published release.",

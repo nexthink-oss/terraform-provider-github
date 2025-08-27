@@ -296,6 +296,7 @@ func (r *githubRepositoryRulesetResource) Schema(_ context.Context, _ resource.S
 						},
 						"required_linear_history": schema.BoolAttribute{
 							Optional:    true,
+							Computed:    true,
 							Description: "Prevent merge commits from being pushed to matching branches.",
 						},
 						"required_signatures": schema.BoolAttribute{
@@ -804,6 +805,7 @@ func (r *githubRepositoryRulesetResource) UpgradeState(ctx context.Context) map[
 								},
 								"required_linear_history": schema.BoolAttribute{
 									Optional:    true,
+									Computed:    true,
 									Description: "Prevent merge commits from being pushed to matching branches.",
 								},
 								"required_signatures": schema.BoolAttribute{

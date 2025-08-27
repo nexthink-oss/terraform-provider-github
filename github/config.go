@@ -28,6 +28,7 @@ type Config struct {
 	MaxRetries       int
 	ParallelRequests bool
 	RateLimiter      string // "legacy" or "advanced"
+	AutoImport       bool   // Enable auto-import for all resources by default
 }
 
 type Owner struct {
@@ -37,6 +38,7 @@ type Owner struct {
 	v4client       *githubv4.Client
 	StopContext    context.Context
 	IsOrganization bool
+	AutoImport     bool // Provider-level auto-import setting
 }
 
 // V3Client returns the GitHub v3 REST API client
@@ -240,6 +242,7 @@ func (c *Config) Meta() (any, error) {
 	owner.v4client = v4client
 	owner.v3client = v3client
 	owner.StopContext = context.Background()
+	owner.AutoImport = c.AutoImport
 
 	_, err = c.ConfigureOwner(&owner)
 	if err != nil {

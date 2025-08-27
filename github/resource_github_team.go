@@ -78,7 +78,6 @@ func (r *githubTeamResource) Schema(ctx context.Context, req resource.SchemaRequ
 				Description: "A description of the team.",
 				Optional:    true,
 				Computed:    true,
-				Default:     stringdefault.StaticString(""),
 			},
 			"privacy": schema.StringAttribute{
 				Description: "The level of privacy for the team. Must be one of 'secret' or 'closed'.",
@@ -195,9 +194,13 @@ func (r *githubTeamResource) Create(ctx context.Context, req resource.CreateRequ
 	name := plan.Name.ValueString()
 
 	newTeam := github.NewTeam{
-		Name:        name,
-		Description: github.Ptr(plan.Description.ValueString()),
-		Privacy:     github.Ptr(plan.Privacy.ValueString()),
+		Name:    name,
+		Privacy: github.Ptr(plan.Privacy.ValueString()),
+	}
+
+	// Only set description if it was configured by the user
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
+		newTeam.Description = github.Ptr(plan.Description.ValueString())
 	}
 
 	if !plan.LdapDN.IsNull() && !plan.LdapDN.IsUnknown() && plan.LdapDN.ValueString() != "" {
@@ -294,9 +297,13 @@ func (r *githubTeamResource) Update(ctx context.Context, req resource.UpdateRequ
 	var removeParentTeam bool
 
 	editedTeam := github.NewTeam{
-		Name:        plan.Name.ValueString(),
-		Description: github.Ptr(plan.Description.ValueString()),
-		Privacy:     github.Ptr(plan.Privacy.ValueString()),
+		Name:    plan.Name.ValueString(),
+		Privacy: github.Ptr(plan.Privacy.ValueString()),
+	}
+
+	// Only set description if it was configured by the user
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
+		editedTeam.Description = github.Ptr(plan.Description.ValueString())
 	}
 
 	if !plan.ParentTeamID.IsNull() && !plan.ParentTeamID.IsUnknown() && plan.ParentTeamID.ValueString() != "" {

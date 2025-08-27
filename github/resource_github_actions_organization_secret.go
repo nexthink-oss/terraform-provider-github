@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -111,7 +110,6 @@ func (r *githubActionsOrganizationSecretResource) Schema(ctx context.Context, re
 				Optional:    true,
 				Computed:    true,
 				ElementType: types.Int64Type,
-				Default:     setdefault.StaticValue(types.SetValueMust(types.Int64Type, []attr.Value{})),
 				Validators: []validator.Set{
 					&organizationSecretSelectedRepositoriesValidator{},
 				},
@@ -362,7 +360,13 @@ func (r *githubActionsOrganizationSecretResource) ImportState(ctx context.Contex
 		}
 		data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, selectedRepositoryIDAttrs)
 	} else {
-		data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, []attr.Value{})
+		// Only set empty array if the user configured selected_repository_ids
+		// Otherwise preserve null state
+		if !data.SelectedRepositoryIDs.IsNull() {
+			data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, []attr.Value{})
+		} else {
+			data.SelectedRepositoryIDs = types.SetNull(types.Int64Type)
+		}
 	}
 
 	// Note: encrypted_value or plaintext_value cannot be imported as they are not retrievable
@@ -470,11 +474,22 @@ func (r *githubActionsOrganizationSecretResource) readGithubActionsOrganizationS
 		}
 	}
 
-	selectedRepositoryIDAttrs := []attr.Value{}
-	for _, id := range selectedRepositoryIDs {
-		selectedRepositoryIDAttrs = append(selectedRepositoryIDAttrs, types.Int64Value(id))
+	// Only set selected_repository_ids if visibility is "selected"
+	if secret.Visibility == "selected" {
+		selectedRepositoryIDAttrs := []attr.Value{}
+		for _, id := range selectedRepositoryIDs {
+			selectedRepositoryIDAttrs = append(selectedRepositoryIDAttrs, types.Int64Value(id))
+		}
+		data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, selectedRepositoryIDAttrs)
+	} else {
+		// Only set empty array if the user configured selected_repository_ids
+		// Otherwise preserve null state
+		if !data.SelectedRepositoryIDs.IsNull() {
+			data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, []attr.Value{})
+		} else {
+			data.SelectedRepositoryIDs = types.SetNull(types.Int64Type)
+		}
 	}
-	data.SelectedRepositoryIDs = types.SetValueMust(types.Int64Type, selectedRepositoryIDAttrs)
 
 	// This is a drift detection mechanism based on timestamps.
 	//

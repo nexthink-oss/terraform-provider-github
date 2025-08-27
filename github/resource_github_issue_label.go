@@ -73,6 +73,7 @@ func (r *githubIssueLabelResource) Schema(ctx context.Context, req resource.Sche
 			"description": schema.StringAttribute{
 				Description: "A short description of the label.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"url": schema.StringAttribute{
 				Description: "The URL to the issue label.",

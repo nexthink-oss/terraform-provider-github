@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -24,6 +25,7 @@ var (
 	_ resource.Resource                = &githubOrganizationCustomRoleResource{}
 	_ resource.ResourceWithConfigure   = &githubOrganizationCustomRoleResource{}
 	_ resource.ResourceWithImportState = &githubOrganizationCustomRoleResource{}
+	_ AutoImportableResource           = &githubOrganizationCustomRoleResource{}
 )
 
 type githubOrganizationCustomRoleResource struct {
@@ -36,6 +38,7 @@ type githubOrganizationCustomRoleResourceModel struct {
 	BaseRole    types.String `tfsdk:"base_role"`
 	Permissions types.Set    `tfsdk:"permissions"`
 	Description types.String `tfsdk:"description"`
+	AutoImport  types.Bool   `tfsdk:"auto_import"`
 }
 
 func NewGithubOrganizationCustomRoleResource() resource.Resource {
@@ -79,6 +82,12 @@ func (r *githubOrganizationCustomRoleResource) Schema(ctx context.Context, req r
 			"description": schema.StringAttribute{
 				Description: "The description of the custom repository role.",
 				Optional:    true,
+				Computed:    true,
+			},
+			"auto_import": schema.BoolAttribute{
+				Description: "Automatically import the resource if it already exists instead of returning an error. " +
+					"If not set, uses the provider-level auto_import setting.",
+				Optional: true,
 			},
 		},
 	}
@@ -140,6 +149,42 @@ func (r *githubOrganizationCustomRoleResource) Create(ctx context.Context, req r
 
 	role, _, err := client.Organizations.CreateCustomRepoRole(ctx, orgName, createOptions)
 	if err != nil {
+		// Determine if auto-import should be enabled using two-tier logic
+		autoImportEnabled := r.client.AutoImport // Start with provider default
+		if !plan.AutoImport.IsNull() {
+			// Resource-level setting overrides provider default
+			autoImportEnabled = plan.AutoImport.ValueBool()
+		}
+
+		// Check if auto-import is enabled and this is an "already exists" error
+		if autoImportEnabled && r.IsAlreadyExistsError(err) {
+			helper := NewAutoImportHelper("github_organization_custom_role", r.client)
+			helper.LogAutoImportAttempt(ctx, plan.Name.ValueString())
+
+			// Get the import ID for the existing role
+			importID, idErr := r.GetImportID(ctx, err, &plan)
+			if idErr != nil {
+				helper.LogAutoImportFailure(ctx, plan.Name.ValueString(), idErr)
+				helper.AddAutoImportError(&resp.Diagnostics, plan.Name.ValueString(), idErr)
+				return
+			}
+
+			// Perform the auto-import
+			if importErr := r.PerformAutoImport(ctx, importID, &plan, &resp.Diagnostics); importErr != nil {
+				helper.LogAutoImportFailure(ctx, importID, importErr)
+				helper.AddAutoImportError(&resp.Diagnostics, importID, importErr)
+				return
+			}
+
+			helper.LogAutoImportSuccess(ctx, importID)
+			helper.AddAutoImportWarning(&resp.Diagnostics, importID)
+
+			// Set the state with the imported resource
+			resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+			return
+		}
+
+		// If auto-import is not enabled or failed, return the original error
 		resp.Diagnostics.AddError(
 			"Error creating organization custom role",
 			fmt.Sprintf("Could not create organization custom role %s: %s", plan.Name.ValueString(), err),
@@ -372,4 +417,113 @@ func (r *githubOrganizationCustomRoleResource) updateStateFromRole(ctx context.C
 		return
 	}
 	state.Permissions = permissionsSet
+}
+
+// AutoImportableResource interface implementation
+
+// IsAlreadyExistsError checks if the error indicates the custom role already exists
+func (r *githubOrganizationCustomRoleResource) IsAlreadyExistsError(err error) bool {
+	return IsAlreadyExistsError(err)
+}
+
+// GetImportID extracts the import ID for the custom role by looking up the role by name
+func (r *githubOrganizationCustomRoleResource) GetImportID(ctx context.Context, err error, plan any) (string, error) {
+	p, ok := plan.(*githubOrganizationCustomRoleResourceModel)
+	if !ok {
+		return "", fmt.Errorf("invalid plan type for custom role auto-import")
+	}
+
+	if r.client == nil {
+		return "", fmt.Errorf("client not configured for auto-import")
+	}
+
+	if !r.client.IsOrganization {
+		return "", fmt.Errorf("custom role auto-import requires organization context")
+	}
+
+	roleName := p.Name.ValueString()
+	if roleName == "" {
+		return "", fmt.Errorf("custom role name is required for auto-import")
+	}
+
+	orgName := r.client.Name()
+	if orgName == "" {
+		return "", fmt.Errorf("organization name not available for auto-import")
+	}
+
+	client := r.client.V3Client()
+	if client == nil {
+		return "", fmt.Errorf("GitHub client not available for auto-import")
+	}
+
+	// List all custom repository roles for the organization
+	roleList, _, listErr := client.Organizations.ListCustomRepoRoles(ctx, orgName)
+	if listErr != nil {
+		return "", fmt.Errorf("failed to list custom roles for import: %w", listErr)
+	}
+
+	if roleList == nil || len(roleList.CustomRepoRoles) == 0 {
+		return "", fmt.Errorf("no custom roles found in organization '%s'", orgName)
+	}
+
+	// Find the role by name
+	for _, role := range roleList.CustomRepoRoles {
+		if role != nil && role.GetName() == roleName {
+			roleID := role.GetID()
+			if roleID == 0 {
+				return "", fmt.Errorf("custom role '%s' found but has invalid ID", roleName)
+			}
+			return strconv.FormatInt(roleID, 10), nil
+		}
+	}
+
+	return "", fmt.Errorf("custom role '%s' not found in organization '%s'", roleName, orgName)
+}
+
+// PerformAutoImport imports the existing custom role and updates the plan
+func (r *githubOrganizationCustomRoleResource) PerformAutoImport(ctx context.Context, importID string, plan any, diags *diag.Diagnostics) error {
+	p, ok := plan.(*githubOrganizationCustomRoleResourceModel)
+	if !ok {
+		return fmt.Errorf("invalid plan type for custom role auto-import")
+	}
+
+	if !r.client.IsOrganization {
+		return fmt.Errorf("custom role auto-import requires organization context")
+	}
+
+	orgName := r.client.Name()
+	client := r.client.V3Client()
+
+	// Parse the import ID to get the role ID
+	roleID, parseErr := strconv.ParseInt(importID, 10, 64)
+	if parseErr != nil {
+		return fmt.Errorf("invalid role ID format: %w", parseErr)
+	}
+
+	// Get the role details by listing all roles and finding the one with matching ID
+	roleList, _, err := client.Organizations.ListCustomRepoRoles(ctx, orgName)
+	if err != nil {
+		return fmt.Errorf("failed to fetch custom roles for import: %w", err)
+	}
+
+	var role *github.CustomRepoRoles
+	for _, r := range roleList.CustomRepoRoles {
+		if r.GetID() == roleID {
+			role = r
+			break
+		}
+	}
+
+	if role == nil {
+		return fmt.Errorf("custom role with ID %d not found", roleID)
+	}
+
+	// Set the ID in the plan
+	p.ID = types.StringValue(importID)
+
+	// Update the plan with the imported role data
+	r.updateStateFromRole(ctx, p, role)
+
+	log.Printf("[INFO] Successfully auto-imported custom role '%s' with ID %s", p.Name.ValueString(), importID)
+	return nil
 }

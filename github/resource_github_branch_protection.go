@@ -469,7 +469,7 @@ func (r *githubBranchProtectionResource) UpgradeState(ctx context.Context) map[i
 
 				// Get repository ID from name
 				repoName := oldState.Repository.ValueString()
-				repoID, err := r.getRepositoryID(repoName)
+				repoID, err := getRepositoryID(repoName, r.client)
 				if err != nil {
 					resp.Diagnostics.AddError(
 						"Error Getting Repository ID During Migration",
@@ -721,7 +721,7 @@ func (r *githubBranchProtectionResource) ImportState(ctx context.Context, req re
 	pattern := idParts[1]
 
 	// Get repository ID
-	repoID, err := r.getRepositoryID(repoName)
+	repoID, err := getRepositoryID(repoName, r.client)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Getting Repository ID",
@@ -827,7 +827,7 @@ func (r *githubBranchProtectionResource) planToBranchProtectionData(ctx context.
 	data := branchProtectionData{}
 
 	// Set repository ID (resolve if needed)
-	repoID, err := r.getRepositoryID(plan.RepositoryID.ValueString())
+	repoID, err := getRepositoryID(plan.RepositoryID.ValueString(), r.client)
 	if err != nil {
 		return data, err
 	}
@@ -1265,29 +1265,6 @@ func (r *githubBranchProtectionResource) getBranchProtectionID(ctx context.Conte
 }
 
 // Helper methods copied from SDKv2 implementation and adapted for Framework
-
-func (r *githubBranchProtectionResource) getRepositoryID(name string) (githubv4.ID, error) {
-	// Implementation based on SDKv2 getRepositoryID function
-	var query struct {
-		Repository struct {
-			ID string
-		} `graphql:"repository(owner: $owner, name: $name)"`
-	}
-
-	variables := map[string]any{
-		"owner": githubv4.String(r.client.Name()),
-		"name":  githubv4.String(name),
-	}
-
-	ctx := context.Background()
-	client := r.client.V4Client()
-	err := client.Query(ctx, &query, variables)
-	if err != nil {
-		return "", err
-	}
-
-	return githubv4.ID(query.Repository.ID), nil
-}
 
 func (r *githubBranchProtectionResource) getActorIds(data []string) ([]string, error) {
 	var actors []string

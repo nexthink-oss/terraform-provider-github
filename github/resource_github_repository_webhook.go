@@ -151,7 +151,7 @@ func (r *githubRepositoryWebhookResource) Create(ctx context.Context, req resour
 	repoName := plan.Repository.ValueString()
 	client := r.client.V3Client()
 
-	createdHook, _, err := client.Repositories.CreateHook(ctx, owner, repoName, hook)
+	createdHook, resp_github, err := client.Repositories.CreateHook(ctx, owner, repoName, hook)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating repository webhook",
@@ -174,6 +174,11 @@ func (r *githubRepositoryWebhookResource) Create(ctx context.Context, req resour
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Update ETag from response
+	if resp_github != nil {
+		plan.ETag = types.StringValue(resp_github.Header.Get("ETag"))
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)

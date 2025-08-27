@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 
 	"github.com/shurcooL/githubv4"
@@ -12,12 +11,6 @@ func getRepositoryID(name string, meta any) (githubv4.ID, error) {
 
 	// Interpret `name` as a node ID
 	exists, nodeIDerr := repositoryNodeIDExists(name, meta)
-	if exists {
-		return githubv4.ID(name), nil
-	}
-
-	// Interpret `name` as a legacy node ID
-	exists, _ = repositoryLegacyNodeIDExists(name, meta)
 	if exists {
 		return githubv4.ID(name), nil
 	}
@@ -52,6 +45,7 @@ func repositoryNodeIDExists(name string, meta any) (bool, error) {
 	var query struct {
 		Node struct {
 			ID githubv4.ID
+			Typename string `graphql:"__typename"`
 		} `graphql:"node(id:$id)"`
 	}
 	variables := map[string]any{
@@ -64,32 +58,9 @@ func repositoryNodeIDExists(name string, meta any) (bool, error) {
 		return false, err
 	}
 
-	return query.Node.ID.(string) == name, nil
-}
-
-// Maintain compatibility with deprecated Global ID format
-// https://github.blog/2021-02-10-new-global-id-format-coming-to-graphql/
-func repositoryLegacyNodeIDExists(name string, meta any) (bool, error) {
-	// Check if the name is a base 64 encoded node ID
-	_, err := base64.StdEncoding.DecodeString(name)
-	if err != nil {
+	// Only return true if it's actually a Repository node
+	if query.Node.Typename != "Repository" {
 		return false, nil
-	}
-
-	// API check if node ID exists
-	var query struct {
-		Node struct {
-			ID githubv4.ID
-		} `graphql:"node(id:$id)"`
-	}
-	variables := map[string]any{
-		"id": githubv4.ID(name),
-	}
-	ctx := context.Background()
-	client := meta.(*Owner).v4client
-	err = client.Query(ctx, &query, variables)
-	if err != nil {
-		return false, err
 	}
 
 	return query.Node.ID.(string) == name, nil

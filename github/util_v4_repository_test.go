@@ -17,7 +17,8 @@ import (
 const nodeMatchTmpl = `{
   "data": {
     "node": {
-      "id": "{{.Provided}}"
+      "id": "{{.Provided}}",
+      "__typename": "Repository"
     }
   }
 }`

@@ -389,10 +389,12 @@ func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.Sche
 			"description": schema.StringAttribute{
 				Description: "A description of the repository.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"homepage_url": schema.StringAttribute{
 				Description: "URL of a page describing the project.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"private": schema.BoolAttribute{
 				Description:        "Set to 'true' to create a private repository. This is deprecated, use 'visibility' instead.",
@@ -411,26 +413,32 @@ func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.Sche
 			"has_issues": schema.BoolAttribute{
 				Description: "Set to 'true' to enable the GitHub Issues features on the repository",
 				Optional:    true,
+				Computed:    true,
 			},
 			"has_discussions": schema.BoolAttribute{
 				Description: "Set to 'true' to enable GitHub Discussions on the repository. Defaults to 'false'.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"has_projects": schema.BoolAttribute{
 				Description: "Set to 'true' to enable the GitHub Projects features on the repository. Per the GitHub documentation when in an organization that has disabled repository projects it will default to 'false' and will otherwise default to 'true'. If you specify 'true' when it has been disabled it will return an error.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"has_downloads": schema.BoolAttribute{
 				Description: "Set to 'true' to enable the (deprecated) downloads features on the repository.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"has_wiki": schema.BoolAttribute{
 				Description: "Set to 'true' to enable the GitHub Wiki features on the repository.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"is_template": schema.BoolAttribute{
 				Description: "Set to 'true' to tell GitHub that this is a template repository.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"allow_merge_commit": schema.BoolAttribute{
 				Description: "Set to 'false' to disable merge commits on the repository.",
@@ -536,6 +544,7 @@ func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.Sche
 			"vulnerability_alerts": schema.BoolAttribute{
 				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"ignore_vulnerability_alerts_during_read": schema.BoolAttribute{
 				Description: "Set to true to not call the vulnerability alerts endpoint so the resource can also be used without admin permissions during read.",
@@ -544,6 +553,7 @@ func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.Sche
 			"allow_update_branch": schema.BoolAttribute{
 				Description: " Set to 'true' to always suggest updating pull request branches.",
 				Optional:    true,
+				Computed:    true,
 			},
 			// Computed attributes
 			"full_name": schema.StringAttribute{
@@ -672,6 +682,7 @@ func (r *githubRepositoryResource) Schema(ctx context.Context, req resource.Sche
 						"cname": schema.StringAttribute{
 							Description: "The custom domain for the repository. This can only be set after the repository has been created.",
 							Optional:    true,
+							Computed:    true,
 						},
 						"custom_404": schema.BoolAttribute{
 							Description: "Whether the rendered GitHub Pages site has a custom 404 page",
@@ -804,9 +815,13 @@ func (r *githubRepositoryResource) Create(ctx context.Context, req resource.Crea
 			templateRepoReq := github.TemplateRepoRequest{
 				Name:               &repoName,
 				Owner:              &owner,
-				Description:        github.Ptr(plan.Description.ValueString()),
 				Private:            github.Ptr(isPrivate),
 				IncludeAllBranches: github.Ptr(templateModel.IncludeAllBranches.ValueBool()),
+			}
+
+			// Only set description if it was configured by the user
+			if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
+				templateRepoReq.Description = github.Ptr(plan.Description.ValueString())
 			}
 
 			repo, _, err := r.client.V3Client().Repositories.CreateFromTemplate(ctx,
@@ -901,10 +916,31 @@ func (r *githubRepositoryResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
+	// Save whether security_and_analysis was configured by the user
+	securityWasConfigured := !plan.SecurityAndAnalysis.IsNull()
+
 	// Read the repository to get computed values
 	r.readRepository(ctx, &plan, resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Preserve null state for security_and_analysis if user didn't configure it
+	if !securityWasConfigured && !plan.SecurityAndAnalysis.IsNull() {
+		// Define the nested object types for security and analysis
+		securityFeatureObjType := types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"status": types.StringType,
+			},
+		}
+		securityAnalysisObjType := types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"advanced_security":               types.ListType{ElemType: securityFeatureObjType},
+				"secret_scanning":                 types.ListType{ElemType: securityFeatureObjType},
+				"secret_scanning_push_protection": types.ListType{ElemType: securityFeatureObjType},
+			},
+		}
+		plan.SecurityAndAnalysis = types.ListNull(securityAnalysisObjType)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -918,9 +954,30 @@ func (r *githubRepositoryResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
+	// Save whether security_and_analysis was null in the existing state
+	securityWasNull := state.SecurityAndAnalysis.IsNull()
+
 	r.readRepository(ctx, &state, resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Preserve null state for security_and_analysis if it was null before
+	if securityWasNull && !state.SecurityAndAnalysis.IsNull() {
+		// Define the nested object types for security and analysis
+		securityFeatureObjType := types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"status": types.StringType,
+			},
+		}
+		securityAnalysisObjType := types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"advanced_security":               types.ListType{ElemType: securityFeatureObjType},
+				"secret_scanning":                 types.ListType{ElemType: securityFeatureObjType},
+				"secret_scanning_push_protection": types.ListType{ElemType: securityFeatureObjType},
+			},
+		}
+		state.SecurityAndAnalysis = types.ListNull(securityAnalysisObjType)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -952,10 +1009,31 @@ func (r *githubRepositoryResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 
+	// Save whether security_and_analysis was configured by the user
+	securityWasConfigured := !plan.SecurityAndAnalysis.IsNull()
+
 	// Read the repository to get updated computed values
 	r.readRepository(ctx, &plan, resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Preserve null state for security_and_analysis if user didn't configure it
+	if !securityWasConfigured && !plan.SecurityAndAnalysis.IsNull() {
+		// Define the nested object types for security and analysis
+		securityFeatureObjType := types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"status": types.StringType,
+			},
+		}
+		securityAnalysisObjType := types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"advanced_security":               types.ListType{ElemType: securityFeatureObjType},
+				"secret_scanning":                 types.ListType{ElemType: securityFeatureObjType},
+				"secret_scanning_push_protection": types.ListType{ElemType: securityFeatureObjType},
+			},
+		}
+		plan.SecurityAndAnalysis = types.ListNull(securityAnalysisObjType)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -1054,27 +1132,61 @@ func (r *githubRepositoryResource) buildGithubRepositoryFromPlan(ctx context.Con
 	var diags diag.Diagnostics
 
 	repository := &github.Repository{
-		Name:                     github.Ptr(plan.Name.ValueString()),
-		Description:              github.Ptr(plan.Description.ValueString()),
-		Homepage:                 github.Ptr(plan.HomepageURL.ValueString()),
-		Visibility:               github.Ptr(r.calculateVisibilityFromPlan(plan)),
-		HasDownloads:             github.Ptr(plan.HasDownloads.ValueBool()),
-		HasIssues:                github.Ptr(plan.HasIssues.ValueBool()),
-		HasDiscussions:           github.Ptr(plan.HasDiscussions.ValueBool()),
-		HasProjects:              github.Ptr(plan.HasProjects.ValueBool()),
-		HasWiki:                  github.Ptr(plan.HasWiki.ValueBool()),
-		IsTemplate:               github.Ptr(plan.IsTemplate.ValueBool()),
-		AllowMergeCommit:         github.Ptr(plan.AllowMergeCommit.ValueBool()),
-		AllowSquashMerge:         github.Ptr(plan.AllowSquashMerge.ValueBool()),
-		AllowRebaseMerge:         github.Ptr(plan.AllowRebaseMerge.ValueBool()),
-		AllowAutoMerge:           github.Ptr(plan.AllowAutoMerge.ValueBool()),
-		DeleteBranchOnMerge:      github.Ptr(plan.DeleteBranchOnMerge.ValueBool()),
-		WebCommitSignoffRequired: github.Ptr(plan.WebCommitSignoffRequired.ValueBool()),
-		AutoInit:                 github.Ptr(plan.AutoInit.ValueBool()),
-		LicenseTemplate:          github.Ptr(plan.LicenseTemplate.ValueString()),
-		GitignoreTemplate:        github.Ptr(plan.GitignoreTemplate.ValueString()),
-		Archived:                 github.Ptr(plan.Archived.ValueBool()),
-		AllowUpdateBranch:        github.Ptr(plan.AllowUpdateBranch.ValueBool()),
+		Name:       github.Ptr(plan.Name.ValueString()),
+		Visibility: github.Ptr(r.calculateVisibilityFromPlan(plan)),
+	}
+
+	// Only set description if it was configured by the user
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
+		repository.Description = github.Ptr(plan.Description.ValueString())
+	}
+
+	// Only set homepage if it's not null and not empty
+	if !plan.HomepageURL.IsNull() && !plan.HomepageURL.IsUnknown() && plan.HomepageURL.ValueString() != "" {
+		repository.Homepage = github.Ptr(plan.HomepageURL.ValueString())
+	}
+
+	// Only set optional boolean attributes if they're not null
+	if !plan.HasDownloads.IsNull() && !plan.HasDownloads.IsUnknown() {
+		repository.HasDownloads = github.Ptr(plan.HasDownloads.ValueBool())
+	}
+	if !plan.HasIssues.IsNull() && !plan.HasIssues.IsUnknown() {
+		repository.HasIssues = github.Ptr(plan.HasIssues.ValueBool())
+	}
+	if !plan.HasDiscussions.IsNull() && !plan.HasDiscussions.IsUnknown() {
+		repository.HasDiscussions = github.Ptr(plan.HasDiscussions.ValueBool())
+	}
+	if !plan.HasProjects.IsNull() && !plan.HasProjects.IsUnknown() {
+		repository.HasProjects = github.Ptr(plan.HasProjects.ValueBool())
+	}
+	if !plan.HasWiki.IsNull() && !plan.HasWiki.IsUnknown() {
+		repository.HasWiki = github.Ptr(plan.HasWiki.ValueBool())
+	}
+	if !plan.IsTemplate.IsNull() && !plan.IsTemplate.IsUnknown() {
+		repository.IsTemplate = github.Ptr(plan.IsTemplate.ValueBool())
+	}
+	if !plan.AutoInit.IsNull() && !plan.AutoInit.IsUnknown() {
+		repository.AutoInit = github.Ptr(plan.AutoInit.ValueBool())
+	}
+	if !plan.AllowUpdateBranch.IsNull() && !plan.AllowUpdateBranch.IsUnknown() {
+		repository.AllowUpdateBranch = github.Ptr(plan.AllowUpdateBranch.ValueBool())
+	}
+
+	// These attributes have defaults and should always be set
+	repository.AllowMergeCommit = github.Ptr(plan.AllowMergeCommit.ValueBool())
+	repository.AllowSquashMerge = github.Ptr(plan.AllowSquashMerge.ValueBool())
+	repository.AllowRebaseMerge = github.Ptr(plan.AllowRebaseMerge.ValueBool())
+	repository.AllowAutoMerge = github.Ptr(plan.AllowAutoMerge.ValueBool())
+	repository.DeleteBranchOnMerge = github.Ptr(plan.DeleteBranchOnMerge.ValueBool())
+	repository.WebCommitSignoffRequired = github.Ptr(plan.WebCommitSignoffRequired.ValueBool())
+	repository.Archived = github.Ptr(plan.Archived.ValueBool())
+
+	// Only set license and gitignore templates if not null and not empty
+	if !plan.LicenseTemplate.IsNull() && !plan.LicenseTemplate.IsUnknown() && plan.LicenseTemplate.ValueString() != "" {
+		repository.LicenseTemplate = github.Ptr(plan.LicenseTemplate.ValueString())
+	}
+	if !plan.GitignoreTemplate.IsNull() && !plan.GitignoreTemplate.IsUnknown() && plan.GitignoreTemplate.ValueString() != "" {
+		repository.GitignoreTemplate = github.Ptr(plan.GitignoreTemplate.ValueString())
 	}
 
 	// Handle topics
