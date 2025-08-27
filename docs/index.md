@@ -37,20 +37,6 @@ resource "github_membership" "membership_for_user_x" {
 
 - You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `isometry/github` in a submodule, your terraform run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
 
-Terraform 0.12 and earlier:
-
-```terraform
-# Configure the GitHub Provider
-provider "github" {
-  version = "~> 5.0"
-}
-
-# Add a user to the organization
-resource "github_membership" "membership_for_user_x" {
-  # ...
-}
-```
-
 ~> **Note:** When upgrading from `hashicorp/github` to `isometry/github`, use `terraform state replace-provider`. Otherwise, Terraform will still require the old provider to interact with the state file.
 
 ## Authentication
@@ -114,11 +100,15 @@ The following arguments are supported in the `provider` block:
   * `installation_id` - (Required) This is the ID of the GitHub App installation. It can sourced from the `GITHUB_APP_INSTALLATION_ID` environment variable.
   * `pem_file` - (Required) This is the contents of the GitHub App private key PEM file. It can also be sourced from the `GITHUB_APP_PEM_FILE` environment variable and may use `\n` instead of actual new lines.
 
-* `write_delay_ms` - (Optional) The number of milliseconds to sleep in between write operations in order to satisfy the GitHub API rate limits. Note that requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. Defaults to 1000ms or 1 second if not provided.
+* `rate_limiter` - (Optional) The rate limiting strategy to use. `"modern"` uses go-github-ratelimit for automatic GitHub API rate limit handling. `"legacy"` uses the provider's built-in rate limiting with configurable delays. When using `"modern"`, the `read_delay_ms`, `write_delay_ms`, and `parallel_requests` settings are ignored. Defaults to `"modern"`.
+
+* `write_delay_ms` - (Optional) The number of milliseconds to sleep in between write operations in order to satisfy the GitHub API rate limits. Note that requests to the GraphQL API are implemented as `POST` requests under the hood, so this setting affects those calls as well. Defaults to 1000ms or 1 second if not provided. This setting is ignored when `rate_limiter` is `"modern"`.
 
 * `retry_delay_ms` - (Optional) Amount of time in milliseconds to sleep in between requests to GitHub API after an error response. Defaults to 1000ms or 1 second if not provided, the max_retries must be set to greater than zero.
 
-* `read_delay_ms` - (Optional) The number of milliseconds to sleep in between non-write operations in order to satisfy the GitHub API rate limits. Defaults to 0ms.
+* `read_delay_ms` - (Optional) The number of milliseconds to sleep in between non-write operations in order to satisfy the GitHub API rate limits. Defaults to 0ms. This setting is ignored when `rate_limiter` is `"modern"`.
+
+* `parallel_requests` - (Optional) Allow the provider to make parallel API calls to GitHub. You may want to set it to `true` when you have a private GitHub Enterprise without strict rate limits. Although, it is not possible to enable this setting on github.com because we enforce the respect of github.com's best practices to avoid hitting abuse rate limits. Defaults to `false` if not set. This setting is ignored when `rate_limiter` is `"modern"`.
 
 * `retryable_errors` - (Optional) "Allow the provider to retry after receiving an error status code, the max_retries should be set for this to work. Defaults to [500, 502, 503, 504]
 

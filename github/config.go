@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	github_ratelimit "github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
@@ -26,6 +27,7 @@ type Config struct {
 	RetryableErrors  map[int]bool
 	MaxRetries       int
 	ParallelRequests bool
+	RateLimiter      string // "modern" or "legacy"
 }
 
 type Owner struct {
@@ -41,7 +43,7 @@ type Owner struct {
 // https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
 var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
 
-func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
+func LegacyRateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
 
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
@@ -58,6 +60,18 @@ func RateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDe
 	return client
 }
 
+func ModernRateLimitedHTTPClient(client *http.Client, retryDelay time.Duration, retryableErrors map[int]bool, maxRetries int) *http.Client {
+
+	client.Transport = NewEtagTransport(client.Transport)
+	rateLimitClient := github_ratelimit.NewClient(client.Transport)
+
+	if maxRetries > 0 {
+		rateLimitClient.Transport = NewRetryTransport(rateLimitClient.Transport, WithRetryDelay(retryDelay), WithRetryableErrors(retryableErrors), WithMaxRetries(maxRetries))
+	}
+
+	return rateLimitClient
+}
+
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
 
 	ctx := context.Background()
@@ -66,7 +80,10 @@ func (c *Config) AuthenticatedHTTPClient() *http.Client {
 	)
 	client := oauth2.NewClient(ctx, ts)
 
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
+	if c.RateLimiter == "modern" {
+		return ModernRateLimitedHTTPClient(client, c.RetryDelay, c.RetryableErrors, c.MaxRetries)
+	}
+	return LegacyRateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) Anonymous() bool {
@@ -75,7 +92,10 @@ func (c *Config) Anonymous() bool {
 
 func (c *Config) AnonymousHTTPClient() *http.Client {
 	client := &http.Client{Transport: &http.Transport{}}
-	return RateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
+	if c.RateLimiter == "modern" {
+		return ModernRateLimitedHTTPClient(client, c.RetryDelay, c.RetryableErrors, c.MaxRetries)
+	}
+	return LegacyRateLimitedHTTPClient(client, c.WriteDelay, c.ReadDelay, c.RetryDelay, c.ParallelRequests, c.RetryableErrors, c.MaxRetries)
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {

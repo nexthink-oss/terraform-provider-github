@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -84,13 +85,7 @@ func validateValueFunc(values []string) schema.SchemaValidateDiagFunc {
 	return func(v any, k cty.Path) diag.Diagnostics {
 		errs := make([]error, 0)
 		value := v.(string)
-		valid := false
-		for _, role := range values {
-			if value == role {
-				valid = true
-				break
-			}
-		}
+		valid := slices.Contains(values, value)
 
 		if !valid {
 			errs = append(errs, fmt.Errorf("%s is an invalid value for argument %s", value, k))
