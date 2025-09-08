@@ -13,9 +13,9 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.22.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.37.0
 	github.com/shurcooL/githubv4 v0.0.0-20240727222349-48295856cce7
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.41.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.31.0
 )
 
 require (
