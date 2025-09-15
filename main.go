@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/isometry/terraform-provider-github/v7/github"
+	"github.com/nexthink-oss/terraform-provider-github/v7/github"
 )
 
 func main() {

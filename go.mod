@@ -1,4 +1,4 @@
-module github.com/isometry/terraform-provider-github/v7
+module github.com/nexthink-oss/terraform-provider-github/v7
 
 go 1.25.1
 

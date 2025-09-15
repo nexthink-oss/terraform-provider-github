@@ -1,6 +1,6 @@
 provider_installation {
   dev_overrides {
-    "isometry/github" = "~/go/bin/"
+    "nexthink-oss/github" = "~/go/bin/"
   }
 
   direct {}
