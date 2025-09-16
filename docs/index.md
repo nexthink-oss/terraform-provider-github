@@ -20,7 +20,7 @@ Terraform 0.13 and later:
 terraform {
   required_providers {
     github = {
-      source  = "isometry/github"
+      source  = "nexthink-oss/github"
       version = "~> 7.0"
     }
   }
@@ -35,9 +35,9 @@ resource "github_membership" "membership_for_user_x" {
 }
 ```
 
-- You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `isometry/github` in a submodule, your terraform run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
+- You **must** add a `required_providers` block to every module that will create resources with this provider. If you do not explicitly require `nexthink-oss/github` in a submodule, your terraform run may [break in hard-to-troubleshoot ways](https://github.com/integrations/terraform-provider-github/issues/876#issuecomment-1303790559).
 
-~> **Note:** When upgrading from `hashicorp/github` to `isometry/github`, use `terraform state replace-provider`. Otherwise, Terraform will still require the old provider to interact with the state file.
+~> **Note:** When upgrading from `hashicorp/github` to `nexthink-oss/github`, use `terraform state replace-provider`. Otherwise, Terraform will still require the old provider to interact with the state file.
 
 ## Authentication
 

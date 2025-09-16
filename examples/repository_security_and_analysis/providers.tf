@@ -6,7 +6,7 @@ provider "github" {
 terraform {
   required_providers {
     github = {
-      source = "isometry/github"
+      source = "nexthink-oss/github"
     }
   }
 }
