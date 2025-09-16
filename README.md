@@ -11,7 +11,7 @@ This is a community-maintained fork of the original [terraform-provider-github](
 ## Requirements
 
 -	[Terraform](https://www.terraform.io/downloads.html) 0.13.x
--	[Go](https://golang.org/doc/install) 1.24.x (to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.25.x (to build the provider plugin)
 
 ## Usage
 

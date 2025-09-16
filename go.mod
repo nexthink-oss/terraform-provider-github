@@ -1,6 +1,8 @@
 module github.com/nexthink-oss/terraform-provider-github/v7
 
-go 1.25.1
+go 1.25.0
+
+toolchain go1.25.1
 
 require (
 	github.com/client9/misspell v0.3.4
