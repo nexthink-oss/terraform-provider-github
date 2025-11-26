@@ -2,10 +2,13 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/go-github/v74/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -58,8 +61,9 @@ func resourceGithubActionsVariableCreate(d *schema.ResourceData, meta any) error
 	ctx := context.Background()
 
 	repo := d.Get("repository").(string)
+	variableName := d.Get("variable_name").(string)
 	variable := &github.ActionsVariable{
-		Name:  d.Get("variable_name").(string),
+		Name:  variableName,
 		Value: d.Get("value").(string),
 	}
 
@@ -68,7 +72,32 @@ func resourceGithubActionsVariableCreate(d *schema.ResourceData, meta any) error
 		return err
 	}
 
-	d.SetId(buildTwoPartID(repo, d.Get("variable_name").(string)))
+	d.SetId(buildTwoPartID(repo, variableName))
+
+	createStateConf := &retry.StateChangeConf{
+		Pending: []string{"waiting"},
+		Target:  []string{"exists"},
+		Refresh: func() (interface{}, string, error) {
+			variableObj, _, err := client.Actions.GetRepoVariable(ctx, owner, repo, variableName)
+			if err != nil {
+				if ghErr, ok := err.(*github.ErrorResponse); ok {
+					if ghErr.Response.StatusCode == http.StatusNotFound {
+						return nil, "waiting", nil
+					}
+				}
+				return nil, "", err
+			}
+			return variableObj, "exists", nil
+		},
+		Timeout:    1 * time.Minute,
+		Delay:      1 * time.Second,
+		MinTimeout: 2 * time.Second,
+	}
+
+	if _, err := createStateConf.WaitForStateContext(ctx); err != nil {
+		return fmt.Errorf("error waiting for variable %s to be consistent: %s", variableName, err)
+	}
+
 	return resourceGithubActionsVariableRead(d, meta)
 }
 
