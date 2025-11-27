@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 
 	"github.com/nexthink-oss/terraform-provider-github/v7/github"
+	"github.com/nexthink-oss/terraform-provider-github/v7/internal/provider"
 )
 
 func main() {
@@ -32,7 +33,7 @@ func main() {
 
 	// Combine Framework (Protocol 6) and upgraded SDKv2 providers
 	providers := []func() tfprotov6.ProviderServer{
-		providerserver.NewProtocol6(github.NewFrameworkProvider()()),
+		providerserver.NewProtocol6(provider.NewFrameworkProvider()()),
 		func() tfprotov6.ProviderServer { return upgradedSdkServer },
 	}
 

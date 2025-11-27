@@ -1,4 +1,4 @@
-package github
+package repository
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 )
 
 // planToGithubRepository converts a RepositoryResourceModel to a github.Repository
-func (r *RepositoryResource) planToGithubRepository(ctx context.Context, plan *RepositoryResourceModel, isCreate bool) (*github.Repository, diag.Diagnostics) {
+func (r *Resource) planToGithubRepository(ctx context.Context, plan *RepositoryResourceModel, isCreate bool) (*github.Repository, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Calculate visibility
@@ -115,7 +115,7 @@ func (r *RepositoryResource) planToGithubRepository(ctx context.Context, plan *R
 }
 
 // expandPages converts a PagesModel to github.Pages
-func (r *RepositoryResource) expandPages(ctx context.Context, pagesModel *PagesModel) (*github.Pages, diag.Diagnostics) {
+func (r *Resource) expandPages(ctx context.Context, pagesModel *PagesModel) (*github.Pages, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	pages := &github.Pages{}
@@ -150,7 +150,7 @@ func (r *RepositoryResource) expandPages(ctx context.Context, pagesModel *PagesM
 }
 
 // expandPagesUpdate converts a PagesModel to github.PagesUpdate
-func (r *RepositoryResource) expandPagesUpdate(ctx context.Context, pagesModel *PagesModel) (*github.PagesUpdate, diag.Diagnostics) {
+func (r *Resource) expandPagesUpdate(ctx context.Context, pagesModel *PagesModel) (*github.PagesUpdate, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	pagesUpdate := &github.PagesUpdate{}
@@ -186,7 +186,7 @@ func (r *RepositoryResource) expandPagesUpdate(ctx context.Context, pagesModel *
 }
 
 // flattenPages converts github.Pages to types.Object
-func (r *RepositoryResource) flattenPages(ctx context.Context, pages *github.Pages) (types.Object, diag.Diagnostics) {
+func (r *Resource) flattenPages(ctx context.Context, pages *github.Pages) (types.Object, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	pagesAttrTypes := map[string]attr.Type{
@@ -244,7 +244,7 @@ func (r *RepositoryResource) flattenPages(ctx context.Context, pages *github.Pag
 }
 
 // flattenSecurityAndAnalysis converts github.SecurityAndAnalysis to types.Object
-func (r *RepositoryResource) flattenSecurityAndAnalysis(ctx context.Context, sec *github.SecurityAndAnalysis) (types.Object, diag.Diagnostics) {
+func (r *Resource) flattenSecurityAndAnalysis(ctx context.Context, sec *github.SecurityAndAnalysis) (types.Object, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	secAttrTypes := map[string]attr.Type{
@@ -319,7 +319,7 @@ func boolValueOrNil(v types.Bool) *bool {
 }
 
 // getAllCustomPropertiesAsMap fetches all custom properties for a repository and returns them as a map
-func (r *RepositoryResource) getAllCustomPropertiesAsMap(ctx context.Context, repoName string) (map[string]attr.Value, diag.Diagnostics) {
+func (r *Resource) getAllCustomPropertiesAsMap(ctx context.Context, repoName string) (map[string]attr.Value, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	allCustomProperties, _, err := r.client.Repositories.GetAllCustomPropertyValues(ctx, r.owner, repoName)
@@ -366,7 +366,7 @@ func (r *RepositoryResource) getAllCustomPropertiesAsMap(ctx context.Context, re
 }
 
 // filterCustomPropertiesFromSet filters a Set of custom properties to only include managed ones
-func (r *RepositoryResource) filterCustomPropertiesFromSet(ctx context.Context, allCustomPropsMap map[string]attr.Value, managedProperties types.Set) (types.Set, diag.Diagnostics) {
+func (r *Resource) filterCustomPropertiesFromSet(ctx context.Context, allCustomPropsMap map[string]attr.Value, managedProperties types.Set) (types.Set, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Build a set of managed property names
@@ -453,7 +453,7 @@ func (r *RepositoryResource) filterCustomPropertiesFromSet(ctx context.Context, 
 }
 
 // setRepositoryCustomProperties sets custom properties for a repository
-func (r *RepositoryResource) setRepositoryCustomProperties(ctx context.Context, repoName string, customPropsSet types.Set, exclusiveMode bool, currentPropsMap map[string]attr.Value) diag.Diagnostics {
+func (r *Resource) setRepositoryCustomProperties(ctx context.Context, repoName string, customPropsSet types.Set, exclusiveMode bool, currentPropsMap map[string]attr.Value) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	if customPropsSet.IsNull() || len(customPropsSet.Elements()) == 0 {
@@ -541,7 +541,6 @@ func (r *RepositoryResource) setRepositoryCustomProperties(ctx context.Context, 
 
 	return diags
 }
-
 
 // convertCustomPropertyValueToList converts a GitHub CustomPropertyValue to a string slice.
 // It handles the various types that the API may return (string, []any, []string).

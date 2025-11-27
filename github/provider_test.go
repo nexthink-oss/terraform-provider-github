@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/nexthink-oss/terraform-provider-github/v7/internal/provider"
 )
 
 var testAccProviders map[string]*schema.Provider
@@ -34,7 +36,7 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 
 		// Combine Framework (Protocol 6) and upgraded SDKv2 providers
 		providers := []func() tfprotov6.ProviderServer{
-			providerserver.NewProtocol6(NewFrameworkProvider()()),
+			providerserver.NewProtocol6(provider.NewFrameworkProvider()()),
 			func() tfprotov6.ProviderServer { return upgradedSdkServer },
 		}
 

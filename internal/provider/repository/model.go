@@ -1,4 +1,4 @@
-package github
+package repository
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"

@@ -1,4 +1,4 @@
-package github
+package repository
 
 import (
 	"context"
@@ -25,24 +25,31 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var _ resource.Resource = &RepositoryResource{}
-var _ resource.ResourceWithImportState = &RepositoryResource{}
-var _ resource.ResourceWithConfigure = &RepositoryResource{}
+// ctxEtag is a context key for ETag header handling
+type ctxKey string
 
-type RepositoryResource struct {
+const ctxEtag ctxKey = "etag"
+
+var _ resource.Resource = &Resource{}
+var _ resource.ResourceWithImportState = &Resource{}
+var _ resource.ResourceWithConfigure = &Resource{}
+
+// Resource implements the github_repository resource.
+type Resource struct {
 	client *github.Client
 	owner  string
 }
 
-func NewRepositoryResource() resource.Resource {
-	return &RepositoryResource{}
+// NewResource returns a new repository resource.
+func NewResource() resource.Resource {
+	return &Resource{}
 }
 
-func (r *RepositoryResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *Resource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_repository"
 }
 
-func (r *RepositoryResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Creates and manages repositories within GitHub organizations or personal accounts",
 
@@ -428,7 +435,7 @@ func (r *RepositoryResource) Schema(ctx context.Context, req resource.SchemaRequ
 }
 
 // Configure sets up the GitHub client for this resource
-func (r *RepositoryResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *Resource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// For muxed setup, create our own client from environment variables
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
@@ -481,7 +488,7 @@ func (r *RepositoryResource) Configure(ctx context.Context, req resource.Configu
 	}
 }
 
-func (r *RepositoryResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan RepositoryResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -644,7 +651,7 @@ func (r *RepositoryResource) Create(ctx context.Context, req resource.CreateRequ
 	resp.State = readResp.State
 }
 
-func (r *RepositoryResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state RepositoryResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -828,7 +835,7 @@ func (r *RepositoryResource) Read(ctx context.Context, req resource.ReadRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *RepositoryResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan, state RepositoryResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -1036,7 +1043,7 @@ func (r *RepositoryResource) Update(ctx context.Context, req resource.UpdateRequ
 	resp.State = readResp.State
 }
 
-func (r *RepositoryResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state RepositoryResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -1084,7 +1091,7 @@ func (r *RepositoryResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 }
 
-func (r *RepositoryResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 
 	// SDKv2 behavior: Set auto_init to false on import
@@ -1093,4 +1100,3 @@ func (r *RepositoryResource) ImportState(ctx context.Context, req resource.Impor
 		"The auto_init attribute is set to false during import to match SDKv2 behavior.",
 	)
 }
-

@@ -1,4 +1,4 @@
-package github
+package provider
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	"github.com/nexthink-oss/terraform-provider-github/v7/internal/provider/repository"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -55,7 +57,7 @@ func (p *githubFrameworkProvider) Configure(ctx context.Context, req provider.Co
 // Only resources that have been migrated from SDKv2 to Framework are listed here.
 func (p *githubFrameworkProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewRepositoryResource,
+		repository.NewResource,
 	}
 }
 
