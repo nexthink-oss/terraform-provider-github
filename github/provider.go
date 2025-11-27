@@ -178,7 +178,6 @@ func Provider() *schema.Provider {
 			"github_organization_settings":                                          resourceGithubOrganizationSettings(),
 			"github_organization_webhook":                                           resourceGithubOrganizationWebhook(),
 			"github_release":                                                        resourceGithubRelease(),
-			"github_repository":                                                     resourceGithubRepository(),
 			"github_repository_autolink_reference":                                  resourceGithubRepositoryAutolinkReference(),
 			"github_repository_dependabot_security_updates":                         resourceGithubRepositoryDependabotSecurityUpdates(),
 			"github_repository_collaborator":                                        resourceGithubRepositoryCollaborator(),

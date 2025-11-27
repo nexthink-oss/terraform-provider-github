@@ -9,13 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAccGithubRepositories(t *testing.T) {
@@ -69,8 +66,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -131,8 +128,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -180,8 +177,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -237,8 +234,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -295,8 +292,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -359,8 +356,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -418,8 +415,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					// Test creation with default_branch set
 					{
@@ -476,8 +473,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -520,8 +517,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -569,8 +566,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -622,8 +619,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -685,8 +682,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 			testCase := func(t *testing.T, mode string) {
 				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
+					PreCheck:                 func() { skipUnlessMode(t, mode) },
+					ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 					Steps: []resource.TestStep{
 						{
 							Config: config,
@@ -745,8 +742,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 			testCase := func(t *testing.T, mode string) {
 				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
+					PreCheck:                 func() { skipUnlessMode(t, mode) },
+					ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 					Steps: []resource.TestStep{
 						{
 							Config: config,
@@ -828,8 +825,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: configs["before"],
@@ -906,8 +903,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: configs["before"],
@@ -956,8 +953,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						// Not doing any checks since the file needs to be created before the language can be updated
@@ -1036,8 +1033,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1111,8 +1108,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1207,8 +1204,8 @@ func TestAccGithubRepositories(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: configStep1,
@@ -1312,8 +1309,8 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1358,8 +1355,8 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1383,47 +1380,6 @@ func TestAccGithubRepositoryPages(t *testing.T) {
 
 	})
 
-	t.Run("expand Pages configuration with workflow", func(t *testing.T) {
-		input := []any{map[string]any{
-			"build_type": "workflow",
-			"source":     []any{map[string]any{}},
-		}}
-
-		pages := expandPages(input)
-		if pages == nil {
-			t.Fatal("pages is nil")
-		}
-		if pages.GetBuildType() != "workflow" {
-			t.Errorf("got %q; want %q", pages.GetBuildType(), "workflow")
-		}
-		if pages.GetSource().GetBranch() != "main" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
-		}
-	})
-
-	t.Run("expand Pages configuration with source", func(t *testing.T) {
-		input := []any{map[string]any{
-			"build_type": "legacy",
-			"source": []any{map[string]any{
-				"branch": "main",
-				"path":   "/docs",
-			}},
-		}}
-
-		pages := expandPages(input)
-		if pages == nil {
-			t.Fatal("pages is nil")
-		}
-		if pages.GetBuildType() != "legacy" {
-			t.Errorf("got %q; want %q", pages.GetBuildType(), "legacy")
-		}
-		if pages.GetSource().GetBranch() != "main" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetBranch(), "main")
-		}
-		if pages.GetSource().GetPath() != "/docs" {
-			t.Errorf("got %q; want %q", pages.GetSource().GetPath(), "/docs")
-		}
-	})
 }
 
 func TestAccGithubRepositorySecurity(t *testing.T) {
@@ -1470,8 +1426,8 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 			)
 			testCase := func(t *testing.T, mode string) {
 				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
+					PreCheck:                 func() { skipUnlessMode(t, mode) },
+					ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 					Steps: []resource.TestStep{
 						{
 							Config: config,
@@ -1524,8 +1480,8 @@ func TestAccGithubRepositorySecurity(t *testing.T) {
 			)
 			testCase := func(t *testing.T, mode string) {
 				resource.Test(t, resource.TestCase{
-					PreCheck:  func() { skipUnlessMode(t, mode) },
-					Providers: testAccProviders,
+					PreCheck:                 func() { skipUnlessMode(t, mode) },
+					ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 					Steps: []resource.TestStep{
 						{
 							Config: config,
@@ -1572,8 +1528,8 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1615,8 +1571,8 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1666,8 +1622,8 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1724,8 +1680,8 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1784,8 +1740,8 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1840,8 +1796,8 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -1910,8 +1866,8 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -2002,8 +1958,8 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 
 		testCase := func(t *testing.T, mode string) {
 			resource.Test(t, resource.TestCase{
-				PreCheck:  func() { skipUnlessMode(t, mode) },
-				Providers: testAccProviders,
+				PreCheck:                 func() { skipUnlessMode(t, mode) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Steps: []resource.TestStep{
 					{
 						Config: config,
@@ -2030,30 +1986,6 @@ func TestAccGithubRepositoryVisibility(t *testing.T) {
 		})
 	})
 
-}
-
-func TestGithubRepositoryTopicPassesValidation(t *testing.T) {
-	resource := resourceGithubRepository()
-	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-	diags := schema.ValidateDiagFunc("ef69e1a3-66be-40ca-bb62-4f36186aa292", cty.Path{cty.GetAttrStep{Name: "topic"}})
-	if diags.HasError() {
-		t.Error(fmt.Errorf("unexpected topic validation failure: %s", diags[0].Summary))
-	}
-}
-
-func TestGithubRepositoryTopicFailsValidationWhenOverMaxCharacters(t *testing.T) {
-	resource := resourceGithubRepository()
-	schema := resource.Schema["topics"].Elem.(*schema.Schema)
-
-	diags := schema.ValidateDiagFunc(strings.Repeat("a", 51), cty.Path{cty.GetAttrStep{Name: "topic"}})
-	if len(diags) != 1 {
-		t.Error(fmt.Errorf("unexpected number of topic validation failures; expected=1; actual=%d", len(diags)))
-	}
-	expectedFailure := "invalid value for topics (must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less)"
-	actualFailure := diags[0].Summary
-	if expectedFailure != actualFailure {
-		t.Error(fmt.Errorf("unexpected topic validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
-	}
 }
 
 func testSweepRepositories(region string) error {
@@ -2098,24 +2030,6 @@ func reconfigureVisibility(config, visibility string) string {
 	return newConfig
 }
 
-type resourceDataLike map[string]any
-
-func (d resourceDataLike) GetOk(key string) (any, bool) {
-	v, ok := d[key]
-	return v, ok
-}
-
-func TestResourceGithubParseFullName(t *testing.T) {
-	repo, org, ok := resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "myrepo/myorg"}))
-	assert.True(t, ok)
-	assert.Equal(t, "myrepo", repo)
-	assert.Equal(t, "myorg", org)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{}))
-	assert.False(t, ok)
-	_, _, ok = resourceGithubParseFullName(resourceDataLike(map[string]any{"full_name": "malformed"}))
-	assert.False(t, ok)
-}
-
 func testCheckResourceAttrContains(resourceName, attributeName, substring string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -2133,35 +2047,5 @@ func testCheckResourceAttrContains(resourceName, attributeName, substring string
 		}
 
 		return nil
-	}
-}
-
-func TestGithubRepositoryNameFailsValidationWhenOverMaxCharacters(t *testing.T) {
-	resource := resourceGithubRepository()
-	schema := resource.Schema["name"]
-
-	diags := schema.ValidateDiagFunc(strings.Repeat("a", 101), cty.GetAttrPath("name"))
-	if len(diags) != 1 {
-		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(diags)))
-	}
-	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
-	actualFailure := diags[0].Summary
-	if expectedFailure != actualFailure {
-		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
-	}
-}
-
-func TestGithubRepositoryNameFailsValidationWithSpace(t *testing.T) {
-	resource := resourceGithubRepository()
-	schema := resource.Schema["name"]
-
-	diags := schema.ValidateDiagFunc("test space", cty.GetAttrPath("name"))
-	if len(diags) != 1 {
-		t.Error(fmt.Errorf("unexpected number of name validation failures; expected=1; actual=%d", len(diags)))
-	}
-	expectedFailure := "invalid value for name (must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less)"
-	actualFailure := diags[0].Summary
-	if expectedFailure != actualFailure {
-		t.Error(fmt.Errorf("unexpected name validation failure; expected=%s; action=%s", expectedFailure, actualFailure))
 	}
 }
