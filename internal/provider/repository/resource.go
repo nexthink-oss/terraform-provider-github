@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -22,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"golang.org/x/oauth2"
 )
 
@@ -33,6 +36,7 @@ const ctxEtag ctxKey = "etag"
 var _ resource.Resource = &Resource{}
 var _ resource.ResourceWithImportState = &Resource{}
 var _ resource.ResourceWithConfigure = &Resource{}
+var _ resource.ResourceWithUpgradeState = &Resource{}
 
 // Resource implements the github_repository resource.
 type Resource struct {
@@ -51,6 +55,8 @@ func (r *Resource) Metadata(ctx context.Context, req resource.MetadataRequest, r
 
 func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		// Version must match SDKv2 SchemaVersion for state compatibility
+		Version:     1,
 		Description: "Creates and manages repositories within GitHub organizations or personal accounts",
 
 		Attributes: map[string]schema.Attribute{
@@ -429,6 +435,50 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 						},
 					},
 				},
+			},
+		},
+	}
+}
+
+// UpgradeState handles state migration from prior schema versions.
+// This matches the SDKv2 resourceGithubRepositoryMigrateState function.
+func (r *Resource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		// State upgrade from version 0 to version 1
+		// Mirrors SDKv2 migrateGithubRepositoryStateV0toV1: removes deprecated "branches.*" attributes
+		0: {
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				// Parse raw JSON state
+				var rawState map[string]json.RawMessage
+				if err := json.Unmarshal(req.RawState.JSON, &rawState); err != nil {
+					resp.Diagnostics.AddError(
+						"Unable to Unmarshal Prior State",
+						fmt.Sprintf("Error parsing v0 state: %s", err.Error()),
+					)
+					return
+				}
+
+				// Remove deprecated "branches.*" attributes (exact SDKv2 behavior)
+				for key := range rawState {
+					if strings.HasPrefix(key, "branches.") {
+						delete(rawState, key)
+					}
+				}
+
+				// Re-marshal the cleaned state
+				upgradedStateJSON, err := json.Marshal(rawState)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Unable to Marshal Upgraded State",
+						fmt.Sprintf("Error serializing v1 state: %s", err.Error()),
+					)
+					return
+				}
+
+				// Set the upgraded state
+				resp.DynamicValue = &tfprotov6.DynamicValue{
+					JSON: upgradedStateJSON,
+				}
 			},
 		},
 	}
