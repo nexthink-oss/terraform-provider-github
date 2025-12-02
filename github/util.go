@@ -277,7 +277,6 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 	return err
 }
 
-
 // flattenPages converts a GitHub Pages struct to the SDKv2-style []any format.
 // Used by the github_repository data source.
 func flattenPages(pages *github.Pages) []any {
