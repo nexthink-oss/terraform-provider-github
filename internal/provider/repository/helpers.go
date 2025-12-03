@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 // planToGithubRepository converts a RepositoryResourceModel to a github.Repository
@@ -77,38 +76,49 @@ func (r *Resource) planToGithubRepository(ctx context.Context, plan *RepositoryR
 		repo.Topics = topics
 	}
 
-	// Security and analysis
-	if !plan.SecurityAndAnalysis.IsNull() && !plan.SecurityAndAnalysis.IsUnknown() {
-		var secModel SecurityAndAnalysisModel
-		diags.Append(plan.SecurityAndAnalysis.As(ctx, &secModel, basetypes.ObjectAsOptions{})...)
+	// Security and analysis (now a list with max 1 element)
+	if !plan.SecurityAndAnalysis.IsNull() && !plan.SecurityAndAnalysis.IsUnknown() && len(plan.SecurityAndAnalysis.Elements()) > 0 {
+		var secModels []SecurityAndAnalysisModel
+		diags.Append(plan.SecurityAndAnalysis.ElementsAs(ctx, &secModels, false)...)
+		if len(secModels) > 0 {
+			secModel := secModels[0]
+			securityAndAnalysis := &github.SecurityAndAnalysis{}
 
-		securityAndAnalysis := &github.SecurityAndAnalysis{}
-
-		if !secModel.AdvancedSecurity.IsNull() {
-			var advSecModel AdvancedSecurityModel
-			diags.Append(secModel.AdvancedSecurity.As(ctx, &advSecModel, basetypes.ObjectAsOptions{})...)
-			securityAndAnalysis.AdvancedSecurity = &github.AdvancedSecurity{
-				Status: github.Ptr(advSecModel.Status.ValueString()),
+			// AdvancedSecurity is now a list with max 1 element
+			if !secModel.AdvancedSecurity.IsNull() && len(secModel.AdvancedSecurity.Elements()) > 0 {
+				var advSecModels []AdvancedSecurityModel
+				diags.Append(secModel.AdvancedSecurity.ElementsAs(ctx, &advSecModels, false)...)
+				if len(advSecModels) > 0 {
+					securityAndAnalysis.AdvancedSecurity = &github.AdvancedSecurity{
+						Status: github.Ptr(advSecModels[0].Status.ValueString()),
+					}
+				}
 			}
-		}
 
-		if !secModel.SecretScanning.IsNull() {
-			var secretScanModel SecretScanningModel
-			diags.Append(secModel.SecretScanning.As(ctx, &secretScanModel, basetypes.ObjectAsOptions{})...)
-			securityAndAnalysis.SecretScanning = &github.SecretScanning{
-				Status: github.Ptr(secretScanModel.Status.ValueString()),
+			// SecretScanning is now a list with max 1 element
+			if !secModel.SecretScanning.IsNull() && len(secModel.SecretScanning.Elements()) > 0 {
+				var secretScanModels []SecretScanningModel
+				diags.Append(secModel.SecretScanning.ElementsAs(ctx, &secretScanModels, false)...)
+				if len(secretScanModels) > 0 {
+					securityAndAnalysis.SecretScanning = &github.SecretScanning{
+						Status: github.Ptr(secretScanModels[0].Status.ValueString()),
+					}
+				}
 			}
-		}
 
-		if !secModel.SecretScanningPushProtection.IsNull() {
-			var pushProtModel SecretScanningPushProtectionModel
-			diags.Append(secModel.SecretScanningPushProtection.As(ctx, &pushProtModel, basetypes.ObjectAsOptions{})...)
-			securityAndAnalysis.SecretScanningPushProtection = &github.SecretScanningPushProtection{
-				Status: github.Ptr(pushProtModel.Status.ValueString()),
+			// SecretScanningPushProtection is now a list with max 1 element
+			if !secModel.SecretScanningPushProtection.IsNull() && len(secModel.SecretScanningPushProtection.Elements()) > 0 {
+				var pushProtModels []SecretScanningPushProtectionModel
+				diags.Append(secModel.SecretScanningPushProtection.ElementsAs(ctx, &pushProtModels, false)...)
+				if len(pushProtModels) > 0 {
+					securityAndAnalysis.SecretScanningPushProtection = &github.SecretScanningPushProtection{
+						Status: github.Ptr(pushProtModels[0].Status.ValueString()),
+					}
+				}
 			}
-		}
 
-		repo.SecurityAndAnalysis = securityAndAnalysis
+			repo.SecurityAndAnalysis = securityAndAnalysis
+		}
 	}
 
 	return repo, diags
@@ -128,22 +138,26 @@ func (r *Resource) expandPages(ctx context.Context, pagesModel *PagesModel) (*gi
 		pages.CNAME = github.Ptr(pagesModel.CNAME.ValueString())
 	}
 
-	if !pagesModel.Source.IsNull() && !pagesModel.Source.IsUnknown() {
-		var sourceModel PagesSourceModel
-		diags.Append(pagesModel.Source.As(ctx, &sourceModel, basetypes.ObjectAsOptions{})...)
+	// Source is now a list with max 1 element
+	if !pagesModel.Source.IsNull() && !pagesModel.Source.IsUnknown() && len(pagesModel.Source.Elements()) > 0 {
+		var sourceModels []PagesSourceModel
+		diags.Append(pagesModel.Source.ElementsAs(ctx, &sourceModels, false)...)
+		if len(sourceModels) > 0 {
+			sourceModel := sourceModels[0]
 
-		source := &github.PagesSource{
-			Branch: github.Ptr(sourceModel.Branch.ValueString()),
-		}
-
-		if !sourceModel.Path.IsNull() && !sourceModel.Path.IsUnknown() {
-			path := sourceModel.Path.ValueString()
-			if path != "" && path != "/" {
-				source.Path = github.Ptr(path)
+			source := &github.PagesSource{
+				Branch: github.Ptr(sourceModel.Branch.ValueString()),
 			}
-		}
 
-		pages.Source = source
+			if !sourceModel.Path.IsNull() && !sourceModel.Path.IsUnknown() {
+				path := sourceModel.Path.ValueString()
+				if path != "" && path != "/" {
+					source.Path = github.Ptr(path)
+				}
+			}
+
+			pages.Source = source
+		}
 	}
 
 	return pages, diags
@@ -164,30 +178,40 @@ func (r *Resource) expandPagesUpdate(ctx context.Context, pagesModel *PagesModel
 		pagesUpdate.CNAME = &cname
 	}
 
-	if !pagesModel.Source.IsNull() && !pagesModel.Source.IsUnknown() {
-		var sourceModel PagesSourceModel
-		diags.Append(pagesModel.Source.As(ctx, &sourceModel, basetypes.ObjectAsOptions{})...)
+	// Source is now a list with max 1 element
+	if !pagesModel.Source.IsNull() && !pagesModel.Source.IsUnknown() && len(pagesModel.Source.Elements()) > 0 {
+		var sourceModels []PagesSourceModel
+		diags.Append(pagesModel.Source.ElementsAs(ctx, &sourceModels, false)...)
+		if len(sourceModels) > 0 {
+			sourceModel := sourceModels[0]
 
-		source := &github.PagesSource{
-			Branch: github.Ptr(sourceModel.Branch.ValueString()),
-		}
-
-		if !sourceModel.Path.IsNull() && !sourceModel.Path.IsUnknown() {
-			path := sourceModel.Path.ValueString()
-			if path != "" && path != "/" {
-				source.Path = github.Ptr(path)
+			source := &github.PagesSource{
+				Branch: github.Ptr(sourceModel.Branch.ValueString()),
 			}
-		}
 
-		pagesUpdate.Source = source
+			if !sourceModel.Path.IsNull() && !sourceModel.Path.IsUnknown() {
+				path := sourceModel.Path.ValueString()
+				if path != "" && path != "/" {
+					source.Path = github.Ptr(path)
+				}
+			}
+
+			pagesUpdate.Source = source
+		}
 	}
 
 	return pagesUpdate, diags
 }
 
-// flattenPages converts github.Pages to types.Object
-func (r *Resource) flattenPages(ctx context.Context, pages *github.Pages) (types.Object, diag.Diagnostics) {
+// flattenPages converts github.Pages to types.List (with single element for state compatibility)
+func (r *Resource) flattenPages(ctx context.Context, pages *github.Pages) (types.List, diag.Diagnostics) {
 	var diags diag.Diagnostics
+
+	sourceAttrTypes := map[string]attr.Type{
+		"branch": types.StringType,
+		"path":   types.StringType,
+	}
+	sourceListType := types.ListType{ElemType: types.ObjectType{AttrTypes: sourceAttrTypes}}
 
 	pagesAttrTypes := map[string]attr.Type{
 		"build_type": types.StringType,
@@ -196,34 +220,29 @@ func (r *Resource) flattenPages(ctx context.Context, pages *github.Pages) (types
 		"html_url":   types.StringType,
 		"status":     types.StringType,
 		"url":        types.StringType,
-		"source": types.ObjectType{AttrTypes: map[string]attr.Type{
-			"branch": types.StringType,
-			"path":   types.StringType,
-		}},
+		"source":     sourceListType,
 	}
+	pagesListType := types.ListType{ElemType: types.ObjectType{AttrTypes: pagesAttrTypes}}
 
 	if pages == nil {
-		return types.ObjectNull(pagesAttrTypes), diags
+		return types.ListNull(types.ObjectType{AttrTypes: pagesAttrTypes}), diags
 	}
 
-	sourceObj := types.ObjectNull(map[string]attr.Type{
-		"branch": types.StringType,
-		"path":   types.StringType,
-	})
-
+	// Build source as a list with single element
+	sourceList := types.ListNull(types.ObjectType{AttrTypes: sourceAttrTypes})
 	if pages.Source != nil {
-		var sourceDiags diag.Diagnostics
-		sourceObj, sourceDiags = types.ObjectValue(
-			map[string]attr.Type{
-				"branch": types.StringType,
-				"path":   types.StringType,
-			},
+		sourceObj, sourceDiags := types.ObjectValue(
+			sourceAttrTypes,
 			map[string]attr.Value{
 				"branch": types.StringPointerValue(pages.Source.Branch),
 				"path":   types.StringPointerValue(pages.Source.Path),
 			},
 		)
 		diags.Append(sourceDiags...)
+
+		var listDiags diag.Diagnostics
+		sourceList, listDiags = types.ListValue(types.ObjectType{AttrTypes: sourceAttrTypes}, []attr.Value{sourceObj})
+		diags.Append(listDiags...)
 	}
 
 	pagesObj, diagsPages := types.ObjectValue(
@@ -235,71 +254,94 @@ func (r *Resource) flattenPages(ctx context.Context, pages *github.Pages) (types
 			"html_url":   types.StringPointerValue(pages.HTMLURL),
 			"status":     types.StringPointerValue(pages.Status),
 			"url":        types.StringPointerValue(pages.URL),
-			"source":     sourceObj,
+			"source":     sourceList,
 		},
 	)
 	diags.Append(diagsPages...)
 
-	return pagesObj, diags
+	// Wrap in a list with single element
+	pagesList, listDiags := types.ListValue(types.ObjectType{AttrTypes: pagesAttrTypes}, []attr.Value{pagesObj})
+	diags.Append(listDiags...)
+
+	_ = pagesListType // Silence unused variable warning
+
+	return pagesList, diags
 }
 
-// flattenSecurityAndAnalysis converts github.SecurityAndAnalysis to types.Object
-func (r *Resource) flattenSecurityAndAnalysis(ctx context.Context, sec *github.SecurityAndAnalysis) (types.Object, diag.Diagnostics) {
+// flattenSecurityAndAnalysis converts github.SecurityAndAnalysis to types.List (with single element for state compatibility)
+func (r *Resource) flattenSecurityAndAnalysis(ctx context.Context, sec *github.SecurityAndAnalysis) (types.List, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	statusAttrType := map[string]attr.Type{"status": types.StringType}
+	statusListType := types.ListType{ElemType: types.ObjectType{AttrTypes: statusAttrType}}
+
 	secAttrTypes := map[string]attr.Type{
-		"advanced_security":               types.ObjectType{AttrTypes: map[string]attr.Type{"status": types.StringType}},
-		"secret_scanning":                 types.ObjectType{AttrTypes: map[string]attr.Type{"status": types.StringType}},
-		"secret_scanning_push_protection": types.ObjectType{AttrTypes: map[string]attr.Type{"status": types.StringType}},
+		"advanced_security":               statusListType,
+		"secret_scanning":                 statusListType,
+		"secret_scanning_push_protection": statusListType,
 	}
 
 	if sec == nil {
-		return types.ObjectNull(secAttrTypes), diags
+		return types.ListNull(types.ObjectType{AttrTypes: secAttrTypes}), diags
 	}
 
-	statusAttrType := map[string]attr.Type{"status": types.StringType}
-
-	advSecObj := types.ObjectNull(statusAttrType)
+	// Build advanced_security as a list with single element
+	advSecList := types.ListNull(types.ObjectType{AttrTypes: statusAttrType})
 	if sec.AdvancedSecurity != nil && sec.AdvancedSecurity.Status != nil {
-		var advDiags diag.Diagnostics
-		advSecObj, advDiags = types.ObjectValue(
+		advSecObj, advDiags := types.ObjectValue(
 			statusAttrType,
 			map[string]attr.Value{"status": types.StringPointerValue(sec.AdvancedSecurity.Status)},
 		)
 		diags.Append(advDiags...)
+
+		var listDiags diag.Diagnostics
+		advSecList, listDiags = types.ListValue(types.ObjectType{AttrTypes: statusAttrType}, []attr.Value{advSecObj})
+		diags.Append(listDiags...)
 	}
 
-	secretScanObj := types.ObjectNull(statusAttrType)
+	// Build secret_scanning as a list with single element
+	secretScanList := types.ListNull(types.ObjectType{AttrTypes: statusAttrType})
 	if sec.SecretScanning != nil && sec.SecretScanning.Status != nil {
-		var scanDiags diag.Diagnostics
-		secretScanObj, scanDiags = types.ObjectValue(
+		secretScanObj, scanDiags := types.ObjectValue(
 			statusAttrType,
 			map[string]attr.Value{"status": types.StringPointerValue(sec.SecretScanning.Status)},
 		)
 		diags.Append(scanDiags...)
+
+		var listDiags diag.Diagnostics
+		secretScanList, listDiags = types.ListValue(types.ObjectType{AttrTypes: statusAttrType}, []attr.Value{secretScanObj})
+		diags.Append(listDiags...)
 	}
 
-	pushProtObj := types.ObjectNull(statusAttrType)
+	// Build secret_scanning_push_protection as a list with single element
+	pushProtList := types.ListNull(types.ObjectType{AttrTypes: statusAttrType})
 	if sec.SecretScanningPushProtection != nil && sec.SecretScanningPushProtection.Status != nil {
-		var pushDiags diag.Diagnostics
-		pushProtObj, pushDiags = types.ObjectValue(
+		pushProtObj, pushDiags := types.ObjectValue(
 			statusAttrType,
 			map[string]attr.Value{"status": types.StringPointerValue(sec.SecretScanningPushProtection.Status)},
 		)
 		diags.Append(pushDiags...)
+
+		var listDiags diag.Diagnostics
+		pushProtList, listDiags = types.ListValue(types.ObjectType{AttrTypes: statusAttrType}, []attr.Value{pushProtObj})
+		diags.Append(listDiags...)
 	}
 
 	secObj, diagsSec := types.ObjectValue(
 		secAttrTypes,
 		map[string]attr.Value{
-			"advanced_security":               advSecObj,
-			"secret_scanning":                 secretScanObj,
-			"secret_scanning_push_protection": pushProtObj,
+			"advanced_security":               advSecList,
+			"secret_scanning":                 secretScanList,
+			"secret_scanning_push_protection": pushProtList,
 		},
 	)
 	diags.Append(diagsSec...)
 
-	return secObj, diags
+	// Wrap in a list with single element
+	secList, listDiags := types.ListValue(types.ObjectType{AttrTypes: secAttrTypes}, []attr.Value{secObj})
+	diags.Append(listDiags...)
+
+	return secList, diags
 }
 
 // Utility functions

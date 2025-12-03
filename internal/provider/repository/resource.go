@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v74/github"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -23,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"golang.org/x/oauth2"
 )
@@ -310,113 +310,148 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 		},
 
 		Blocks: map[string]schema.Block{
-			"security_and_analysis": schema.SingleNestedBlock{
-				Description: "Security and analysis settings for the repository. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository.",
-				Blocks: map[string]schema.Block{
-					"advanced_security": schema.SingleNestedBlock{
-						Description: "The advanced security configuration for the repository. If a repository's visibility is 'public', advanced security is always enabled and cannot be changed, so this setting cannot be supplied.",
-						Attributes: map[string]schema.Attribute{
-							"status": schema.StringAttribute{
-								Required:    true,
-								Description: "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
-								Validators: []validator.String{
-									stringvalidator.OneOf("enabled", "disabled"),
+			"security_and_analysis": schema.ListNestedBlock{
+				Description: "Security and analysis settings for the repository. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository. Only one block is permitted.",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Blocks: map[string]schema.Block{
+						"advanced_security": schema.ListNestedBlock{
+							Description: "The advanced security configuration for the repository. If a repository's visibility is 'public', advanced security is always enabled and cannot be changed, so this setting cannot be supplied. Only one block is permitted.",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"status": schema.StringAttribute{
+										Required:    true,
+										Description: "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
+										Validators: []validator.String{
+											stringvalidator.OneOf("enabled", "disabled"),
+										},
+									},
 								},
 							},
 						},
-					},
-					"secret_scanning": schema.SingleNestedBlock{
-						Description: "The secret scanning configuration for the repository.",
-						Attributes: map[string]schema.Attribute{
-							"status": schema.StringAttribute{
-								Required:    true,
-								Description: "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
-								Validators: []validator.String{
-									stringvalidator.OneOf("enabled", "disabled"),
+						"secret_scanning": schema.ListNestedBlock{
+							Description: "The secret scanning configuration for the repository. Only one block is permitted.",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"status": schema.StringAttribute{
+										Required:    true,
+										Description: "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
+										Validators: []validator.String{
+											stringvalidator.OneOf("enabled", "disabled"),
+										},
+									},
 								},
 							},
 						},
-					},
-					"secret_scanning_push_protection": schema.SingleNestedBlock{
-						Description: "The secret scanning push protection configuration for the repository.",
-						Attributes: map[string]schema.Attribute{
-							"status": schema.StringAttribute{
-								Required:    true,
-								Description: "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
-								Validators: []validator.String{
-									stringvalidator.OneOf("enabled", "disabled"),
+						"secret_scanning_push_protection": schema.ListNestedBlock{
+							Description: "The secret scanning push protection configuration for the repository. Only one block is permitted.",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"status": schema.StringAttribute{
+										Required:    true,
+										Description: "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
+										Validators: []validator.String{
+											stringvalidator.OneOf("enabled", "disabled"),
+										},
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-			"pages": schema.SingleNestedBlock{
-				Description: "The repository's GitHub Pages configuration",
-				Blocks: map[string]schema.Block{
-					"source": schema.SingleNestedBlock{
-						Description: "The source branch and directory for the rendered Pages site.",
-						Attributes: map[string]schema.Attribute{
-							"branch": schema.StringAttribute{
-								Required:    true,
-								Description: "The repository branch used to publish the site's source files. (i.e. 'main' or 'gh-pages')",
-							},
-							"path": schema.StringAttribute{
-								Optional:    true,
-								Computed:    true,
-								Description: "The repository directory from which the site publishes (Default: '/')",
-								Default:     stringdefault.StaticString("/"),
-							},
-						},
-					},
+			"pages": schema.ListNestedBlock{
+				Description: "The repository's GitHub Pages configuration. Only one block is permitted.",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
 				},
-				Attributes: map[string]schema.Attribute{
-					"build_type": schema.StringAttribute{
-						Optional:    true,
-						Computed:    true,
-						Description: "The type the page should be sourced.",
-						Default:     stringdefault.StaticString("legacy"),
-						Validators: []validator.String{
-							stringvalidator.OneOf("legacy", "workflow"),
+				NestedObject: schema.NestedBlockObject{
+					Blocks: map[string]schema.Block{
+						"source": schema.ListNestedBlock{
+							Description: "The source branch and directory for the rendered Pages site. Only one block is permitted.",
+							Validators: []validator.List{
+								listvalidator.SizeAtMost(1),
+							},
+							NestedObject: schema.NestedBlockObject{
+								Attributes: map[string]schema.Attribute{
+									"branch": schema.StringAttribute{
+										Required:    true,
+										Description: "The repository branch used to publish the site's source files. (i.e. 'main' or 'gh-pages')",
+									},
+									"path": schema.StringAttribute{
+										Optional:    true,
+										Computed:    true,
+										Description: "The repository directory from which the site publishes (Default: '/')",
+										Default:     stringdefault.StaticString("/"),
+									},
+								},
+							},
 						},
 					},
-					"cname": schema.StringAttribute{
-						Optional:    true,
-						Description: "The custom domain for the repository. This can only be set after the repository has been created.",
-					},
-					"custom_404": schema.BoolAttribute{
-						Computed:    true,
-						Description: "Whether the rendered GitHub Pages site has a custom 404 page",
-					},
-					"html_url": schema.StringAttribute{
-						Computed:    true,
-						Description: "URL to the repository on the web.",
-					},
-					"status": schema.StringAttribute{
-						Computed:    true,
-						Description: "The GitHub Pages site's build status e.g. building or built.",
-					},
-					"url": schema.StringAttribute{
-						Computed: true,
+					Attributes: map[string]schema.Attribute{
+						"build_type": schema.StringAttribute{
+							Optional:    true,
+							Computed:    true,
+							Description: "The type the page should be sourced.",
+							Default:     stringdefault.StaticString("legacy"),
+							Validators: []validator.String{
+								stringvalidator.OneOf("legacy", "workflow"),
+							},
+						},
+						"cname": schema.StringAttribute{
+							Optional:    true,
+							Description: "The custom domain for the repository. This can only be set after the repository has been created.",
+						},
+						"custom_404": schema.BoolAttribute{
+							Computed:    true,
+							Description: "Whether the rendered GitHub Pages site has a custom 404 page",
+						},
+						"html_url": schema.StringAttribute{
+							Computed:    true,
+							Description: "URL to the repository on the web.",
+						},
+						"status": schema.StringAttribute{
+							Computed:    true,
+							Description: "The GitHub Pages site's build status e.g. building or built.",
+						},
+						"url": schema.StringAttribute{
+							Computed: true,
+						},
 					},
 				},
 			},
-			"template": schema.SingleNestedBlock{
-				Description: "Use a template repository to create this resource.",
-				Attributes: map[string]schema.Attribute{
-					"include_all_branches": schema.BoolAttribute{
-						Optional:    true,
-						Computed:    true,
-						Description: "Whether the new repository should include all the branches from the template repository (defaults to 'false', which includes only the default branch from the template).",
-						Default:     booldefault.StaticBool(false),
-					},
-					"owner": schema.StringAttribute{
-						Required:    true,
-						Description: "The GitHub organization or user the template repository is owned by.",
-					},
-					"repository": schema.StringAttribute{
-						Required:    true,
-						Description: "The name of the template repository.",
+			"template": schema.ListNestedBlock{
+				Description: "Use a template repository to create this resource. Only one block is permitted.",
+				Validators: []validator.List{
+					listvalidator.SizeAtMost(1),
+				},
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"include_all_branches": schema.BoolAttribute{
+							Optional:    true,
+							Computed:    true,
+							Description: "Whether the new repository should include all the branches from the template repository (defaults to 'false', which includes only the default branch from the template).",
+							Default:     booldefault.StaticBool(false),
+						},
+						"owner": schema.StringAttribute{
+							Required:    true,
+							Description: "The GitHub organization or user the template repository is owned by.",
+						},
+						"repository": schema.StringAttribute{
+							Required:    true,
+							Description: "The name of the template repository.",
+						},
 					},
 				},
 			},
@@ -566,35 +601,42 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	var repo *github.Repository
 	var err error
 
-	// Check if using template
-	if !plan.Template.IsNull() && !plan.Template.IsUnknown() {
-		var templateModel TemplateModel
-		resp.Diagnostics.Append(plan.Template.As(ctx, &templateModel, basetypes.ObjectAsOptions{})...)
+	// Check if using template (template is now a list with max 1 element)
+	if !plan.Template.IsNull() && !plan.Template.IsUnknown() && len(plan.Template.Elements()) > 0 {
+		var templateModels []TemplateModel
+		resp.Diagnostics.Append(plan.Template.ElementsAs(ctx, &templateModels, false)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 
-		templateRepoReq := &github.TemplateRepoRequest{
-			Name:               github.Ptr(repoName),
-			Owner:              github.Ptr(r.owner),
-			Description:        repoReq.Description,
-			Private:            repoReq.Private,
-			IncludeAllBranches: github.Ptr(templateModel.IncludeAllBranches.ValueBool()),
-		}
+		if len(templateModels) > 0 {
+			templateModel := templateModels[0]
 
-		repo, _, err = r.client.Repositories.CreateFromTemplate(ctx,
-			templateModel.Owner.ValueString(),
-			templateModel.Repository.ValueString(),
-			templateRepoReq,
-		)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error Creating Repository from Template",
-				fmt.Sprintf("Could not create repository %s from template: %s", repoName, err.Error()),
+			templateRepoReq := &github.TemplateRepoRequest{
+				Name:               github.Ptr(repoName),
+				Owner:              github.Ptr(r.owner),
+				Description:        repoReq.Description,
+				Private:            repoReq.Private,
+				IncludeAllBranches: github.Ptr(templateModel.IncludeAllBranches.ValueBool()),
+			}
+
+			repo, _, err = r.client.Repositories.CreateFromTemplate(ctx,
+				templateModel.Owner.ValueString(),
+				templateModel.Repository.ValueString(),
+				templateRepoReq,
 			)
-			return
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error Creating Repository from Template",
+					fmt.Sprintf("Could not create repository %s from template: %s", repoName, err.Error()),
+				)
+				return
+			}
 		}
-	} else {
+	}
+
+	// Create regular repository if not using template
+	if repo == nil {
 		// Determine if this is an organization or user repository
 		// Try to check if owner is an organization
 		org, _, err := r.client.Organizations.Get(ctx, r.owner)
@@ -638,28 +680,30 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		}
 	}
 
-	// Enable GitHub Pages if configured
-	if !plan.Pages.IsNull() && !plan.Pages.IsUnknown() {
-		var pagesModel PagesModel
-		resp.Diagnostics.Append(plan.Pages.As(ctx, &pagesModel, basetypes.ObjectAsOptions{})...)
+	// Enable GitHub Pages if configured (pages is now a list with max 1 element)
+	if !plan.Pages.IsNull() && !plan.Pages.IsUnknown() && len(plan.Pages.Elements()) > 0 {
+		var pagesModels []PagesModel
+		resp.Diagnostics.Append(plan.Pages.ElementsAs(ctx, &pagesModels, false)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 
-		pages, diagsPages := r.expandPages(ctx, &pagesModel)
-		resp.Diagnostics.Append(diagsPages...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		if pages != nil {
-			_, _, err := r.client.Repositories.EnablePages(ctx, r.owner, repoName, pages)
-			if err != nil {
-				resp.Diagnostics.AddError(
-					"Error Enabling GitHub Pages",
-					fmt.Sprintf("Could not enable GitHub Pages for repository %s: %s", repoName, err.Error()),
-				)
+		if len(pagesModels) > 0 {
+			pages, diagsPages := r.expandPages(ctx, &pagesModels[0])
+			resp.Diagnostics.Append(diagsPages...)
+			if resp.Diagnostics.HasError() {
 				return
+			}
+
+			if pages != nil {
+				_, _, err := r.client.Repositories.EnablePages(ctx, r.owner, repoName, pages)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error Enabling GitHub Pages",
+						fmt.Sprintf("Could not enable GitHub Pages for repository %s: %s", repoName, err.Error()),
+					)
+					return
+				}
 			}
 		}
 	}
@@ -813,14 +857,15 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		state.Pages = pagesObj
 	}
 
-	// Template
+	// Template (now a list with max 1 element for state compatibility)
 	if repo.TemplateRepository != nil {
+		templateAttrTypes := map[string]attr.Type{
+			"owner":                types.StringType,
+			"repository":           types.StringType,
+			"include_all_branches": types.BoolType,
+		}
 		templateObj, diagsTemplate := types.ObjectValue(
-			map[string]attr.Type{
-				"owner":                types.StringType,
-				"repository":           types.StringType,
-				"include_all_branches": types.BoolType,
-			},
+			templateAttrTypes,
 			map[string]attr.Value{
 				"owner":                types.StringPointerValue(repo.TemplateRepository.Owner.Login),
 				"repository":           types.StringPointerValue(repo.TemplateRepository.Name),
@@ -831,7 +876,14 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		state.Template = templateObj
+
+		// Wrap in a list with single element
+		templateList, listDiags := types.ListValue(types.ObjectType{AttrTypes: templateAttrTypes}, []attr.Value{templateObj})
+		resp.Diagnostics.Append(listDiags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		state.Template = templateList
 	}
 
 	// Vulnerability alerts
@@ -939,58 +991,62 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 
 	plan.ID = types.StringValue(repo.GetName())
 
-	// Handle pages updates
+	// Handle pages updates (pages is now a list with max 1 element)
 	if !plan.Pages.Equal(state.Pages) {
-		if !plan.Pages.IsNull() && !plan.Pages.IsUnknown() {
-			var pagesModel PagesModel
-			resp.Diagnostics.Append(plan.Pages.As(ctx, &pagesModel, basetypes.ObjectAsOptions{})...)
+		if !plan.Pages.IsNull() && !plan.Pages.IsUnknown() && len(plan.Pages.Elements()) > 0 {
+			var pagesModels []PagesModel
+			resp.Diagnostics.Append(plan.Pages.ElementsAs(ctx, &pagesModels, false)...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
 
-			// Check if pages currently exists
-			existingPages, httpResp, err := r.client.Repositories.GetPagesInfo(ctx, r.owner, repoName)
+			if len(pagesModels) > 0 {
+				pagesModel := pagesModels[0]
 
-			if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-				// Pages doesn't exist, enable it
-				pages, diagsPages := r.expandPages(ctx, &pagesModel)
-				resp.Diagnostics.Append(diagsPages...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
+				// Check if pages currently exists
+				existingPages, httpResp, err := r.client.Repositories.GetPagesInfo(ctx, r.owner, repoName)
 
-				_, _, err = r.client.Repositories.EnablePages(ctx, r.owner, repoName, pages)
-				if err != nil {
+				if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+					// Pages doesn't exist, enable it
+					pages, diagsPages := r.expandPages(ctx, &pagesModel)
+					resp.Diagnostics.Append(diagsPages...)
+					if resp.Diagnostics.HasError() {
+						return
+					}
+
+					_, _, err = r.client.Repositories.EnablePages(ctx, r.owner, repoName, pages)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error Enabling GitHub Pages",
+							fmt.Sprintf("Could not enable GitHub Pages for repository %s: %s", repoName, err.Error()),
+						)
+						return
+					}
+				} else if err == nil && existingPages != nil {
+					// Pages exists, update it
+					pagesUpdate, diagsPages := r.expandPagesUpdate(ctx, &pagesModel)
+					resp.Diagnostics.Append(diagsPages...)
+					if resp.Diagnostics.HasError() {
+						return
+					}
+
+					_, err = r.client.Repositories.UpdatePages(ctx, r.owner, repoName, pagesUpdate)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error Updating GitHub Pages",
+							fmt.Sprintf("Could not update GitHub Pages for repository %s: %s", repoName, err.Error()),
+						)
+						return
+					}
+				} else if err != nil {
 					resp.Diagnostics.AddError(
-						"Error Enabling GitHub Pages",
-						fmt.Sprintf("Could not enable GitHub Pages for repository %s: %s", repoName, err.Error()),
+						"Error Reading GitHub Pages",
+						fmt.Sprintf("Could not read GitHub Pages info for repository %s: %s", repoName, err.Error()),
 					)
 					return
 				}
-			} else if err == nil && existingPages != nil {
-				// Pages exists, update it
-				pagesUpdate, diagsPages := r.expandPagesUpdate(ctx, &pagesModel)
-				resp.Diagnostics.Append(diagsPages...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-
-				_, err = r.client.Repositories.UpdatePages(ctx, r.owner, repoName, pagesUpdate)
-				if err != nil {
-					resp.Diagnostics.AddError(
-						"Error Updating GitHub Pages",
-						fmt.Sprintf("Could not update GitHub Pages for repository %s: %s", repoName, err.Error()),
-					)
-					return
-				}
-			} else if err != nil {
-				resp.Diagnostics.AddError(
-					"Error Reading GitHub Pages",
-					fmt.Sprintf("Could not read GitHub Pages info for repository %s: %s", repoName, err.Error()),
-				)
-				return
 			}
-		} else if !state.Pages.IsNull() {
+		} else if !state.Pages.IsNull() && len(state.Pages.Elements()) > 0 {
 			// Pages was removed, disable it
 			_, err := r.client.Repositories.DisablePages(ctx, r.owner, repoName)
 			if err != nil {

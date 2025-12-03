@@ -138,12 +138,12 @@ resource "github_repository_custom_property" "compliance" {
 - `license_template` (String) Use the name of the template without the extension. For example, 'mit' or 'mpl-2.0'.
 - `merge_commit_message` (String) Can be 'PR_BODY', 'PR_TITLE', or 'BLANK' for a default merge commit message.
 - `merge_commit_title` (String) Can be 'PR_TITLE' or 'MERGE_MESSAGE' for a default merge commit title.
-- `pages` (Block, Optional) The repository's GitHub Pages configuration (see [below for nested schema](#nestedblock--pages))
+- `pages` (Block List) The repository's GitHub Pages configuration. Only one block is permitted. (see [below for nested schema](#nestedblock--pages))
 - `private` (Boolean, Deprecated) Set to true to create a private repository. Repositories are created as public (e.g. open source) by default.
-- `security_and_analysis` (Block, Optional) Security and analysis settings for the repository. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository. (see [below for nested schema](#nestedblock--security_and_analysis))
+- `security_and_analysis` (Block List) Security and analysis settings for the repository. To use this parameter you must have admin permissions for the repository or be an owner or security manager for the organization that owns the repository. Only one block is permitted. (see [below for nested schema](#nestedblock--security_and_analysis))
 - `squash_merge_commit_message` (String) Can be 'PR_BODY', 'COMMIT_MESSAGES', or 'BLANK' for a default squash merge commit message.
 - `squash_merge_commit_title` (String) Can be 'PR_TITLE' or 'COMMIT_OR_PR_TITLE' for a default squash merge commit title.
-- `template` (Block, Optional) Use a template repository to create this resource. (see [below for nested schema](#nestedblock--template))
+- `template` (Block List) Use a template repository to create this resource. Only one block is permitted. (see [below for nested schema](#nestedblock--template))
 - `topics` (Set of String) The list of topics of the repository.
 - `visibility` (String) Can be 'public' or 'private'. If your organization is associated with an enterprise account using GitHub Enterprise Cloud or GitHub Enterprise Server 2.20+, visibility can also be 'internal'.
 - `vulnerability_alerts` (Boolean) Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.
@@ -180,7 +180,7 @@ Optional:
 
 - `build_type` (String) The type the page should be sourced.
 - `cname` (String) The custom domain for the repository. This can only be set after the repository has been created.
-- `source` (Block, Optional) The source branch and directory for the rendered Pages site. (see [below for nested schema](#nestedblock--pages--source))
+- `source` (Block List) The source branch and directory for the rendered Pages site. Only one block is permitted. (see [below for nested schema](#nestedblock--pages--source))
 
 Read-Only:
 
@@ -207,9 +207,9 @@ Optional:
 
 Optional:
 
-- `advanced_security` (Block, Optional) The advanced security configuration for the repository. If a repository's visibility is 'public', advanced security is always enabled and cannot be changed, so this setting cannot be supplied. (see [below for nested schema](#nestedblock--security_and_analysis--advanced_security))
-- `secret_scanning` (Block, Optional) The secret scanning configuration for the repository. (see [below for nested schema](#nestedblock--security_and_analysis--secret_scanning))
-- `secret_scanning_push_protection` (Block, Optional) The secret scanning push protection configuration for the repository. (see [below for nested schema](#nestedblock--security_and_analysis--secret_scanning_push_protection))
+- `advanced_security` (Block List) The advanced security configuration for the repository. If a repository's visibility is 'public', advanced security is always enabled and cannot be changed, so this setting cannot be supplied. Only one block is permitted. (see [below for nested schema](#nestedblock--security_and_analysis--advanced_security))
+- `secret_scanning` (Block List) The secret scanning configuration for the repository. Only one block is permitted. (see [below for nested schema](#nestedblock--security_and_analysis--secret_scanning))
+- `secret_scanning_push_protection` (Block List) The secret scanning push protection configuration for the repository. Only one block is permitted. (see [below for nested schema](#nestedblock--security_and_analysis--secret_scanning_push_protection))
 
 <a id="nestedblock--security_and_analysis--advanced_security"></a>
 ### Nested Schema for `security_and_analysis.advanced_security`

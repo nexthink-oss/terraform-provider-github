@@ -70,10 +70,10 @@ type RepositoryResourceModel struct {
 	NodeID          types.String `tfsdk:"node_id"`
 	RepoID          types.Int64  `tfsdk:"repo_id"`
 
-	// Nested blocks (use types.Object for SingleNestedBlock, types.Set for SetNestedBlock)
-	SecurityAndAnalysis types.Object `tfsdk:"security_and_analysis"`
-	Pages               types.Object `tfsdk:"pages"`
-	Template            types.Object `tfsdk:"template"`
+	// Nested blocks (use types.List for ListNestedBlock with SizeAtMost(1), types.Set for SetNestedBlock)
+	SecurityAndAnalysis types.List `tfsdk:"security_and_analysis"`
+	Pages               types.List `tfsdk:"pages"`
+	Template            types.List `tfsdk:"template"`
 
 	// Custom properties (SetNestedBlock)
 	CustomProperty            types.Set  `tfsdk:"custom_property"`
@@ -83,9 +83,9 @@ type RepositoryResourceModel struct {
 
 // SecurityAndAnalysisModel describes the security_and_analysis nested block.
 type SecurityAndAnalysisModel struct {
-	AdvancedSecurity             types.Object `tfsdk:"advanced_security"`
-	SecretScanning               types.Object `tfsdk:"secret_scanning"`
-	SecretScanningPushProtection types.Object `tfsdk:"secret_scanning_push_protection"`
+	AdvancedSecurity             types.List `tfsdk:"advanced_security"`
+	SecretScanning               types.List `tfsdk:"secret_scanning"`
+	SecretScanningPushProtection types.List `tfsdk:"secret_scanning_push_protection"`
 }
 
 // AdvancedSecurityModel describes the advanced_security nested block.
@@ -105,7 +105,7 @@ type SecretScanningPushProtectionModel struct {
 
 // PagesModel describes the pages nested block.
 type PagesModel struct {
-	Source    types.Object `tfsdk:"source"`
+	Source    types.List   `tfsdk:"source"`
 	BuildType types.String `tfsdk:"build_type"`
 	CNAME     types.String `tfsdk:"cname"`
 
