@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -64,7 +65,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Computed:    true,
 				Description: "The ID of the repository.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					NameBasedUnknownModifier(),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -101,27 +102,38 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 			},
 			"has_issues": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to enable the GitHub Issues features on the repository",
+				Default:     booldefault.StaticBool(true),
 			},
 			"has_discussions": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to enable GitHub Discussions on the repository. Defaults to 'false'.",
+				Default:     booldefault.StaticBool(false),
 			},
 			"has_projects": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to enable the GitHub Projects features on the repository. Per the GitHub documentation when in an organization that has disabled repository projects it will default to 'false' and will otherwise default to 'true'. If you specify 'true' when it has been disabled it will return an error.",
 			},
 			"has_downloads": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to enable the (deprecated) downloads features on the repository.",
+				Default:     booldefault.StaticBool(true),
 			},
 			"has_wiki": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to enable the GitHub Wiki features on the repository.",
+				Default:     booldefault.StaticBool(true),
 			},
 			"is_template": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to tell GitHub that this is a template repository.",
+				Default:     booldefault.StaticBool(false),
 			},
 			"allow_merge_commit": schema.BoolAttribute{
 				Optional:    true,
@@ -185,7 +197,9 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 			},
 			"auto_init": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to produce an initial commit in the repository.",
+				Default:     booldefault.StaticBool(false),
 			},
 			"default_branch": schema.StringAttribute{
 				Optional:           true,
@@ -213,6 +227,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 			},
 			"vulnerability_alerts": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Set to 'true' to enable security alerts for vulnerable dependencies. Enabling requires alerts to be enabled on the owner level. (Note for importing: GitHub enables the alerts on public repos but disables them on private repos by default). Note that vulnerability alerts have not been successfully tested on any GitHub Enterprise instance and may be unavailable in those settings.",
 			},
 			"ignore_vulnerability_alerts_during_read": schema.BoolAttribute{
@@ -221,7 +236,9 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 			},
 			"allow_update_branch": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: " Set to 'true' to always suggest updating pull request branches.",
+				Default:     booldefault.StaticBool(false),
 			},
 			"exclusive_custom_properties": schema.BoolAttribute{
 				Optional:    true,
@@ -241,42 +258,39 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Computed:    true,
 				Description: "URL to the repository on the web.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					NameBasedUnknownModifier(),
 				},
 			},
 			"ssh_clone_url": schema.StringAttribute{
 				Computed:    true,
 				Description: "URL that can be provided to 'git clone' to clone the repository via SSH.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					NameBasedUnknownModifier(),
 				},
 			},
 			"svn_url": schema.StringAttribute{
 				Computed:    true,
 				Description: "URL that can be provided to 'svn checkout' to check out the repository via GitHub's Subversion protocol emulation.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					NameBasedUnknownModifier(),
 				},
 			},
 			"git_clone_url": schema.StringAttribute{
 				Computed:    true,
 				Description: "URL that can be provided to 'git clone' to clone the repository anonymously via the git protocol.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					NameBasedUnknownModifier(),
 				},
 			},
 			"http_clone_url": schema.StringAttribute{
 				Computed:    true,
 				Description: "URL that can be provided to 'git clone' to clone the repository via HTTPS.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					NameBasedUnknownModifier(),
 				},
 			},
 			"etag": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"primary_language": schema.StringAttribute{
 				Computed: true,
@@ -325,7 +339,8 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"status": schema.StringAttribute{
-										Required:    true,
+										Optional:    true,
+										Computed:    true,
 										Description: "Set to 'enabled' to enable advanced security features on the repository. Can be 'enabled' or 'disabled'.",
 										Validators: []validator.String{
 											stringvalidator.OneOf("enabled", "disabled"),
@@ -342,7 +357,8 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"status": schema.StringAttribute{
-										Required:    true,
+										Computed:    true,
+										Optional:    true,
 										Description: "Set to 'enabled' to enable secret scanning on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
 										Validators: []validator.String{
 											stringvalidator.OneOf("enabled", "disabled"),
@@ -359,7 +375,8 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"status": schema.StringAttribute{
-										Required:    true,
+										Optional:    true,
+										Computed:    true,
 										Description: "Set to 'enabled' to enable secret scanning push protection on the repository. Can be 'enabled' or 'disabled'. If set to 'enabled', the repository's visibility must be 'public' or 'security_and_analysis[0].advanced_security[0].status' must also be set to 'enabled'.",
 										Validators: []validator.String{
 											stringvalidator.OneOf("enabled", "disabled"),
@@ -386,7 +403,8 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
 									"branch": schema.StringAttribute{
-										Required:    true,
+										Optional:    true,
+										Computed:    true,
 										Description: "The repository branch used to publish the site's source files. (i.e. 'main' or 'gh-pages')",
 									},
 									"path": schema.StringAttribute{
@@ -445,11 +463,13 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 							Default:     booldefault.StaticBool(false),
 						},
 						"owner": schema.StringAttribute{
-							Required:    true,
+							Optional:    true,
+							Computed:    true,
 							Description: "The GitHub organization or user the template repository is owned by.",
 						},
 						"repository": schema.StringAttribute{
-							Required:    true,
+							Optional:    true,
+							Computed:    true,
 							Description: "The name of the template repository.",
 						},
 					},
@@ -660,6 +680,44 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	// Set ID
 	plan.ID = types.StringValue(repo.GetName())
 
+	// If auto_init was true, wait for repository to be initialized
+	// GitHub initializes repos asynchronously, so we need to wait
+	if !plan.AutoInit.IsNull() && plan.AutoInit.ValueBool() {
+		// Poll until the repository has a default branch (indicating initialization is complete)
+		maxRetries := 10
+		for i := 0; i < maxRetries; i++ {
+			time.Sleep(time.Second)
+			checkRepo, _, err := r.client.Repositories.Get(ctx, r.owner, repoName)
+			if err == nil && checkRepo.GetDefaultBranch() != "" {
+				repo = checkRepo
+				break
+			}
+		}
+	}
+
+	// Check if we need to update repository settings that aren't supported during create
+	needsUpdate := false
+	updateReq := &github.Repository{}
+
+	// web_commit_signoff_required might not be respected during create
+	if !plan.WebCommitSignoffRequired.IsNull() && !plan.WebCommitSignoffRequired.IsUnknown() {
+		if plan.WebCommitSignoffRequired.ValueBool() != repo.GetWebCommitSignoffRequired() {
+			needsUpdate = true
+			updateReq.WebCommitSignoffRequired = github.Ptr(plan.WebCommitSignoffRequired.ValueBool())
+		}
+	}
+
+	if needsUpdate {
+		_, _, err = r.client.Repositories.Edit(ctx, r.owner, repoName, updateReq)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Updating Repository Settings",
+				fmt.Sprintf("Could not update settings for repository %s: %s", repoName, err.Error()),
+			)
+			return
+		}
+	}
+
 	// Set topics if provided
 	if !plan.Topics.IsNull() && !plan.Topics.IsUnknown() {
 		var topics []string
@@ -838,8 +896,8 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		state.SquashMergeCommitTitle = types.StringPointerValue(repo.SquashMergeCommitTitle)
 	}
 
-	// Pages
-	if repo.GetHasPages() {
+	// Pages - only populate if already in state
+	if !state.Pages.IsNull() && repo.GetHasPages() {
 		pages, _, err := r.client.Repositories.GetPagesInfo(ctx, r.owner, repoName)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -857,8 +915,8 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		state.Pages = pagesObj
 	}
 
-	// Template (now a list with max 1 element for state compatibility)
-	if repo.TemplateRepository != nil {
+	// Template (now a list with max 1 element for state compatibility) - only populate if already in state
+	if !state.Template.IsNull() && repo.TemplateRepository != nil {
 		templateAttrTypes := map[string]attr.Type{
 			"owner":                types.StringType,
 			"repository":           types.StringType,
@@ -899,8 +957,8 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		state.VulnerabilityAlerts = types.BoolValue(vulnerabilityAlerts)
 	}
 
-	// Security and analysis
-	if repo.SecurityAndAnalysis != nil {
+	// Security and analysis - only populate if already in state
+	if !state.SecurityAndAnalysis.IsNull() && repo.SecurityAndAnalysis != nil {
 		securityObj, diagsSecurity := r.flattenSecurityAndAnalysis(ctx, repo.SecurityAndAnalysis)
 		resp.Diagnostics.Append(diagsSecurity...)
 		if resp.Diagnostics.HasError() {
@@ -932,6 +990,14 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 			return
 		}
 		state.CustomProperty = filteredProps
+	}
+
+	// Set default values for attributes that have defaults but might be null during import
+	if state.AutoInit.IsNull() {
+		state.AutoInit = types.BoolValue(false)
+	}
+	if state.ExclusiveCustomProperties.IsNull() {
+		state.ExclusiveCustomProperties = types.BoolValue(true)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -974,9 +1040,13 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	// Don't update visibility in main request (handled separately)
 	repoReq.Visibility = nil
 
-	// Handle default branch specially
-	if !req.Plan.Raw.IsNull() {
-		repoReq.DefaultBranch = github.Ptr(plan.DefaultBranch.ValueString())
+	// Handle default branch specially - only set if it changed
+	// (GitHub rejects updates to default_branch on empty repositories)
+	// Don't set it at all if both values are effectively the same
+	planBranch := plan.DefaultBranch.ValueString()
+	stateBranch := state.DefaultBranch.ValueString()
+	if planBranch != stateBranch && planBranch != "" {
+		repoReq.DefaultBranch = github.Ptr(planBranch)
 	}
 
 	// Update repository

@@ -60,3 +60,60 @@ func (m fullNamePlanModifier) PlanModifyString(ctx context.Context, req planmodi
 func FullNamePlanModifier() planmodifier.String {
 	return fullNamePlanModifier{}
 }
+
+// nameBasedUnknownModifier marks a computed field as unknown when the repository name changes
+// This is needed for fields that depend on the repository name (URLs, ID, etc.)
+type nameBasedUnknownModifier struct{}
+
+func (m nameBasedUnknownModifier) Description(ctx context.Context) string {
+	return "Marks the field as unknown when repository name changes."
+}
+
+func (m nameBasedUnknownModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m nameBasedUnknownModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// If we're creating the resource, use UseStateForUnknown behavior
+	if req.State.Raw.IsNull() {
+		return
+	}
+
+	// If we're destroying the resource, don't interfere
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+
+	// Get the name attribute from both state and plan
+	var stateName, planName string
+
+	// Get name from state
+	stateNamePath := req.Path.ParentPath().AtName("name")
+	diagState := req.State.GetAttribute(ctx, stateNamePath, &stateName)
+	resp.Diagnostics.Append(diagState...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Get name from plan
+	diagPlan := req.Plan.GetAttribute(ctx, stateNamePath, &planName)
+	resp.Diagnostics.Append(diagPlan...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// If name is changing, mark this field as unknown
+	if stateName != planName {
+		resp.PlanValue = types.StringUnknown()
+		return
+	}
+
+	// Otherwise, use state value for unknown (like UseStateForUnknown)
+	if req.PlanValue.IsUnknown() {
+		resp.PlanValue = req.StateValue
+	}
+}
+
+func NameBasedUnknownModifier() planmodifier.String {
+	return nameBasedUnknownModifier{}
+}

@@ -665,7 +665,7 @@ func TestAccGithubRepositories(t *testing.T) {
 				"before": resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"github_repository.test", "vulnerability_alerts",
-						"false",
+						"true", // GitHub enables alerts by default on public repos
 					),
 				),
 				"after": resource.ComposeTestCheckFunc(
