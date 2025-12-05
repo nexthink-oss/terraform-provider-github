@@ -312,11 +312,6 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 			RequiredReviewThreadResolution: pullRequestMap["required_review_thread_resolution"].(bool),
 		}
 
-		// Handle optional automatic_copilot_code_review_enabled
-		if copilotReview, exists := pullRequestMap["automatic_copilot_code_review_enabled"]; exists {
-			copilotEnabled := copilotReview.(bool)
-			rules.PullRequest.AutomaticCopilotCodeReviewEnabled = &copilotEnabled
-		}
 	}
 
 	// Merge queue rule
@@ -504,9 +499,6 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 				rule["allow_rebase_merge"] = true
 			}
 		}
-
-		// Handle optional automatic_copilot_code_review_enabled
-		rule["automatic_copilot_code_review_enabled"] = rules.PullRequest.GetAutomaticCopilotCodeReviewEnabled()
 
 		rulesMap["pull_request"] = []map[string]any{rule}
 	}

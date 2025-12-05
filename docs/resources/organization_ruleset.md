@@ -156,7 +156,6 @@ Optional:
 - `allow_merge_commit` (Boolean) Whether users can use the web UI to merge pull requests with a merge commit. Defaults to `true`.
 - `allow_rebase_merge` (Boolean) Whether users can use the web UI to rebase merge pull requests. Defaults to `true`.
 - `allow_squash_merge` (Boolean) Whether users can use the web UI to squash merge pull requests. Defaults to `true`.
-- `automatic_copilot_code_review_enabled` (Boolean) Enable GitHub Copilot code review automation. Defaults to `false`.
 - `dismiss_stale_reviews_on_push` (Boolean) New, reviewable commits pushed will dismiss previous pull request review approvals. Defaults to `false`.
 - `require_code_owner_review` (Boolean) Require an approving review in pull requests that modify files that have a designated code owner. Defaults to `false`.
 - `require_last_push_approval` (Boolean) Whether the most recent reviewable push must be approved by someone other than the person who pushed it. Defaults to `false`.
