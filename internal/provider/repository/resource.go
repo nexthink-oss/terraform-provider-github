@@ -321,6 +321,9 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 			},
 			"etag": schema.StringAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"primary_language": schema.StringAttribute{
 				Computed: true,
@@ -875,7 +878,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		ctxWithEtag = context.WithValue(ctx, ctxEtag, state.Etag.ValueString())
 	}
 
-	repo, httpResp, err := r.client.Repositories.Get(ctxWithEtag, r.owner, repoName)
+	repo, _, err := r.client.Repositories.Get(ctxWithEtag, r.owner, repoName)
 	if err != nil {
 		if ghErr, ok := err.(*github.ErrorResponse); ok {
 			if ghErr.Response.StatusCode == http.StatusNotModified {
@@ -897,7 +900,6 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 	}
 
 	// Update state from API response
-	state.Etag = types.StringValue(httpResp.Header.Get("ETag"))
 	state.Name = types.StringValue(repo.GetName())
 	state.FullName = types.StringValue(repo.GetFullName())
 	state.Description = types.StringPointerValue(repo.Description)
