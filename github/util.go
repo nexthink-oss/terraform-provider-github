@@ -276,3 +276,64 @@ func deleteResourceOn404AndSwallow304OtherwiseReturnError(err error, d *schema.R
 	}
 	return err
 }
+
+// flattenPages converts a GitHub Pages struct to the SDKv2-style []any format.
+// Used by the github_repository data source.
+func flattenPages(pages *github.Pages) []any {
+	if pages == nil {
+		return []any{}
+	}
+
+	sourceMap := make(map[string]any)
+	sourceMap["branch"] = pages.GetSource().GetBranch()
+	sourceMap["path"] = pages.GetSource().GetPath()
+
+	pagesMap := make(map[string]any)
+	pagesMap["source"] = []any{sourceMap}
+	pagesMap["build_type"] = pages.GetBuildType()
+	pagesMap["url"] = pages.GetURL()
+	pagesMap["status"] = pages.GetStatus()
+	pagesMap["cname"] = pages.GetCNAME()
+	pagesMap["custom_404"] = pages.GetCustom404()
+	pagesMap["html_url"] = pages.GetHTMLURL()
+
+	return []any{pagesMap}
+}
+
+// flattenRepositoryLicense converts a GitHub RepositoryLicense struct to the SDKv2-style []any format.
+// Used by the github_repository data source.
+func flattenRepositoryLicense(repositorylicense *github.RepositoryLicense) []any {
+	if repositorylicense == nil {
+		return []any{}
+	}
+
+	licenseMap := make(map[string]any)
+	licenseMap["key"] = repositorylicense.GetLicense().GetKey()
+	licenseMap["name"] = repositorylicense.GetLicense().GetName()
+	licenseMap["url"] = repositorylicense.GetLicense().GetURL()
+	licenseMap["spdx_id"] = repositorylicense.GetLicense().GetSPDXID()
+	licenseMap["html_url"] = repositorylicense.GetLicense().GetHTMLURL()
+	licenseMap["featured"] = repositorylicense.GetLicense().GetFeatured()
+	licenseMap["description"] = repositorylicense.GetLicense().GetDescription()
+	licenseMap["implementation"] = repositorylicense.GetLicense().GetImplementation()
+	licenseMap["permissions"] = repositorylicense.GetLicense().GetPermissions()
+	licenseMap["conditions"] = repositorylicense.GetLicense().GetConditions()
+	licenseMap["limitations"] = repositorylicense.GetLicense().GetLimitations()
+	licenseMap["body"] = repositorylicense.GetLicense().GetBody()
+
+	repositorylicenseMap := make(map[string]any)
+	repositorylicenseMap["license"] = []any{licenseMap}
+	repositorylicenseMap["name"] = repositorylicense.GetName()
+	repositorylicenseMap["path"] = repositorylicense.GetPath()
+	repositorylicenseMap["sha"] = repositorylicense.GetSHA()
+	repositorylicenseMap["size"] = repositorylicense.GetSize()
+	repositorylicenseMap["url"] = repositorylicense.GetURL()
+	repositorylicenseMap["html_url"] = repositorylicense.GetHTMLURL()
+	repositorylicenseMap["git_url"] = repositorylicense.GetGitURL()
+	repositorylicenseMap["download_url"] = repositorylicense.GetDownloadURL()
+	repositorylicenseMap["type"] = repositorylicense.GetType()
+	repositorylicenseMap["content"] = repositorylicense.GetContent()
+	repositorylicenseMap["encoding"] = repositorylicense.GetEncoding()
+
+	return []any{repositorylicenseMap}
+}

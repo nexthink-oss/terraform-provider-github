@@ -1,16 +1,53 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
+	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
+	"github.com/nexthink-oss/terraform-provider-github/v7/internal/provider"
 )
 
 var testAccProviders map[string]*schema.Provider
 var testAccProviderFactories func(providers *[]*schema.Provider) map[string]func() (*schema.Provider, error)
 var testAccProvider *schema.Provider
+
+// testAccProtoV6ProviderFactories provides Protocol 6 provider factories for testing
+// with muxing support (Framework + upgraded SDKv2)
+var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"github": func() (tfprotov6.ProviderServer, error) {
+		ctx := context.Background()
+
+		// Upgrade SDKv2 provider (Protocol 5) to Protocol 6
+		upgradedSdkServer, err := tf5to6server.UpgradeServer(
+			ctx,
+			Provider().GRPCProvider,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Combine Framework (Protocol 6) and upgraded SDKv2 providers
+		providers := []func() tfprotov6.ProviderServer{
+			providerserver.NewProtocol6(provider.NewFrameworkProvider()()),
+			func() tfprotov6.ProviderServer { return upgradedSdkServer },
+		}
+
+		muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
+		if err != nil {
+			return nil, err
+		}
+
+		return muxServer.ProviderServer(), nil
+	},
+}
 
 func init() {
 	testAccProvider = Provider()
