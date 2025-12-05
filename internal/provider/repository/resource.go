@@ -28,13 +28,40 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	githubprovider "github.com/nexthink-oss/terraform-provider-github/v7/github"
+	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
-// Owner is imported from the github package to access the configured client.
-// This allows us to use the rate-limited client from the SDKv2 provider.
-type Owner = githubprovider.Owner
+// Owner is a duplicate of the github.Owner type to avoid import cycles.
+// This allows the repository resource to accept provider data without importing the github package.
+type Owner struct {
+	v3client       *github.Client
+	v4client       *githubv4.Client
+	name           string
+	id             int64
+	StopContext    context.Context
+	IsOrganization bool
+}
+
+// V3Client returns the REST API client
+func (o *Owner) V3Client() *github.Client {
+	return o.v3client
+}
+
+// V4Client returns the GraphQL API client
+func (o *Owner) V4Client() *githubv4.Client {
+	return o.v4client
+}
+
+// Name returns the owner name (organization or user)
+func (o *Owner) Name() string {
+	return o.name
+}
+
+// ID returns the owner ID
+func (o *Owner) ID() int64 {
+	return o.id
+}
 
 // ctxEtag is a context key for ETag header handling
 type ctxKey string
