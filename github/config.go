@@ -59,17 +59,11 @@ func (o *Owner) ID() int64 {
 	return o.id
 }
 
-// IsOrg returns whether the owner is an organization
-func (o *Owner) IsOrg() bool {
-	return o.IsOrganization
-}
-
 // GHECDataResidencyMatch is a regex to match a GitHub Enterprise Cloud data residency URL:
 // https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
 var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)
 
 func LegacyRateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, readDelay time.Duration, retryDelay time.Duration, parallelRequests bool, retryableErrors map[int]bool, maxRetries int) *http.Client {
-
 	client.Transport = NewEtagTransport(client.Transport)
 	client.Transport = NewRateLimitTransport(client.Transport, WithWriteDelay(writeDelay), WithReadDelay(readDelay), WithParallelRequests(parallelRequests))
 	client.Transport = logging.NewSubsystemLoggingHTTPTransport("GitHub", client.Transport)
@@ -86,7 +80,6 @@ func LegacyRateLimitedHTTPClient(client *http.Client, writeDelay time.Duration, 
 }
 
 func ModernRateLimitedHTTPClient(client *http.Client, retryDelay time.Duration, retryableErrors map[int]bool, maxRetries int) *http.Client {
-
 	client.Transport = NewEtagTransport(client.Transport)
 	rateLimitClient := github_ratelimit.NewClient(client.Transport)
 
@@ -98,7 +91,6 @@ func ModernRateLimitedHTTPClient(client *http.Client, retryDelay time.Duration, 
 }
 
 func (c *Config) AuthenticatedHTTPClient() *http.Client {
-
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: c.Token},
@@ -124,7 +116,6 @@ func (c *Config) AnonymousHTTPClient() *http.Client {
 }
 
 func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error) {
-
 	uv4, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
@@ -140,7 +131,6 @@ func (c *Config) NewGraphQLClient(client *http.Client) (*githubv4.Client, error)
 }
 
 func (c *Config) NewRESTClient(client *http.Client) (*github.Client, error) {
-
 	uv3, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
@@ -189,7 +179,6 @@ func (c *Config) ConfigureOwner(owner *Owner) (*Owner, error) {
 // Meta returns the meta parameter that is passed into subsequent resources
 // https://godoc.org/github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema#ConfigureFunc
 func (c *Config) Meta() (any, error) {
-
 	var client *http.Client
 	if c.Anonymous() {
 		client = c.AnonymousHTTPClient()

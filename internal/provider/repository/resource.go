@@ -41,10 +41,12 @@ type ctxKey string
 
 const ctxEtag ctxKey = "etag"
 
-var _ resource.Resource = &Resource{}
-var _ resource.ResourceWithImportState = &Resource{}
-var _ resource.ResourceWithConfigure = &Resource{}
-var _ resource.ResourceWithUpgradeState = &Resource{}
+var (
+	_ resource.Resource                 = &Resource{}
+	_ resource.ResourceWithImportState  = &Resource{}
+	_ resource.ResourceWithConfigure    = &Resource{}
+	_ resource.ResourceWithUpgradeState = &Resource{}
+)
 
 // Resource implements the github_repository resource.
 type Resource struct {
@@ -282,6 +284,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Description: "A string of the form 'orgname/reponame'.",
 				PlanModifiers: []planmodifier.String{
 					FullNamePlanModifier(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"html_url": schema.StringAttribute{
@@ -289,6 +292,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Description: "URL to the repository on the web.",
 				PlanModifiers: []planmodifier.String{
 					NameBasedUnknownModifier(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"ssh_clone_url": schema.StringAttribute{
@@ -296,6 +300,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Description: "URL that can be provided to 'git clone' to clone the repository via SSH.",
 				PlanModifiers: []planmodifier.String{
 					NameBasedUnknownModifier(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"svn_url": schema.StringAttribute{
@@ -303,6 +308,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Description: "URL that can be provided to 'svn checkout' to check out the repository via GitHub's Subversion protocol emulation.",
 				PlanModifiers: []planmodifier.String{
 					NameBasedUnknownModifier(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"git_clone_url": schema.StringAttribute{
@@ -310,6 +316,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Description: "URL that can be provided to 'git clone' to clone the repository anonymously via the git protocol.",
 				PlanModifiers: []planmodifier.String{
 					NameBasedUnknownModifier(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"http_clone_url": schema.StringAttribute{
@@ -317,6 +324,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Description: "URL that can be provided to 'git clone' to clone the repository via HTTPS.",
 				PlanModifiers: []planmodifier.String{
 					NameBasedUnknownModifier(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"etag": schema.StringAttribute{
@@ -586,7 +594,7 @@ func (r *Resource) Configure(ctx context.Context, req resource.ConfigureRequest,
 			// This client is configured with rate limiting, retries, delays, etc.
 			r.client = owner.V3Client()
 			r.owner = owner.Name()
-			r.isOrganization = owner.IsOrg()
+			r.isOrganization = owner.IsOrganization
 			return
 		}
 	}
