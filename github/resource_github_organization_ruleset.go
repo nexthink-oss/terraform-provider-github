@@ -244,12 +244,6 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 										Default:     true,
 										Description: "Whether users can use the web UI to rebase merge pull requests. Defaults to `true`.",
 									},
-									"automatic_copilot_code_review_enabled": {
-										Type:        schema.TypeBool,
-										Optional:    true,
-										Default:     false,
-										Description: "Enable GitHub Copilot code review automation. Defaults to `false`.",
-									},
 								},
 							},
 						},
