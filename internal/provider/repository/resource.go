@@ -19,6 +19,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -26,8 +28,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	githubprovider "github.com/nexthink-oss/terraform-provider-github/v7/github"
 	"golang.org/x/oauth2"
 )
+
+// Owner is imported from the github package to access the configured client.
+// This allows us to use the rate-limited client from the SDKv2 provider.
+type Owner = githubprovider.Owner
 
 // ctxEtag is a context key for ETag header handling
 type ctxKey string
@@ -43,6 +50,8 @@ var _ resource.ResourceWithUpgradeState = &Resource{}
 type Resource struct {
 	client *github.Client
 	owner  string
+	// isOrganization tracks whether the owner is an organization (vs user account)
+	isOrganization bool
 }
 
 // NewResource returns a new repository resource.
@@ -91,6 +100,9 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Computed:           true,
 				Description:        "Set to true to create a private repository. Repositories are created as public (e.g. open source) by default.",
 				DeprecationMessage: "use visibility instead",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"visibility": schema.StringAttribute{
 				Optional:    true,
@@ -105,29 +117,44 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Computed:    true,
 				Description: "Set to 'true' to enable the GitHub Issues features on the repository",
 				Default:     booldefault.StaticBool(true),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"has_discussions": schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
 				Description: "Set to 'true' to enable GitHub Discussions on the repository. Defaults to 'false'.",
 				Default:     booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"has_projects": schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
 				Description: "Set to 'true' to enable the GitHub Projects features on the repository. Per the GitHub documentation when in an organization that has disabled repository projects it will default to 'false' and will otherwise default to 'true'. If you specify 'true' when it has been disabled it will return an error.",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"has_downloads": schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
 				Description: "Set to 'true' to enable the (deprecated) downloads features on the repository.",
 				Default:     booldefault.StaticBool(true),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"has_wiki": schema.BoolAttribute{
 				Optional:    true,
 				Computed:    true,
 				Description: "Set to 'true' to enable the GitHub Wiki features on the repository.",
 				Default:     booldefault.StaticBool(true),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"is_template": schema.BoolAttribute{
 				Optional:    true,
@@ -206,6 +233,9 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 				Computed:           true,
 				Description:        "Can only be set after initial repository creation, and only if the target branch exists",
 				DeprecationMessage: "Use the github_branch_default resource instead",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"license_template": schema.StringAttribute{
 				Optional:    true,
@@ -306,6 +336,9 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 			"repo_id": schema.Int64Attribute{
 				Computed:    true,
 				Description: "GitHub ID for the repository.",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"all_custom_properties": schema.MapAttribute{
 				Computed:    true,
@@ -541,7 +574,23 @@ func (r *Resource) UpgradeState(ctx context.Context) map[int64]resource.StateUpg
 
 // Configure sets up the GitHub client for this resource
 func (r *Resource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// For muxed setup, create our own client from environment variables
+	// In a muxed setup, ProviderData comes from the SDKv2 provider's meta (*Owner)
+	// which contains the rate-limited client configured with all provider settings
+	if req.ProviderData != nil {
+		owner, ok := req.ProviderData.(*Owner)
+		if ok {
+			// Use the rate-limited client from the SDKv2 provider
+			// This client is configured with rate limiting, retries, delays, etc.
+			r.client = owner.V3Client()
+			r.owner = owner.Name()
+			r.isOrganization = owner.IsOrg()
+			return
+		}
+	}
+
+	// Fallback: Create our own client from environment variables
+	// This is used when ProviderData is nil or not the expected type
+	// (e.g., during testing or if muxer doesn't pass ProviderData)
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
 		resp.Diagnostics.AddError(
@@ -552,9 +601,9 @@ func (r *Resource) Configure(ctx context.Context, req resource.ConfigureRequest,
 	}
 
 	// Get owner from environment (GITHUB_OWNER or GITHUB_ORGANIZATION)
-	owner := os.Getenv("GITHUB_OWNER")
-	if owner == "" {
-		owner = os.Getenv("GITHUB_ORGANIZATION")
+	ownerName := os.Getenv("GITHUB_OWNER")
+	if ownerName == "" {
+		ownerName = os.Getenv("GITHUB_ORGANIZATION")
 	}
 
 	// Create OAuth client
@@ -577,7 +626,7 @@ func (r *Resource) Configure(ctx context.Context, req resource.ConfigureRequest,
 	}
 
 	r.client = client
-	r.owner = owner
+	r.owner = ownerName
 
 	// If owner is not set, try to get authenticated user
 	if r.owner == "" {
@@ -784,23 +833,31 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		}
 	}
 
-	// Save state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
+	// Fetch the repository again to get the ETag
+	finalRepo, httpResp, err := r.client.Repositories.Get(ctx, r.owner, repoName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading Repository After Create",
+			fmt.Sprintf("Could not read repository %s after creation: %s", repoName, err.Error()),
+		)
 		return
 	}
 
-	// Read the resource to get the full state after creation
-	var readReq resource.ReadRequest
-	var readResp resource.ReadResponse
-	readReq.State = resp.State
-	readResp.State = resp.State
-	readResp.Diagnostics = resp.Diagnostics
+	// Populate computed fields from the final repository state
+	plan.Etag = types.StringValue(httpResp.Header.Get("ETag"))
+	plan.FullName = types.StringValue(finalRepo.GetFullName())
+	plan.NodeID = types.StringValue(finalRepo.GetNodeID())
+	plan.RepoID = types.Int64Value(finalRepo.GetID())
+	plan.HTMLURL = types.StringValue(finalRepo.GetHTMLURL())
+	plan.SSHCloneURL = types.StringValue(finalRepo.GetSSHURL())
+	plan.SVNURL = types.StringValue(finalRepo.GetSVNURL())
+	plan.GitCloneURL = types.StringValue(finalRepo.GetGitURL())
+	plan.HTTPCloneURL = types.StringValue(finalRepo.GetCloneURL())
+	plan.PrimaryLanguage = types.StringPointerValue(finalRepo.Language)
+	plan.DefaultBranch = types.StringValue(finalRepo.GetDefaultBranch())
 
-	r.Read(ctx, readReq, &readResp)
-
-	resp.Diagnostics = readResp.Diagnostics
-	resp.State = readResp.State
+	// Save state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -967,23 +1024,23 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		state.SecurityAndAnalysis = securityObj
 	}
 
-	// Custom properties
-	allCustomPropsMap, diagsAllProps := r.getAllCustomPropertiesAsMap(ctx, repoName)
-	resp.Diagnostics.Append(diagsAllProps...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Convert map to types.Map for all_custom_properties
-	allCustomPropsMapValue, diagsMap := types.MapValue(types.StringType, allCustomPropsMap)
-	resp.Diagnostics.Append(diagsMap...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	state.AllCustomProperties = allCustomPropsMapValue
-
-	// Filter to managed custom properties
+	// Custom properties - only fetch if configured
 	if !state.CustomProperty.IsNull() && !state.CustomProperty.IsUnknown() {
+		allCustomPropsMap, diagsAllProps := r.getAllCustomPropertiesAsMap(ctx, repoName)
+		resp.Diagnostics.Append(diagsAllProps...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		// Convert map to types.Map for all_custom_properties
+		allCustomPropsMapValue, diagsMap := types.MapValue(types.StringType, allCustomPropsMap)
+		resp.Diagnostics.Append(diagsMap...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		state.AllCustomProperties = allCustomPropsMapValue
+
+		// Filter to managed custom properties
 		filteredProps, diagsFiltered := r.filterCustomPropertiesFromSet(ctx, allCustomPropsMap, state.CustomProperty)
 		resp.Diagnostics.Append(diagsFiltered...)
 		if resp.Diagnostics.HasError() {
@@ -1200,23 +1257,29 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		}
 	}
 
-	// Save state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
+	// Fetch the repository again to get fresh ETag and state
+	finalRepo, finalHttpResp, err := r.client.Repositories.Get(ctx, r.owner, repoName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading Repository After Update",
+			fmt.Sprintf("Could not read repository %s after update: %s", repoName, err.Error()),
+		)
 		return
 	}
 
-	// Refresh state from API
-	var readReq resource.ReadRequest
-	var readResp resource.ReadResponse
-	readReq.State = resp.State
-	readResp.State = resp.State
-	readResp.Diagnostics = resp.Diagnostics
+	// Populate computed fields from the final repository state
+	plan.Etag = types.StringValue(finalHttpResp.Header.Get("ETag"))
+	plan.FullName = types.StringValue(finalRepo.GetFullName())
+	plan.HTMLURL = types.StringValue(finalRepo.GetHTMLURL())
+	plan.SSHCloneURL = types.StringValue(finalRepo.GetSSHURL())
+	plan.SVNURL = types.StringValue(finalRepo.GetSVNURL())
+	plan.GitCloneURL = types.StringValue(finalRepo.GetGitURL())
+	plan.HTTPCloneURL = types.StringValue(finalRepo.GetCloneURL())
+	plan.PrimaryLanguage = types.StringPointerValue(finalRepo.Language)
+	plan.DefaultBranch = types.StringValue(finalRepo.GetDefaultBranch())
 
-	r.Read(ctx, readReq, &readResp)
-
-	resp.Diagnostics = readResp.Diagnostics
-	resp.State = readResp.State
+	// Save state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

@@ -39,6 +39,31 @@ type Owner struct {
 	IsOrganization bool
 }
 
+// V3Client returns the REST API client
+func (o *Owner) V3Client() *github.Client {
+	return o.v3client
+}
+
+// V4Client returns the GraphQL API client
+func (o *Owner) V4Client() *githubv4.Client {
+	return o.v4client
+}
+
+// Name returns the owner name (organization or user)
+func (o *Owner) Name() string {
+	return o.name
+}
+
+// ID returns the owner ID
+func (o *Owner) ID() int64 {
+	return o.id
+}
+
+// IsOrg returns whether the owner is an organization
+func (o *Owner) IsOrg() bool {
+	return o.IsOrganization
+}
+
 // GHECDataResidencyMatch is a regex to match a GitHub Enterprise Cloud data residency URL:
 // https://[hostname].ghe.com instances expect paths that behave similar to GitHub.com, not GitHub Enterprise Server.
 var GHECDataResidencyMatch = regexp.MustCompile(`^https:\/\/[a-zA-Z0-9.\-]*\.ghe\.com$`)

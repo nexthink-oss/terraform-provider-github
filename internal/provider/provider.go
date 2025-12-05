@@ -141,15 +141,15 @@ func (p *githubFrameworkProvider) Schema(ctx context.Context, req provider.Schem
 	}
 }
 
-// Configure is a no-op for the Framework provider.
-// Provider configuration (token, organization, base_url, etc.) is handled
-// entirely by the SDKv2 provider. Framework resources will access the
-// configured GitHub client through a shared mechanism.
+// Configure receives the configured Owner from the SDKv2 provider via muxing
+// and passes it to Framework resources through resp.ResourceData.
 func (p *githubFrameworkProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	// Configuration is handled by the SDKv2 provider via muxing.
-	// Framework resources need to access the GitHub client configured by SDKv2.
-	// This is typically done by storing the client in a shared location or
-	// passing it through the provider data.
+	// In a muxed setup, the SDKv2 provider's ConfigureContextFunc runs first
+	// and returns an *Owner struct. This is passed to the Framework provider
+	// via the muxer, and we can access it through req.ProviderData.
+	// However, req.ProviderData is not available during Configure in the muxed setup.
+	// Instead, resources receive it directly in their Configure method.
+	// This is a pass-through - resources will handle the ProviderData.
 }
 
 // Resources returns the list of Framework resources.

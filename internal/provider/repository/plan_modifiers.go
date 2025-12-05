@@ -53,6 +53,9 @@ func (m fullNamePlanModifier) PlanModifyString(ctx context.Context, req planmodi
 	// If name is changing, mark full_name as unknown
 	if stateName != planName {
 		resp.PlanValue = types.StringUnknown()
+	} else if req.PlanValue.IsUnknown() {
+		// If name is not changing and plan value is unknown, use state value
+		resp.PlanValue = req.StateValue
 	}
 }
 
