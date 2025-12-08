@@ -19,16 +19,6 @@ This resource allows you to create and manage repositories within your GitHub or
 
 {{tffile "examples/resources/github_repository/example_2.tf"}}
 
-## Example Usage with Custom Properties
-
-{{tffile "examples/resources/github_repository/example_3.tf"}}
-
-## Example Usage with Collaborative Custom Property Management
-
-The following example illustrates collaborative management of repository custom properties by setting `exclusive_custom_properties = false` and delegating an additional property to the standalone `github_repository_custom_property` resource.
-
-{{tffile "examples/resources/github_repository/example_4.tf"}}
-
 {{ .SchemaMarkdown | trimspace }}
 
 ## Import
