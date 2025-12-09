@@ -2,13 +2,13 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/google/go-github/v74/github"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -74,28 +74,8 @@ func resourceGithubActionsVariableCreate(d *schema.ResourceData, meta any) error
 
 	d.SetId(buildTwoPartID(repo, variableName))
 
-	createStateConf := &retry.StateChangeConf{
-		Pending: []string{"waiting"},
-		Target:  []string{"exists"},
-		Refresh: func() (interface{}, string, error) {
-			variableObj, _, err := client.Actions.GetRepoVariable(ctx, owner, repo, variableName)
-			if err != nil {
-				if ghErr, ok := err.(*github.ErrorResponse); ok {
-					if ghErr.Response.StatusCode == http.StatusNotFound {
-						return nil, "waiting", nil
-					}
-				}
-				return nil, "", err
-			}
-			return variableObj, "exists", nil
-		},
-		Timeout:    1 * time.Minute,
-		Delay:      1 * time.Second,
-		MinTimeout: 2 * time.Second,
-	}
-
-	if _, err := createStateConf.WaitForStateContext(ctx); err != nil {
-		return fmt.Errorf("error waiting for variable %s to be consistent: %s", variableName, err)
+	if err := waitForVariableConsistency(ctx, client, owner, repo, variableName); err != nil {
+		return err
 	}
 
 	return resourceGithubActionsVariableRead(d, meta)
@@ -176,4 +156,51 @@ func resourceGithubActionsVariableDelete(d *schema.ResourceData, meta any) error
 	_, err = client.Actions.DeleteRepoVariable(ctx, orgName, repoName, variableName)
 
 	return err
+}
+
+func waitForVariableConsistency(
+	ctx context.Context,
+	client *github.Client,
+	owner, repo, variableName string,
+) error {
+	// Derived context with overall timeout for the wait.
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	// Initial delay to match previous behaviour.
+	select {
+	case <-ctxWithTimeout.Done():
+		return fmt.Errorf("context done before waiting for variable %s: %w", variableName, ctxWithTimeout.Err())
+	case <-time.After(time.Second):
+	}
+
+	backoff := time.Second
+	maxBackoff := 10 * time.Second
+
+	for {
+		_, _, err := client.Actions.GetRepoVariable(ctxWithTimeout, owner, repo, variableName)
+		if err == nil {
+			return nil
+		}
+
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			// Variable not visible yet, wait with exponential backoff.
+			select {
+			case <-ctxWithTimeout.Done():
+				return fmt.Errorf("timeout waiting for variable %s to be consistent: %w", variableName, ctxWithTimeout.Err())
+			case <-time.After(backoff):
+			}
+
+			// Exponential backoff with cap.
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		// Non-404 error: likely not transient.
+		return fmt.Errorf("error waiting for variable %s to be consistent: %w", variableName, err)
+	}
 }
