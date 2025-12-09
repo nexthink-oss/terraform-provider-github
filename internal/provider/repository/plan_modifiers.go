@@ -112,3 +112,39 @@ func (m nameBasedUnknownModifier) PlanModifyString(ctx context.Context, req plan
 func NameBasedUnknownModifier() planmodifier.String {
 	return nameBasedUnknownModifier{}
 }
+
+// suppressEtagDiffModifier suppresses etag differences in plan diffs
+// The etag is a computed field used for conditional requests, but changes to
+// the etag value don't represent actual resource changes and should not trigger updates
+type suppressEtagDiffModifier struct{}
+
+func (m suppressEtagDiffModifier) Description(ctx context.Context) string {
+	return "Suppresses spurious etag differences that don't represent actual resource changes."
+}
+
+func (m suppressEtagDiffModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m suppressEtagDiffModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// If we're creating the resource, allow etag to be set
+	if req.State.Raw.IsNull() {
+		return
+	}
+
+	// If we're destroying the resource, don't interfere
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+
+	// If we have a state value, always use it to prevent etag diffs
+	// The etag is only relevant for conditional requests, not for tracking actual changes
+	if !req.StateValue.IsNull() && !req.StateValue.IsUnknown() {
+		resp.PlanValue = req.StateValue
+	}
+}
+
+// SuppressEtagDiffPlanModifier returns a plan modifier that suppresses etag differences
+func SuppressEtagDiffPlanModifier() planmodifier.String {
+	return suppressEtagDiffModifier{}
+}

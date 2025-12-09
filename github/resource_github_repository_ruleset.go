@@ -599,6 +599,8 @@ func resourceGithubRepositoryRulesetRead(d *schema.ResourceData, meta any) error
 				return nil
 			}
 		}
+		// Return the error if it's not a handled GitHub error response
+		return err
 	}
 
 	_ = d.Set("etag", resp.Header.Get("ETag"))

@@ -109,6 +109,9 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the repository.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
 						regexp.MustCompile(`^[-a-zA-Z0-9_.]{1,100}$`),
@@ -357,7 +360,7 @@ func (r *Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp 
 			"etag": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					SuppressEtagDiffPlanModifier(),
 				},
 			},
 			"primary_language": schema.StringAttribute{
@@ -882,6 +885,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	}
 
 	// Populate computed fields from the final repository state
+	// Set etag on initial creation only
 	plan.Etag = types.StringValue(httpResp.Header.Get("ETag"))
 	plan.FullName = types.StringValue(finalRepo.GetFullName())
 	plan.NodeID = types.StringValue(finalRepo.GetNodeID())
@@ -1294,7 +1298,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		}
 	}
 
-	// Fetch the repository again to get fresh ETag and state
+	// Fetch the repository again to get fresh state
 	finalRepo, finalHttpResp, err := r.client.Repositories.Get(ctx, r.owner, repoName)
 	if err != nil {
 		resp.Diagnostics.AddError(
