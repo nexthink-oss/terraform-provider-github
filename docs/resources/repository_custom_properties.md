@@ -2,82 +2,67 @@
 page_title: "github_repository_custom_properties Resource - github"
 subcategory: ""
 description: |-
-  Manages custom properties for multiple GitHub repositories with a single resource. This allows you to set multiple custom properties across multiple repositories efficiently.
+  Manages custom properties for a GitHub repository. This resource allows you to set multiple custom properties on a single repository.
 ---
 
 # github_repository_custom_properties (Resource)
 
-This resource allows you to manage custom properties for multiple GitHub repositories with a single resource. This is useful when you need to set multiple custom properties across multiple repositories efficiently.
+This resource allows you to manage custom properties for a GitHub repository. Each resource instance manages the custom properties for a single repository.
 
 ~> **Note:** Custom properties are only available for GitHub organizations. Property types must be defined at the organization level before they can be used.
 
 ## Example Usage
 
-### Managing Multiple Properties Across Multiple Repositories
+### Managing Multiple Properties for a Repository
 
 ```terraform
 resource "github_repository" "repo1" {
-  name        = "example-repo-1"
-  description = "First example repository"
-}
-
-resource "github_repository" "repo2" {
-  name        = "example-repo-2"
-  description = "Second example repository"
+  name        = "example-repo"
+  description = "Example repository"
 }
 
 resource "github_repository_custom_properties" "example" {
-  repository {
-    repository_name = github_repository.repo1.name
-    property {
-      name  = "environment"
-      value = ["production"]
-    }
-    property {
-      name  = "team"
-      value = ["platform-team"]
-    }
+  repository_name = github_repository.repo1.name
+  
+  property {
+    name  = "environment"
+    value = ["production"]
   }
-
-  repository {
-    repository_name = github_repository.repo2.name
-    property {
-      name  = "environment"
-      value = ["staging"]
-    }
-    property {
-      name  = "team"
-      value = ["dev-team"]
-    }
+  
+  property {
+    name  = "team"
+    value = ["platform-team"]
   }
 }
 ```
 
-### Using Dynamic Blocks for Bulk Operations
+### Managing Properties for Multiple Repositories
 
 ```terraform
-locals {
-  production_repos = ["api-server", "web-app", "worker-service"]
+resource "github_repository" "repos" {
+  for_each = toset(["api-server", "web-app", "worker-service"])
+  
+  name = each.key
 }
 
-resource "github_repository_custom_properties" "production" {
-  dynamic "repository" {
-    for_each = local.production_repos
-    content {
-      repository_name = repository.value
-      property {
-        name  = "environment"
-        value = ["production"]
-      }
-      property {
-        name  = "critical"
-        value = ["true"]
-      }
-      property {
-        name  = "monitoring"
-        value = ["enabled"]
-      }
-    }
+resource "github_repository_custom_properties" "repos" {
+  for_each = github_repository.repos
+  
+  repository_name = each.value.name
+  
+  property {
+    name  = "environment"
+    value = ["production"]
+  }
+  
+  property {
+    name  = "critical"
+    value = ["true"]
+  }
+  
+  property {
+    name  = "monitoring"
+    value = ["enabled"]
   }
 }
 ```
@@ -89,33 +74,17 @@ resource "github_repository" "frontend" {
   name = "frontend-app"
 }
 
-resource "github_repository" "backend" {
-  name = "backend-app"
-}
-
-resource "github_repository_custom_properties" "tech_stacks" {
-  repository {
-    repository_name = github_repository.frontend.name
-    property {
-      name  = "tech-stack"
-      value = ["react", "typescript", "nextjs"]
-    }
-    property {
-      name  = "languages"
-      value = ["javascript", "typescript"]
-    }
+resource "github_repository_custom_properties" "frontend" {
+  repository_name = github_repository.frontend.name
+  
+  property {
+    name  = "tech-stack"
+    value = ["react", "typescript", "nextjs"]
   }
-
-  repository {
-    repository_name = github_repository.backend.name
-    property {
-      name  = "tech-stack"
-      value = ["nodejs", "express", "postgresql"]
-    }
-    property {
-      name  = "languages"
-      value = ["typescript", "sql"]
-    }
+  
+  property {
+    name  = "languages"
+    value = ["javascript", "typescript"]
   }
 }
 ```
@@ -125,22 +94,15 @@ resource "github_repository_custom_properties" "tech_stacks" {
 
 ### Required
 
-- `repository` (Block List, Min: 1) List of repositories to apply custom properties to. (see [below for nested schema](#nestedblock--repository))
+- `property` (Block Set, Min: 1) Set of custom properties for this repository. (see [below for nested schema](#nestedblock--property))
+- `repository_name` (String) Name of the repository.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--repository"></a>
-### Nested Schema for `repository`
-
-Required:
-
-- `property` (Block Set, Min: 1) Set of custom properties for this repository. (see [below for nested schema](#nestedblock--repository--property))
-- `repository_name` (String) Name of the repository.
-
-<a id="nestedblock--repository--property"></a>
-### Nested Schema for `repository.property`
+<a id="nestedblock--property"></a>
+### Nested Schema for `property`
 
 Required:
 
@@ -149,10 +111,10 @@ Required:
 
 ## Import
 
-GitHub Repository Custom Properties can be imported using an ID made up of the organization name and comma-separated repository names, separated by a `:` character, e.g.
+GitHub Repository Custom Properties can be imported using an ID made up of the organization name and repository name, separated by a `:` character, e.g.
 
 ```shell
-terraform import github_repository_custom_properties.example <organization-name>:<repo1,repo2,repo3>
+terraform import github_repository_custom_properties.example <organization-name>:<repo-name>
 ```
 
-~> **Note:** When importing, the resource will only manage the properties that are explicitly defined in the configuration after import. Any other custom properties on the repositories will remain unchanged and unmanaged by Terraform.
+~> **Note:** When importing, the resource will only manage the properties that are explicitly defined in the configuration after import. Any other custom properties on the repository will remain unchanged and unmanaged by Terraform.
