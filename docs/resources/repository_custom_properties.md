@@ -23,12 +23,12 @@ resource "github_repository" "repo1" {
 
 resource "github_repository_custom_properties" "example" {
   repository_name = github_repository.repo1.name
-  
+
   property {
     name  = "environment"
     value = ["production"]
   }
-  
+
   property {
     name  = "team"
     value = ["platform-team"]
@@ -41,25 +41,25 @@ resource "github_repository_custom_properties" "example" {
 ```terraform
 resource "github_repository" "repos" {
   for_each = toset(["api-server", "web-app", "worker-service"])
-  
+
   name = each.key
 }
 
 resource "github_repository_custom_properties" "repos" {
   for_each = github_repository.repos
-  
+
   repository_name = each.value.name
-  
+
   property {
     name  = "environment"
     value = ["production"]
   }
-  
+
   property {
     name  = "critical"
     value = ["true"]
   }
-  
+
   property {
     name  = "monitoring"
     value = ["enabled"]
@@ -76,12 +76,12 @@ resource "github_repository" "frontend" {
 
 resource "github_repository_custom_properties" "frontend" {
   repository_name = github_repository.frontend.name
-  
+
   property {
     name  = "tech-stack"
     value = ["react", "typescript", "nextjs"]
   }
-  
+
   property {
     name  = "languages"
     value = ["javascript", "typescript"]

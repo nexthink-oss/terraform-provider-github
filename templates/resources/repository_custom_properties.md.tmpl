@@ -7,17 +7,17 @@ description: |-
 
 # {{.Name}} ({{.Type}})
 
-This resource allows you to manage custom properties for multiple GitHub repositories with a single resource. This is useful when you need to set multiple custom properties across multiple repositories efficiently.
+This resource allows you to manage custom properties for a GitHub repository. Each resource instance manages the custom properties for a single repository.
 
 ~> **Note:** Custom properties are only available for GitHub organizations. Property types must be defined at the organization level before they can be used.
 
 ## Example Usage
 
-### Managing Multiple Properties Across Multiple Repositories
+### Managing Multiple Properties for a Repository
 
 {{tffile "examples/resources/github_repository_custom_properties/example_1.tf"}}
 
-### Using Dynamic Blocks for Bulk Operations
+### Managing Properties for Multiple Repositories
 
 {{tffile "examples/resources/github_repository_custom_properties/example_2.tf"}}
 
@@ -29,10 +29,10 @@ This resource allows you to manage custom properties for multiple GitHub reposit
 
 ## Import
 
-GitHub Repository Custom Properties can be imported using an ID made up of the organization name and comma-separated repository names, separated by a `:` character, e.g.
+GitHub Repository Custom Properties can be imported using an ID made up of the organization name and repository name, separated by a `:` character, e.g.
 
 ```shell
-terraform import github_repository_custom_properties.example <organization-name>:<repo1,repo2,repo3>
+terraform import github_repository_custom_properties.example <organization-name>:<repo-name>
 ```
 
-~> **Note:** When importing, the resource will only manage the properties that are explicitly defined in the configuration after import. Any other custom properties on the repositories will remain unchanged and unmanaged by Terraform.
+~> **Note:** When importing, the resource will only manage the properties that are explicitly defined in the configuration after import. Any other custom properties on the repository will remain unchanged and unmanaged by Terraform.
