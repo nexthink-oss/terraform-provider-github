@@ -89,6 +89,61 @@ func TestAccGithubActionsVariable(t *testing.T) {
 		})
 	})
 
+	t.Run("creates multiple repository variables without error", func(t *testing.T) {
+		config := fmt.Sprintf(`
+			resource "github_repository" "test" {
+			  name = "tf-acc-test-%s"
+			}
+
+			resource "github_actions_variable" "variable1" {
+			  repository       = github_repository.test.name
+			  variable_name    = "test_variable_1"
+			  value  = "value1"
+			}
+
+			resource "github_actions_variable" "variable2" {
+			  repository       = github_repository.test.name
+			  variable_name    = "test_variable_2"
+			  value  = "value2"
+			}
+
+			resource "github_actions_variable" "variable3" {
+			  repository       = github_repository.test.name
+			  variable_name    = "test_variable_3"
+			  value  = "value3"
+			}
+			`, randomID)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check: resource.ComposeTestCheckFunc(
+							resource.TestCheckResourceAttr("github_actions_variable.variable1", "value", "value1"),
+							resource.TestCheckResourceAttr("github_actions_variable.variable2", "value", "value2"),
+							resource.TestCheckResourceAttr("github_actions_variable.variable3", "value", "value3"),
+						),
+					},
+				},
+			})
+		}
+
+		t.Run("with an anonymous account", func(t *testing.T) {
+			t.Skip("anonymous account not supported for this operation")
+		})
+
+		t.Run("with an individual account", func(t *testing.T) {
+			testCase(t, individual)
+		})
+
+		t.Run("with an organization account", func(t *testing.T) {
+			testCase(t, organization)
+		})
+	})
+
 	t.Run("deletes repository variables without error", func(t *testing.T) {
 		config := fmt.Sprintf(`
 				resource "github_repository" "test" {

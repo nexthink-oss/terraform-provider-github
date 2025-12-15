@@ -2,8 +2,11 @@ package github
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/go-github/v74/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -58,8 +61,9 @@ func resourceGithubActionsVariableCreate(d *schema.ResourceData, meta any) error
 	ctx := context.Background()
 
 	repo := d.Get("repository").(string)
+	variableName := d.Get("variable_name").(string)
 	variable := &github.ActionsVariable{
-		Name:  d.Get("variable_name").(string),
+		Name:  variableName,
 		Value: d.Get("value").(string),
 	}
 
@@ -68,7 +72,12 @@ func resourceGithubActionsVariableCreate(d *schema.ResourceData, meta any) error
 		return err
 	}
 
-	d.SetId(buildTwoPartID(repo, d.Get("variable_name").(string)))
+	d.SetId(buildTwoPartID(repo, variableName))
+
+	if err := waitForVariableConsistency(ctx, client, owner, repo, variableName); err != nil {
+		return err
+	}
+
 	return resourceGithubActionsVariableRead(d, meta)
 }
 
@@ -147,4 +156,51 @@ func resourceGithubActionsVariableDelete(d *schema.ResourceData, meta any) error
 	_, err = client.Actions.DeleteRepoVariable(ctx, orgName, repoName, variableName)
 
 	return err
+}
+
+func waitForVariableConsistency(
+	ctx context.Context,
+	client *github.Client,
+	owner, repo, variableName string,
+) error {
+	// Derived context with overall timeout for the wait.
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	// Initial delay to match previous behaviour.
+	select {
+	case <-ctxWithTimeout.Done():
+		return fmt.Errorf("context done before waiting for variable %s: %w", variableName, ctxWithTimeout.Err())
+	case <-time.After(time.Second):
+	}
+
+	backoff := time.Second
+	maxBackoff := 10 * time.Second
+
+	for {
+		_, _, err := client.Actions.GetRepoVariable(ctxWithTimeout, owner, repo, variableName)
+		if err == nil {
+			return nil
+		}
+
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			// Variable not visible yet, wait with exponential backoff.
+			select {
+			case <-ctxWithTimeout.Done():
+				return fmt.Errorf("timeout waiting for variable %s to be consistent: %w", variableName, ctxWithTimeout.Err())
+			case <-time.After(backoff):
+			}
+
+			// Exponential backoff with cap.
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		// Non-404 error: likely not transient.
+		return fmt.Errorf("error waiting for variable %s to be consistent: %w", variableName, err)
+	}
 }
