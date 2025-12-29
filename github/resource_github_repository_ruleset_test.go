@@ -410,7 +410,7 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 					  restricted_file_paths = ["test.txt"]
 					 }
 					max_file_size {
-					  max_file_size = 1048576
+					  max_file_size = 1
 					}
 					file_extension_restriction {
 					   restricted_file_extensions = ["*.zip"]

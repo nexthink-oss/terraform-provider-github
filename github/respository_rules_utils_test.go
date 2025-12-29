@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v74/github"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestFlattenRulesHandlesUnknownTypes(t *testing.T) {
@@ -36,7 +37,7 @@ func TestFlattenRulesHandlesUnknownTypes(t *testing.T) {
 
 func TestFlattenRulesHandlesMaxFileSize(t *testing.T) {
 	// Test that max_file_size rule is properly handled
-	maxFileSize := int64(1024000)
+	maxFileSize := int64(50) // 50 MB
 
 	rules := &github.RepositoryRulesetRules{
 		MaxFileSize: &github.MaxFileSizeRuleParameters{
@@ -212,7 +213,7 @@ func TestMaxFilePathLengthWithOtherRules(t *testing.T) {
 		},
 		"max_file_size": []any{
 			map[string]any{
-				"max_file_size": float64(1048576), // 1MB
+				"max_file_size": 1, // 1 MB
 			},
 		},
 	}
@@ -264,8 +265,8 @@ func TestMaxFilePathLengthWithOtherRules(t *testing.T) {
 	}
 
 	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]any)
-	if len(maxFileSizeRules) != 1 || maxFileSizeRules[0]["max_file_size"] != int64(1048576) {
-		t.Error("Expected max_file_size rule with value 1048576")
+	if len(maxFileSizeRules) != 1 || maxFileSizeRules[0]["max_file_size"] != int64(1) {
+		t.Error("Expected max_file_size rule with value 1")
 	}
 }
 
@@ -304,6 +305,11 @@ func TestMaxFilePathLengthErrorHandling(t *testing.T) {
 
 func TestCompletePushRulesetSupport(t *testing.T) {
 	// Test that all push-specific rules are supported together
+
+	// Create a Set for restricted_file_extensions
+	restrictedExtensions := []any{".exe", ".bat", ".sh"}
+	restrictedExtensionsSet := schema.NewSet(schema.HashString, restrictedExtensions)
+
 	rulesMap := map[string]any{
 		"file_path_restriction": []any{
 			map[string]any{
@@ -312,7 +318,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		},
 		"max_file_size": []any{
 			map[string]any{
-				"max_file_size": float64(5242880), // 5MB
+				"max_file_size": 5, // 5 MB
 			},
 		},
 		"max_file_path_length": []any{
@@ -322,7 +328,7 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 		},
 		"file_extension_restriction": []any{
 			map[string]any{
-				"restricted_file_extensions": []any{".exe", ".bat", ".sh"},
+				"restricted_file_extensions": restrictedExtensionsSet,
 			},
 		},
 	}
@@ -379,8 +385,8 @@ func TestCompletePushRulesetSupport(t *testing.T) {
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
 	}
-	if maxFileSizeRules[0]["max_file_size"] != int64(5242880) {
-		t.Errorf("Expected max_file_size to be 5242880, got %v", maxFileSizeRules[0]["max_file_size"])
+	if maxFileSizeRules[0]["max_file_size"] != int64(5) {
+		t.Errorf("Expected max_file_size to be 5, got %v", maxFileSizeRules[0]["max_file_size"])
 	}
 
 	// Verify max_file_path_length

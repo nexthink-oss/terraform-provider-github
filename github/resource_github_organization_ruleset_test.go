@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestGithubOrganizationRulesets(t *testing.T) {
@@ -450,6 +451,10 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	// Test that organization push rulesets support all push-specific rules
 	// This is a unit test since it only validates the expand/flatten functionality
 
+	// Create a Set for restricted_file_extensions
+	restrictedExtensions := []any{".exe", ".bat", ".sh", ".ps1"}
+	restrictedExtensionsSet := schema.NewSet(schema.HashString, restrictedExtensions)
+
 	rulesMap := map[string]any{
 		"file_path_restriction": []any{
 			map[string]any{
@@ -458,7 +463,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		},
 		"max_file_size": []any{
 			map[string]any{
-				"max_file_size": 10485760, // 10MB
+				"max_file_size": 10, // 10 MB
 			},
 		},
 		"max_file_path_length": []any{
@@ -468,7 +473,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		},
 		"file_extension_restriction": []any{
 			map[string]any{
-				"restricted_file_extensions": []any{".exe", ".bat", ".sh", ".ps1"},
+				"restricted_file_extensions": restrictedExtensionsSet,
 			},
 		},
 	}
@@ -525,8 +530,8 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 	if len(maxFileSizeRules) != 1 {
 		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
 	}
-	if maxFileSizeRules[0]["max_file_size"] != int64(10485760) {
-		t.Errorf("Expected max_file_size to be 10485760, got %v", maxFileSizeRules[0]["max_file_size"])
+	if maxFileSizeRules[0]["max_file_size"] != int64(10) {
+		t.Errorf("Expected max_file_size to be 10, got %v", maxFileSizeRules[0]["max_file_size"])
 	}
 
 	// Verify max_file_path_length
