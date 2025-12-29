@@ -458,7 +458,7 @@ func TestOrganizationPushRulesetSupport(t *testing.T) {
 		},
 		"max_file_size": []any{
 			map[string]any{
-				"max_file_size": float64(10485760), // 10MB
+				"max_file_size": 10485760, // 10MB
 			},
 		},
 		"max_file_path_length": []any{
