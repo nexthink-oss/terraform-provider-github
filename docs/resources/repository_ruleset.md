@@ -49,7 +49,39 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
+  }
+}
 
+# Example with push ruleset
+resource "github_repository_ruleset" "example_push" {
+  name        = "example_push"
+  repository  = github_repository.example.name
+  target      = "push"
+  enforcement = "active"
+
+  rules {
+    file_path_restriction {
+      restricted_file_paths = [".github/workflows/*", "*.env"]
+    }
+
+    max_file_size {
+      max_file_size = 100 # 100 MB
+    }
+
+    max_file_path_length {
+      max_file_path_length = 255
+    }
+
+    file_extension_restriction {
+      restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
+    }
   }
 }
 ```
@@ -62,7 +94,7 @@ resource "github_repository_ruleset" "example" {
 - `enforcement` (String) Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.
 - `name` (String) The name of the ruleset.
 - `rules` (Block List, Min: 1, Max: 1) Rules within the ruleset. (see [below for nested schema](#nestedblock--rules))
-- `target` (String) Possible values are `branch` and `tag`.
+- `target` (String) Possible values are `branch`, `push` and `tag`.
 
 ### Optional
 
