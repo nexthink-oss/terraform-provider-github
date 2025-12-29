@@ -90,6 +90,10 @@ Optional:
 - `committer_email_pattern` (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. (see [below for nested schema](#nestedblock--rules--committer_email_pattern))
 - `creation` (Boolean) Only allow users with bypass permission to create matching refs.
 - `deletion` (Boolean) Only allow users with bypass permissions to delete matching refs.
+- `file_extension_restriction` (Block List, Max: 1) Prevent pushes based on file extensions. (see [below for nested schema](#nestedblock--rules--file_extension_restriction))
+- `file_path_restriction` (Block List, Max: 1) Prevent commits that include changes in specified file paths from being pushed to the commit graph. (see [below for nested schema](#nestedblock--rules--file_path_restriction))
+- `max_file_path_length` (Block List, Max: 1) Prevent pushes based on file path length. (see [below for nested schema](#nestedblock--rules--max_file_path_length))
+- `max_file_size` (Block List, Max: 1) Prevent pushes based on file size. (see [below for nested schema](#nestedblock--rules--max_file_size))
 - `non_fast_forward` (Boolean) Prevent users with push access from force pushing to branches.
 - `pull_request` (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#nestedblock--rules--pull_request))
 - `required_code_scanning` (Block List, Max: 1) Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. (see [below for nested schema](#nestedblock--rules--required_code_scanning))
@@ -154,6 +158,38 @@ Optional:
 
 - `name` (String) How this rule will appear to users.
 - `negate` (Boolean) If true, the rule will fail if the pattern matches.
+
+
+<a id="nestedblock--rules--file_extension_restriction"></a>
+### Nested Schema for `rules.file_extension_restriction`
+
+Required:
+
+- `restricted_file_extensions` (Set of String) The file extensions that are restricted from being pushed to the commit graph.
+
+
+<a id="nestedblock--rules--file_path_restriction"></a>
+### Nested Schema for `rules.file_path_restriction`
+
+Required:
+
+- `restricted_file_paths` (List of String) The file paths that are restricted from being pushed to the commit graph.
+
+
+<a id="nestedblock--rules--max_file_path_length"></a>
+### Nested Schema for `rules.max_file_path_length`
+
+Required:
+
+- `max_file_path_length` (Number) The maximum allowed length of a file path.
+
+
+<a id="nestedblock--rules--max_file_size"></a>
+### Nested Schema for `rules.max_file_size`
+
+Required:
+
+- `max_file_size` (Number) The maximum allowed size of a file in bytes.
 
 
 <a id="nestedblock--rules--pull_request"></a>
