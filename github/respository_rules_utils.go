@@ -515,7 +515,7 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	// max_file_size rule
 	if v, ok := rulesMap["max_file_size"].([]any); ok && len(v) != 0 {
 		maxFileSizeMap := v[0].(map[string]any)
-		maxFileSize := int64(maxFileSizeMap["max_file_size"].(float64))
+		maxFileSize := int64(maxFileSizeMap["max_file_size"].(int))
 		rules.MaxFileSize = &github.MaxFileSizeRuleParameters{
 			MaxFileSize: maxFileSize,
 		}
@@ -534,8 +534,12 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 	if v, ok := rulesMap["file_extension_restriction"].([]any); ok && len(v) != 0 {
 		fileExtensionRestrictionMap := v[0].(map[string]any)
 		restrictedFileExtensions := make([]string, 0)
-		for _, extension := range fileExtensionRestrictionMap["restricted_file_extensions"].([]any) {
-			restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
+
+		if restrictedFileExtensionsInput, ok := fileExtensionRestrictionMap["restricted_file_extensions"]; ok {
+			restrictedFileExtensionsSet := restrictedFileExtensionsInput.(*schema.Set)
+			for _, extension := range restrictedFileExtensionsSet.List() {
+				restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
+			}
 		}
 		rules.FileExtensionRestriction = &github.FileExtensionRestrictionRuleParameters{
 			RestrictedFileExtensions: restrictedFileExtensions,
