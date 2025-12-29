@@ -221,7 +221,7 @@ Required:
 
 Required:
 
-- `max_file_size` (Number) The maximum allowed size of a file in bytes.
+- `max_file_size` (Number) The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.
 
 
 <a id="nestedblock--rules--merge_queue"></a>
