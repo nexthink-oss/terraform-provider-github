@@ -267,4 +267,78 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 	})
 
+	t.Run("Creates ruleset with repository property condition", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test_repo_property" {
+				name        = "test-repo-property-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+
+					repository_property {
+						include {
+							property_name = "private"
+							property_value = ["true"]
+							source = "custom"
+						}
+						exclude = []
+					}
+				}
+
+				rules {
+					creation = true
+					update = true
+					deletion = false
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property", "name",
+				fmt.Sprintf("test-repo-property-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property", "target",
+				"branch",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property", "enforcement",
+				"active",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property", "conditions.0.repository_property.0.include.0.property_name",
+				"private",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property", "conditions.0.repository_property.0.include.0.property_value.0",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+	})
+
 }
