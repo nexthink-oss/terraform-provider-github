@@ -24,6 +24,14 @@ resource "github_organization_ruleset" "example" {
       include = ["~ALL"]
       exclude = []
     }
+
+    repository_property {
+      include {
+        property_name  = "private"
+        property_value = ["true"]
+        source         = "custom"
+      }
+    }
   }
 
   bypass_actors {
