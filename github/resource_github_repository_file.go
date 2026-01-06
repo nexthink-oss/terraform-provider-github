@@ -10,7 +10,7 @@ import (
 
 	"fmt"
 
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -217,9 +217,9 @@ func resourceGithubRepositoryFileCreate(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}
@@ -416,9 +416,9 @@ func resourceGithubRepositoryFileUpdate(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}
@@ -490,9 +490,9 @@ func resourceGithubRepositoryFileDelete(d *schema.ResourceData, meta any) error 
 					_ = d.Set("autocreate_branch_source_sha", *ref.Object.SHA)
 				}
 				sourceBranchSHA := d.Get("autocreate_branch_source_sha").(string)
-				if _, _, err := client.Git.CreateRef(ctx, owner, repo, &github.Reference{
-					Ref:    &branchRefName,
-					Object: &github.GitObject{SHA: &sourceBranchSHA},
+				if _, _, err := client.Git.CreateRef(ctx, owner, repo, github.CreateRef{
+					Ref: branchRefName,
+					SHA: sourceBranchSHA,
 				}); err != nil {
 					return err
 				}

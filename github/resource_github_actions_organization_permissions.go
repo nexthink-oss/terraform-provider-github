@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -148,7 +148,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledRepositories := d.Get("enabled_repositories").(string)
 
-	_, _, err = client.Actions.EditActionsPermissions(ctx,
+	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
 			AllowedActions:      &allowedActions,
@@ -165,7 +165,7 @@ func resourceGithubActionsOrganizationPermissionsCreateOrUpdate(d *schema.Resour
 		}
 		if actionsAllowedData != nil {
 			log.Printf("[DEBUG] Allowed actions config is set")
-			_, _, err = client.Actions.EditActionsAllowed(ctx,
+			_, _, err = client.Actions.UpdateActionsAllowed(ctx,
 				orgName,
 				*actionsAllowedData)
 			if err != nil {
@@ -298,7 +298,7 @@ func resourceGithubActionsOrganizationPermissionsDelete(d *schema.ResourceData, 
 	}
 
 	// This will nullify any allowedActions elements
-	_, _, err = client.Actions.EditActionsPermissions(ctx,
+	_, _, err = client.Actions.UpdateActionsPermissions(ctx,
 		orgName,
 		github.ActionsPermissions{
 			AllowedActions:      github.Ptr("all"),

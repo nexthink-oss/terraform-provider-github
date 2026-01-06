@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -150,7 +150,7 @@ func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.Resource
 	allowedActions := d.Get("allowed_actions").(string)
 	enabledOrganizations := d.Get("enabled_organizations").(string)
 
-	_, _, err := client.Actions.EditActionsPermissionsInEnterprise(ctx,
+	_, _, err := client.Actions.UpdateActionsPermissionsInEnterprise(ctx,
 		enterpriseId,
 		github.ActionsPermissionsEnterprise{
 			AllowedActions:       &allowedActions,
@@ -165,7 +165,7 @@ func resourceGithubActionsEnterprisePermissionsCreateOrUpdate(d *schema.Resource
 		if err != nil {
 			return err
 		}
-		_, _, err = client.Actions.EditActionsAllowedInEnterprise(ctx,
+		_, _, err = client.Actions.UpdateActionsAllowedInEnterprise(ctx,
 			enterpriseId,
 			*actionsAllowedData)
 		if err != nil {
@@ -278,7 +278,7 @@ func resourceGithubActionsEnterprisePermissionsDelete(d *schema.ResourceData, me
 	ctx := context.WithValue(context.Background(), ctxId, d.Id())
 
 	// This will nullify any allowedActions elements
-	_, _, err := client.Actions.EditActionsPermissionsInEnterprise(ctx,
+	_, _, err := client.Actions.UpdateActionsPermissionsInEnterprise(ctx,
 		d.Get("enterprise_slug").(string),
 		github.ActionsPermissionsEnterprise{
 			AllowedActions:       github.Ptr("all"),
