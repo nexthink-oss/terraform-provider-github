@@ -24,6 +24,14 @@ resource "github_organization_ruleset" "example" {
       include = ["~ALL"]
       exclude = []
     }
+
+    repository_property {
+      include {
+        property_name  = "private"
+        property_value = ["true"]
+        source         = "custom"
+      }
+    }
   }
 
   bypass_actors {
@@ -62,7 +70,7 @@ resource "github_organization_ruleset" "example" {
 ### Optional
 
 - `bypass_actors` (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#nestedblock--bypass_actors))
-- `conditions` (Block List, Max: 1) Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name` or `repository_id`. (see [below for nested schema](#nestedblock--conditions))
+- `conditions` (Block List, Max: 1) Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name`, `repository_id` or `repository_property`. (see [below for nested schema](#nestedblock--conditions))
 
 ### Read-Only
 
@@ -263,6 +271,7 @@ Optional:
 
 - `repository_id` (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.
 - `repository_name` (Block List, Max: 1) (see [below for nested schema](#nestedblock--conditions--repository_name))
+- `repository_property` (Block List, Max: 1) Condition to target repositories by property. (see [below for nested schema](#nestedblock--conditions--repository_property))
 
 <a id="nestedblock--conditions--ref_name"></a>
 ### Nested Schema for `conditions.ref_name`
@@ -284,6 +293,40 @@ Required:
 Optional:
 
 - `protected` (Boolean) Whether renaming of target repositories is prevented.
+
+
+<a id="nestedblock--conditions--repository_property"></a>
+### Nested Schema for `conditions.repository_property`
+
+Optional:
+
+- `exclude` (Block List) The repository properties and values to exclude. The condition will not pass if any of these properties match. (see [below for nested schema](#nestedblock--conditions--repository_property--exclude))
+- `include` (Block List) The repository properties and values to include. All of these properties must match for the condition to pass. (see [below for nested schema](#nestedblock--conditions--repository_property--include))
+
+<a id="nestedblock--conditions--repository_property--exclude"></a>
+### Nested Schema for `conditions.repository_property.exclude`
+
+Required:
+
+- `property_name` (String) The name of the repository property to target.
+- `property_value` (List of String) The values to match for the repository property.
+
+Optional:
+
+- `source` (String) The source of the repository property. Defaults to `custom` if not specified. Can be one of: custom, system
+
+
+<a id="nestedblock--conditions--repository_property--include"></a>
+### Nested Schema for `conditions.repository_property.include`
+
+Required:
+
+- `property_name` (String) The name of the repository property to target.
+- `property_value` (List of String) The values to match for the repository property.
+
+Optional:
+
+- `source` (String) The source of the repository property. Defaults to `custom` if not specified. Can be one of: custom, system
 
 ## Import
 

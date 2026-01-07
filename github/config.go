@@ -10,7 +10,7 @@ import (
 	"time"
 
 	github_ratelimit "github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
