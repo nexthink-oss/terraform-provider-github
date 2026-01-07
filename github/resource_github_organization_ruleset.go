@@ -114,11 +114,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_name": {
-							Type:         schema.TypeList,
-							Optional:     true,
-							MaxItems:     1,
-							ExactlyOneOf: []string{"conditions.0.repository_id"},
-							AtLeastOneOf: []string{"conditions.0.repository_id"},
+							Type:          schema.TypeList,
+							Optional:      true,
+							MaxItems:      1,
+							ConflictsWith: []string{"conditions.0.repository_id"},
+							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id"},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"include": {
@@ -147,9 +147,11 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							},
 						},
 						"repository_id": {
-							Type:        schema.TypeList,
-							Optional:    true,
-							Description: "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
+							Type:          schema.TypeList,
+							Optional:      true,
+							ConflictsWith: []string{"conditions.0.repository_name"},
+							AtLeastOneOf:  []string{"conditions.0.repository_name", "conditions.0.repository_id"},
+							Description:   "The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.",
 							Elem: &schema.Schema{
 								Type: schema.TypeInt,
 							},
@@ -173,6 +175,13 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: "Only allow users with bypass permission to update matching refs.",
+						},
+						"update_allows_fetch_and_merge": {
+							Type:         schema.TypeBool,
+							Optional:     true,
+							Default:      false,
+							RequiredWith: []string{"rules.0.update"},
+							Description:  "Branch can pull changes from its upstream repository. This is only applicable to forked repositories. Requires `update` to be set to `true`.",
 						},
 						"deletion": {
 							Type:        schema.TypeBool,

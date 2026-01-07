@@ -33,6 +33,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						include = ["~ALL"]
 						exclude = []
 					}
+
+					repository_name {
+						include = ["~ALL"]
+						exclude = []
+					}
 				}
 
 				rules {
@@ -63,12 +68,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 						do_not_enforce_on_create             = true
 					}
 
-					required_workflows {
-						required_workflow {
-							path          = "path/to/workflow.yaml"
-							repository_id = 1234
-						}
-					}
+
 
 					required_code_scanning {
 					  required_code_scanning_tool {
@@ -93,7 +93,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test", "name",
-				"test",
+				fmt.Sprintf("test-%s", randomID),
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test", "enforcement",
@@ -189,6 +189,11 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 				conditions {
 					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+
+					repository_name {
 						include = ["~ALL"]
 						exclude = []
 					}
