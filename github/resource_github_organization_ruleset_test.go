@@ -341,4 +341,90 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 	})
 
+	t.Run("Creates ruleset with repository property exclude condition", func(t *testing.T) {
+
+		config := fmt.Sprintf(`
+			resource "github_organization_ruleset" "test_repo_property_exclude" {
+				name        = "test-repo-property-exclude-%s"
+				target      = "branch"
+				enforcement = "active"
+
+				conditions {
+					ref_name {
+						include = ["~ALL"]
+						exclude = []
+					}
+
+					repository_property {
+						include {
+							property_name = "private"
+							property_value = ["true"]
+							source = "custom"
+						}
+						exclude {
+							property_name = "public"
+							property_value = ["true"]
+							source = "custom"
+						}
+					}
+				}
+
+				rules {
+					creation = true
+					update = true
+					deletion = false
+				}
+			}
+		`, randomID)
+
+		check := resource.ComposeTestCheckFunc(
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property_exclude", "name",
+				fmt.Sprintf("test-repo-property-exclude-%s", randomID),
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property_exclude", "target",
+				"branch",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property_exclude", "enforcement",
+				"active",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property_exclude", "conditions.0.repository_property.0.include.0.property_name",
+				"private",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property_exclude", "conditions.0.repository_property.0.include.0.property_value.0",
+				"true",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property_exclude", "conditions.0.repository_property.0.exclude.0.property_name",
+				"public",
+			),
+			resource.TestCheckResourceAttr(
+				"github_organization_ruleset.test_repo_property_exclude", "conditions.0.repository_property.0.exclude.0.property_value.0",
+				"true",
+			),
+		)
+
+		testCase := func(t *testing.T, mode string) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:  func() { skipUnlessMode(t, mode) },
+				Providers: testAccProviders,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  check,
+					},
+				},
+			})
+		}
+
+		t.Run("with an enterprise account", func(t *testing.T) {
+			testCase(t, enterprise)
+		})
+
+	})
+
 }

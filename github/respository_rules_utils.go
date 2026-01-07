@@ -257,9 +257,7 @@ func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool)
 					includeSlice = append(includeSlice, itemMap)
 				}
 			}
-			if len(includeSlice) > 0 {
-				repositoryPropertyMap["include"] = includeSlice
-			}
+			repositoryPropertyMap["include"] = includeSlice
 
 			// Flatten exclude
 			excludeSlice := make([]map[string]any, 0)
@@ -277,9 +275,7 @@ func flattenConditions(conditions *github.RepositoryRulesetConditions, org bool)
 					excludeSlice = append(excludeSlice, itemMap)
 				}
 			}
-			if len(excludeSlice) > 0 {
-				repositoryPropertyMap["exclude"] = excludeSlice
-			}
+			repositoryPropertyMap["exclude"] = excludeSlice
 
 			conditionsMap["repository_property"] = []any{repositoryPropertyMap}
 		}
