@@ -270,6 +270,14 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	t.Run("Creates ruleset with repository property condition", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
+			resource "github_organization_custom_property" "test_property" {
+				name               = "test_property_%s"
+				value_type         = "true_false"
+				required           = false
+				description        = "Test property for ruleset"
+				values_editable_by = "org_actors"
+			}
+
 			resource "github_organization_ruleset" "test_repo_property" {
 				name        = "test-repo-property-%s"
 				target      = "branch"
@@ -283,11 +291,10 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 					repository_property {
 						include {
-							property_name = "private"
+							property_name = github_organization_custom_property.test_property.name
 							property_value = ["true"]
 							source = "custom"
 						}
-						exclude = []
 					}
 				}
 
@@ -297,7 +304,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					deletion = false
 				}
 			}
-		`, randomID)
+		`, randomID, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -314,7 +321,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test_repo_property", "conditions.0.repository_property.0.include.0.property_name",
-				"private",
+				fmt.Sprintf("test_property_%s", randomID),
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test_repo_property", "conditions.0.repository_property.0.include.0.property_value.0",
@@ -344,6 +351,22 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	t.Run("Creates ruleset with repository property exclude condition", func(t *testing.T) {
 
 		config := fmt.Sprintf(`
+			resource "github_organization_custom_property" "test_include_property" {
+				name               = "test_include_prop_%s"
+				value_type         = "true_false"
+				required           = false
+				description        = "Test include property for ruleset"
+				values_editable_by = "org_actors"
+			}
+
+			resource "github_organization_custom_property" "test_exclude_property" {
+				name               = "test_exclude_prop_%s"
+				value_type         = "true_false"
+				required           = false
+				description        = "Test exclude property for ruleset"
+				values_editable_by = "org_actors"
+			}
+
 			resource "github_organization_ruleset" "test_repo_property_exclude" {
 				name        = "test-repo-property-exclude-%s"
 				target      = "branch"
@@ -357,12 +380,12 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 					repository_property {
 						include {
-							property_name = "private"
+							property_name = github_organization_custom_property.test_include_property.name
 							property_value = ["true"]
 							source = "custom"
 						}
 						exclude {
-							property_name = "public"
+							property_name = github_organization_custom_property.test_exclude_property.name
 							property_value = ["true"]
 							source = "custom"
 						}
@@ -375,7 +398,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 					deletion = false
 				}
 			}
-		`, randomID)
+		`, randomID, randomID, randomID)
 
 		check := resource.ComposeTestCheckFunc(
 			resource.TestCheckResourceAttr(
@@ -392,7 +415,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test_repo_property_exclude", "conditions.0.repository_property.0.include.0.property_name",
-				"private",
+				fmt.Sprintf("test_include_prop_%s", randomID),
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test_repo_property_exclude", "conditions.0.repository_property.0.include.0.property_value.0",
@@ -400,7 +423,7 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test_repo_property_exclude", "conditions.0.repository_property.0.exclude.0.property_name",
-				"public",
+				fmt.Sprintf("test_exclude_prop_%s", randomID),
 			),
 			resource.TestCheckResourceAttr(
 				"github_organization_ruleset.test_repo_property_exclude", "conditions.0.repository_property.0.exclude.0.property_value.0",
