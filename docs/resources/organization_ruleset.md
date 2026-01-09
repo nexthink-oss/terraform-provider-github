@@ -93,7 +93,7 @@ Optional:
 - `file_extension_restriction` (Block List, Max: 1) Prevent pushes based on file extensions. (see [below for nested schema](#nestedblock--rules--file_extension_restriction))
 - `file_path_restriction` (Block List, Max: 1) Prevent commits that include changes in specified file paths from being pushed to the commit graph. (see [below for nested schema](#nestedblock--rules--file_path_restriction))
 - `max_file_path_length` (Block List, Max: 1) Prevent pushes based on file path length. (see [below for nested schema](#nestedblock--rules--max_file_path_length))
-- `max_file_size` (Block List, Max: 1) Prevent pushes based on file size. (see [below for nested schema](#nestedblock--rules--max_file_size))
+- `max_file_size` (Block List, Max: 1) Prevent pushes based on file size (MB). (see [below for nested schema](#nestedblock--rules--max_file_size))
 - `non_fast_forward` (Boolean) Prevent users with push access from force pushing to branches.
 - `pull_request` (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#nestedblock--rules--pull_request))
 - `required_code_scanning` (Block List, Max: 1) Choose which tools must provide code scanning results before the reference is updated. When configured, code scanning must be enabled and have results for both the commit and the reference being updated. (see [below for nested schema](#nestedblock--rules--required_code_scanning))
