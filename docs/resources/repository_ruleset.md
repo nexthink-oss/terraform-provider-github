@@ -49,7 +49,39 @@ resource "github_repository_ruleset" "example" {
       required_deployment_environments = ["test"]
     }
 
+    required_code_scanning {
+      required_code_scanning_tool {
+        alerts_threshold          = "errors"
+        security_alerts_threshold = "high_or_higher"
+        tool                      = "CodeQL"
+      }
+    }
+  }
+}
 
+# Example with push ruleset
+resource "github_repository_ruleset" "example_push" {
+  name        = "example_push"
+  repository  = github_repository.example.name
+  target      = "push"
+  enforcement = "active"
+
+  rules {
+    file_path_restriction {
+      restricted_file_paths = [".github/workflows/*", "*.env"]
+    }
+
+    max_file_size {
+      max_file_size = 100 # 100 MB
+    }
+
+    max_file_path_length {
+      max_file_path_length = 255
+    }
+
+    file_extension_restriction {
+      restricted_file_extensions = ["*.exe", "*.dll", "*.so"]
+    }
   }
 }
 ```
@@ -62,7 +94,7 @@ resource "github_repository_ruleset" "example" {
 - `enforcement` (String) Possible values for Enforcement are `disabled`, `active`, `evaluate`. Note: `evaluate` is currently only supported for owners of type `organization`.
 - `name` (String) The name of the ruleset.
 - `rules` (Block List, Min: 1, Max: 1) Rules within the ruleset. (see [below for nested schema](#nestedblock--rules))
-- `target` (String) Possible values are `branch` and `tag`.
+- `target` (String) Possible values are `branch`, `push` and `tag`.
 
 ### Optional
 
@@ -88,6 +120,10 @@ Optional:
 - `committer_email_pattern` (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. This rule only applies to repositories within an enterprise, it cannot be applied to repositories owned by individuals or regular organizations. (see [below for nested schema](#nestedblock--rules--committer_email_pattern))
 - `creation` (Boolean) Only allow users with bypass permission to create matching refs.
 - `deletion` (Boolean) Only allow users with bypass permissions to delete matching refs.
+- `file_extension_restriction` (Block List, Max: 1) Prevent pushes based on file extensions. (see [below for nested schema](#nestedblock--rules--file_extension_restriction))
+- `file_path_restriction` (Block List, Max: 1) Prevent commits that include changes in specified file paths from being pushed to the commit graph. (see [below for nested schema](#nestedblock--rules--file_path_restriction))
+- `max_file_path_length` (Block List, Max: 1) Prevent pushes based on file path length. (see [below for nested schema](#nestedblock--rules--max_file_path_length))
+- `max_file_size` (Block List, Max: 1) Prevent pushes based on file size. (see [below for nested schema](#nestedblock--rules--max_file_size))
 - `merge_queue` (Block List, Max: 1) Merges must be performed via a merge queue. (see [below for nested schema](#nestedblock--rules--merge_queue))
 - `non_fast_forward` (Boolean) Prevent users with push access from force pushing to branches.
 - `pull_request` (Block List, Max: 1) Require all commits be made to a non-target branch and submitted via a pull request before they can be merged. (see [below for nested schema](#nestedblock--rules--pull_request))
@@ -154,6 +190,38 @@ Optional:
 
 - `name` (String) How this rule will appear to users.
 - `negate` (Boolean) If true, the rule will fail if the pattern matches.
+
+
+<a id="nestedblock--rules--file_extension_restriction"></a>
+### Nested Schema for `rules.file_extension_restriction`
+
+Required:
+
+- `restricted_file_extensions` (Set of String) A list of file extensions.
+
+
+<a id="nestedblock--rules--file_path_restriction"></a>
+### Nested Schema for `rules.file_path_restriction`
+
+Required:
+
+- `restricted_file_paths` (List of String) The file paths that are restricted from being pushed to the commit graph.
+
+
+<a id="nestedblock--rules--max_file_path_length"></a>
+### Nested Schema for `rules.max_file_path_length`
+
+Required:
+
+- `max_file_path_length` (Number) The maximum allowed length of a file path.
+
+
+<a id="nestedblock--rules--max_file_size"></a>
+### Nested Schema for `rules.max_file_size`
+
+Required:
+
+- `max_file_size` (Number) The maximum allowed size of a file in megabytes (MB). Valid range is 1-100 MB.
 
 
 <a id="nestedblock--rules--merge_queue"></a>

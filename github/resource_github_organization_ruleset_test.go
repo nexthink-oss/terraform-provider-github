@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func TestGithubOrganizationRulesets(t *testing.T) {
@@ -21,7 +22,6 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 	randomID := acctest.RandStringFromCharSet(5, acctest.CharSetAlphaNum)
 
 	t.Run("Creates and updates organization rulesets without errors", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
@@ -117,11 +117,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("Updates a ruleset name without error", func(t *testing.T) {
-
 		oldRSName := fmt.Sprintf(`ruleset-%[1]s`, randomID)
 		newRSName := fmt.Sprintf(`%[1]s-renamed`, randomID)
 
@@ -176,11 +174,9 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("Imports rulesets without error", func(t *testing.T) {
-
 		config := fmt.Sprintf(`
 			resource "github_organization_ruleset" "test" {
 				name        = "test-%s"
@@ -264,7 +260,6 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 		t.Run("with an enterprise account", func(t *testing.T) {
 			testCase(t, enterprise)
 		})
-
 	})
 
 	t.Run("Creates ruleset with repository property condition", func(t *testing.T) {
@@ -450,4 +445,111 @@ func TestGithubOrganizationRulesets(t *testing.T) {
 
 	})
 
+}
+
+func TestOrganizationPushRulesetSupport(t *testing.T) {
+	// Test that organization push rulesets support all push-specific rules
+	// This is a unit test since it only validates the expand/flatten functionality
+
+	// Create a Set for restricted_file_extensions
+	restrictedExtensions := []any{".exe", ".bat", ".sh", ".ps1"}
+	restrictedExtensionsSet := schema.NewSet(schema.HashString, restrictedExtensions)
+
+	rulesMap := map[string]any{
+		"file_path_restriction": []any{
+			map[string]any{
+				"restricted_file_paths": []any{"secrets/", "*.key", "private/"},
+			},
+		},
+		"max_file_size": []any{
+			map[string]any{
+				"max_file_size": 10, // 10 MB
+			},
+		},
+		"max_file_path_length": []any{
+			map[string]any{
+				"max_file_path_length": 250,
+			},
+		},
+		"file_extension_restriction": []any{
+			map[string]any{
+				"restricted_file_extensions": restrictedExtensionsSet,
+			},
+		},
+	}
+
+	input := []any{rulesMap}
+
+	// Test expand functionality (organization rulesets use org=true)
+	expandedRules := expandRules(input, true)
+
+	if expandedRules == nil {
+		t.Fatal("Expected non-nil expanded rules")
+	}
+
+	// Verify we have all expected push rule types
+	ruleCount := 0
+	if expandedRules.FilePathRestriction != nil {
+		ruleCount++
+	}
+	if expandedRules.MaxFileSize != nil {
+		ruleCount++
+	}
+	if expandedRules.MaxFilePathLength != nil {
+		ruleCount++
+	}
+	if expandedRules.FileExtensionRestriction != nil {
+		ruleCount++
+	}
+
+	if ruleCount != 4 {
+		t.Fatalf("Expected 4 expanded rules for organization push ruleset, got %d", ruleCount)
+	}
+
+	// Test flatten functionality (organization rulesets use org=true)
+	flattenedResult := flattenRules(expandedRules, true)
+
+	if len(flattenedResult) != 1 {
+		t.Fatalf("Expected 1 flattened result, got %d", len(flattenedResult))
+	}
+
+	flattenedRulesMap := flattenedResult[0].(map[string]any)
+
+	// Verify file_path_restriction
+	filePathRules := flattenedRulesMap["file_path_restriction"].([]map[string]any)
+	if len(filePathRules) != 1 {
+		t.Fatalf("Expected 1 file_path_restriction rule, got %d", len(filePathRules))
+	}
+	restrictedPaths := filePathRules[0]["restricted_file_paths"].([]string)
+	if len(restrictedPaths) != 3 {
+		t.Errorf("Expected 3 restricted file paths, got %d", len(restrictedPaths))
+	}
+
+	// Verify max_file_size
+	maxFileSizeRules := flattenedRulesMap["max_file_size"].([]map[string]any)
+	if len(maxFileSizeRules) != 1 {
+		t.Fatalf("Expected 1 max_file_size rule, got %d", len(maxFileSizeRules))
+	}
+	if maxFileSizeRules[0]["max_file_size"] != int64(10) {
+		t.Errorf("Expected max_file_size to be 10, got %v", maxFileSizeRules[0]["max_file_size"])
+	}
+
+	// Verify max_file_path_length
+	maxFilePathLengthRules := flattenedRulesMap["max_file_path_length"].([]map[string]any)
+	if len(maxFilePathLengthRules) != 1 {
+		t.Fatalf("Expected 1 max_file_path_length rule, got %d", len(maxFilePathLengthRules))
+	}
+	if maxFilePathLengthRules[0]["max_file_path_length"] != 250 {
+		t.Errorf("Expected max_file_path_length to be 250, got %v", maxFilePathLengthRules[0]["max_file_path_length"])
+	}
+
+	// Verify file_extension_restriction
+	fileExtRules := flattenedRulesMap["file_extension_restriction"].([]map[string]any)
+	if len(fileExtRules) != 1 {
+		t.Fatalf("Expected 1 file_extension_restriction rule, got %d", len(fileExtRules))
+	}
+	restrictedExts := fileExtRules[0]["restricted_file_extensions"].([]string)
+	if len(restrictedExts) != 4 {
+		t.Errorf("Expected 4 restricted file extensions, got %d", len(restrictedExts))
+	}
 }

@@ -500,6 +500,52 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 		}
 	}
 
+	// file_path_restriction rule
+	if v, ok := rulesMap["file_path_restriction"].([]any); ok && len(v) != 0 {
+		filePathRestrictionMap := v[0].(map[string]any)
+		restrictedFilePaths := make([]string, 0)
+		for _, path := range filePathRestrictionMap["restricted_file_paths"].([]any) {
+			restrictedFilePaths = append(restrictedFilePaths, path.(string))
+		}
+		rules.FilePathRestriction = &github.FilePathRestrictionRuleParameters{
+			RestrictedFilePaths: restrictedFilePaths,
+		}
+	}
+
+	// max_file_size rule
+	if v, ok := rulesMap["max_file_size"].([]any); ok && len(v) != 0 {
+		maxFileSizeMap := v[0].(map[string]any)
+		maxFileSize := int64(maxFileSizeMap["max_file_size"].(int))
+		rules.MaxFileSize = &github.MaxFileSizeRuleParameters{
+			MaxFileSize: maxFileSize,
+		}
+	}
+
+	// max_file_path_length rule
+	if v, ok := rulesMap["max_file_path_length"].([]any); ok && len(v) != 0 {
+		maxFilePathLengthMap := v[0].(map[string]any)
+		maxFilePathLength := maxFilePathLengthMap["max_file_path_length"].(int)
+		rules.MaxFilePathLength = &github.MaxFilePathLengthRuleParameters{
+			MaxFilePathLength: maxFilePathLength,
+		}
+	}
+
+	// file_extension_restriction rule
+	if v, ok := rulesMap["file_extension_restriction"].([]any); ok && len(v) != 0 {
+		fileExtensionRestrictionMap := v[0].(map[string]any)
+		restrictedFileExtensions := make([]string, 0)
+
+		if restrictedFileExtensionsInput, ok := fileExtensionRestrictionMap["restricted_file_extensions"]; ok {
+			restrictedFileExtensionsSet := restrictedFileExtensionsInput.(*schema.Set)
+			for _, extension := range restrictedFileExtensionsSet.List() {
+				restrictedFileExtensions = append(restrictedFileExtensions, extension.(string))
+			}
+		}
+		rules.FileExtensionRestriction = &github.FileExtensionRestrictionRuleParameters{
+			RestrictedFileExtensions: restrictedFileExtensions,
+		}
+	}
+
 	return rules
 }
 
@@ -667,6 +713,30 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 		rule := make(map[string]any)
 		rule["required_code_scanning_tool"] = codeScanningToolsSlice
 		rulesMap["required_code_scanning"] = []map[string]any{rule}
+	}
+
+	if rules.FilePathRestriction != nil {
+		rule := make(map[string]any)
+		rule["restricted_file_paths"] = rules.FilePathRestriction.RestrictedFilePaths
+		rulesMap["file_path_restriction"] = []map[string]any{rule}
+	}
+
+	if rules.MaxFileSize != nil {
+		rule := make(map[string]any)
+		rule["max_file_size"] = rules.MaxFileSize.MaxFileSize
+		rulesMap["max_file_size"] = []map[string]any{rule}
+	}
+
+	if rules.MaxFilePathLength != nil {
+		rule := make(map[string]any)
+		rule["max_file_path_length"] = rules.MaxFilePathLength.MaxFilePathLength
+		rulesMap["max_file_path_length"] = []map[string]any{rule}
+	}
+
+	if rules.FileExtensionRestriction != nil {
+		rule := make(map[string]any)
+		rule["restricted_file_extensions"] = rules.FileExtensionRestriction.RestrictedFileExtensions
+		rulesMap["file_extension_restriction"] = []map[string]any{rule}
 	}
 
 	return []any{rulesMap}
