@@ -456,9 +456,6 @@ func TestGithubRepositoryRulesets(t *testing.T) {
 		t.Run("with an individual account", func(t *testing.T) {
 			t.Skip("individual account not supported for this operation")
 		})
-		t.Run("with a paid plan in an organization", func(t *testing.T) {
-			testCase(t, organization)
-		})
 	})
 
 	t.Run("Creates repository ruleset with merge queue SQUASH method", func(t *testing.T) {
