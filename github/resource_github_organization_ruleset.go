@@ -85,12 +85,12 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name`, `repository_id` or `repository_property`.",
+				Description: "Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name`, `repository_id` or `repository_property` for branch and tag rulesets. The push rulesets conditions object does not require the ref_name property.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ref_name": {
 							Type:     schema.TypeList,
-							Required: true,
+							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -673,6 +673,8 @@ func resourceGithubOrganizationRuleset() *schema.Resource {
 				Computed: true,
 			},
 		},
+
+		CustomizeDiff: validateOrganizationRulesetRefName,
 	}
 }
 
@@ -801,4 +803,17 @@ func resourceGithubOrganizationRulesetImport(d *schema.ResourceData, meta any) (
 	d.SetId(strconv.FormatInt(ruleset.GetID(), 10))
 
 	return []*schema.ResourceData{d}, nil
+}
+
+func validateOrganizationRulesetRefName(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+	target := d.Get("target").(string)
+
+	// For branch and tag rulesets, ref_name must be set
+	if target == "branch" || target == "tag" {
+		if _, ok := d.GetOk("conditions.0.ref_name"); !ok {
+			return fmt.Errorf("ref_name is required in conditions when target is '%s'", target)
+		}
+	}
+
+	return nil
 }

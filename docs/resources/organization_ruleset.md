@@ -70,7 +70,7 @@ resource "github_organization_ruleset" "example" {
 ### Optional
 
 - `bypass_actors` (Block List) The actors that can bypass the rules in this ruleset. (see [below for nested schema](#nestedblock--bypass_actors))
-- `conditions` (Block List, Max: 1) Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name`, `repository_id` or `repository_property`. (see [below for nested schema](#nestedblock--conditions))
+- `conditions` (Block List, Max: 1) Parameters for an organization ruleset condition. `ref_name` is required alongside one of `repository_name`, `repository_id` or `repository_property` for branch and tag rulesets. The push rulesets conditions object does not require the ref_name property. (see [below for nested schema](#nestedblock--conditions))
 
 ### Read-Only
 
@@ -299,15 +299,14 @@ Required:
 <a id="nestedblock--conditions"></a>
 ### Nested Schema for `conditions`
 
-Required:
-
-- `ref_name` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--conditions--ref_name))
-
 Optional:
 
+- `ref_name` (Block List, Max: 1) (see [below for nested schema](#nestedblock--conditions--ref_name))
 - `repository_id` (List of Number) The repository IDs that the ruleset applies to. One of these IDs must match for the condition to pass.
 - `repository_name` (Block List, Max: 1) (see [below for nested schema](#nestedblock--conditions--repository_name))
 - `repository_property` (Block List, Max: 1) Condition to target repositories by property. (see [below for nested schema](#nestedblock--conditions--repository_property))
+
+**Note:** For `branch` and `tag` target types, `ref_name` is required alongside one of `repository_name`, `repository_id`, or `repository_property`. For `push` target type, `ref_name` is optional.
 
 <a id="nestedblock--conditions--ref_name"></a>
 ### Nested Schema for `conditions.ref_name`
