@@ -2,9 +2,12 @@ package github
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/google/go-github/v81/github"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -80,6 +83,11 @@ func resourceGithubActionsEnvironmentVariableCreate(d *schema.ResourceData, meta
 	}
 
 	d.SetId(buildThreePartID(repoName, envName, name))
+
+	if err := waitForEnvironmentVariableConsistency(ctx, client, owner, repoName, escapedEnvName, name); err != nil {
+		return err
+	}
+
 	return resourceGithubActionsEnvironmentVariableRead(d, meta)
 }
 
@@ -155,4 +163,46 @@ func resourceGithubActionsEnvironmentVariableDelete(d *schema.ResourceData, meta
 	_, err = client.Actions.DeleteEnvVariable(ctx, owner, repoName, escapedEnvName, name)
 
 	return err
+}
+
+func waitForEnvironmentVariableConsistency(
+	ctx context.Context,
+	client *github.Client,
+	owner, repoName, escapedEnvName, variableName string,
+) error {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	select {
+	case <-ctxWithTimeout.Done():
+		return fmt.Errorf("context done before waiting for environment variable %s: %w", variableName, ctxWithTimeout.Err())
+	case <-time.After(time.Second):
+	}
+
+	backoff := time.Second
+	maxBackoff := 10 * time.Second
+
+	for {
+		_, _, err := client.Actions.GetEnvVariable(ctxWithTimeout, owner, repoName, escapedEnvName, variableName)
+		if err == nil {
+			return nil
+		}
+
+		var ghErr *github.ErrorResponse
+		if errors.As(err, &ghErr) && ghErr.Response.StatusCode == http.StatusNotFound {
+			select {
+			case <-ctxWithTimeout.Done():
+				return fmt.Errorf("timeout waiting for environment variable %s to be consistent: %w", variableName, ctxWithTimeout.Err())
+			case <-time.After(backoff):
+			}
+
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		return fmt.Errorf("error waiting for environment variable %s to be consistent: %w", variableName, err)
+	}
 }
