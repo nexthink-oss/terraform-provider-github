@@ -500,6 +500,16 @@ func expandRules(input []any, org bool) *github.RepositoryRulesetRules {
 		}
 	}
 
+	// Copilot code review rule
+	if v, ok := rulesMap["copilot_code_review"].([]any); ok && len(v) != 0 {
+		copilotCodeReviewMap := v[0].(map[string]any)
+		params := &github.CopilotCodeReviewRuleParameters{
+			ReviewOnPush:            copilotCodeReviewMap["review_on_push"].(bool),
+			ReviewDraftPullRequests: copilotCodeReviewMap["review_draft_pull_requests"].(bool),
+		}
+		rules.CopilotCodeReview = params
+	}
+
 	// file_path_restriction rule
 	if v, ok := rulesMap["file_path_restriction"].([]any); ok && len(v) != 0 {
 		filePathRestrictionMap := v[0].(map[string]any)
@@ -713,6 +723,16 @@ func flattenRules(rules *github.RepositoryRulesetRules, org bool) []any {
 		rule := make(map[string]any)
 		rule["required_code_scanning_tool"] = codeScanningToolsSlice
 		rulesMap["required_code_scanning"] = []map[string]any{rule}
+	}
+
+	// Copilot code review rule
+	if rules.CopilotCodeReview != nil {
+		copilotCodeReviewSlice := make([]map[string]any, 0)
+		copilotCodeReviewSlice = append(copilotCodeReviewSlice, map[string]any{
+			"review_on_push":             rules.CopilotCodeReview.ReviewOnPush,
+			"review_draft_pull_requests": rules.CopilotCodeReview.ReviewDraftPullRequests,
+		})
+		rulesMap["copilot_code_review"] = copilotCodeReviewSlice
 	}
 
 	if rules.FilePathRestriction != nil {

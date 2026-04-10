@@ -88,6 +88,7 @@ Optional:
 - `commit_author_email_pattern` (Block List, Max: 1) Parameters to be used for the commit_author_email_pattern rule. (see [below for nested schema](#nestedblock--rules--commit_author_email_pattern))
 - `commit_message_pattern` (Block List, Max: 1) Parameters to be used for the commit_message_pattern rule. (see [below for nested schema](#nestedblock--rules--commit_message_pattern))
 - `committer_email_pattern` (Block List, Max: 1) Parameters to be used for the committer_email_pattern rule. (see [below for nested schema](#nestedblock--rules--committer_email_pattern))
+- `copilot_code_review` (Block List, Max: 1) Automatically request Copilot code review for new pull requests if the author has access to Copilot code review and their premium requests quota has not reached the limit. (see [below for nested schema](#nestedblock--rules--copilot_code_review))
 - `creation` (Boolean) Only allow users with bypass permission to create matching refs.
 - `deletion` (Boolean) Only allow users with bypass permissions to delete matching refs.
 - `file_extension_restriction` (Block List, Max: 1) Prevent pushes based on file extensions. (see [below for nested schema](#nestedblock--rules--file_extension_restriction))
@@ -223,6 +224,14 @@ Required:
 - `security_alerts_threshold` (String) The severity level at which code scanning results that raise security alerts block a reference update. Can be one of: `none`, `critical`, `high_or_higher`, `medium_or_higher`, `all`.
 - `tool` (String) The name of a code scanning tool.
 
+
+<a id="nestedblock--rules--copilot_code_review"></a>
+### Nested Schema for `rules.copilot_code_review`
+
+Optional:
+
+- `review_on_push` (Boolean) Copilot automatically reviews each new push to the pull request. Defaults to `false`.
+- `review_draft_pull_requests` (Boolean) Copilot automatically reviews draft pull requests before they are marked as ready for review. Defaults to `false`.
 
 
 <a id="nestedblock--rules--required_status_checks"></a>
